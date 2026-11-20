@@ -17,6 +17,8 @@ public sealed partial class TuningPage : Page
     private List<FanCurvePoint> _fan = new();
     private readonly List<NumberBox> _stateBoxes = new();
     private readonly List<NumberBox> _fanBoxes = new();
+    private static List<FanCurvePoint>? _driverFan;
+    private const string FanPresetDriver = "driver", FanPresetOptimized = "optimized", FanPresetCustom = "custom";
     private bool _loading = true;
     private int _baseVoltage;
     private double _ghostMax, _ghostVolt;
@@ -203,18 +205,32 @@ public sealed partial class TuningPage : Page
                 if (VramTimingCombo.Items[i] is ComboBoxItem { Tag: int tg } && s.VramTiming != null && tg == (int)s.VramTiming) VramTimingCombo.SelectedIndex = i;
 
             // Ventoinha
-            FanCard.Visibility = t.FanSupported ? Visibility.Visible : Visibility.Collapsed;
+            FanCard.Visibility = Visibility.Visible;
+            FanUnsupportedText.Visibility = t.FanSupported ? Visibility.Collapsed : Visibility.Visible;
+            FanPresetCombo.IsEnabled = ZeroRpmToggle.IsEnabled = t.FanSupported;
+            if (!t.FanSupported)
+            {
+                ZeroRpmToggle.Visibility = Visibility.Collapsed;
+                FanChart.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                FanChart.Visibility = Visibility.Visible;
+            }
+
             if (t.FanSupported)
             {
                 ZeroRpmToggle.Visibility = t.ZeroRpmSupported ? Visibility.Visible : Visibility.Collapsed;
                 ZeroRpmToggle.IsOn = s.ZeroRpm == true;
                 _fan = s.FanCurve is { Count: > 0 } ? s.FanCurve.Select(p => p.Clone()).ToList() : DefaultFan(t);
+                _driverFan ??= _fan.Select(p => p.Clone()).ToList();
                 BuildFanRows();
+                FillFanPresets();
             }
 
             if (!App.Settings.Current.AdvancedMode)
             {
-                StatesCard.Visibility = VramCard.Visibility = FanCard.Visibility = Visibility.Collapsed;
+                StatesCard.Visibility = VramCard.Visibility = Visibility.Collapsed;
             }
 
             PendingText.Text = string.Empty;
@@ -435,6 +451,96 @@ public sealed partial class TuningPage : Page
         MmChart.SetGhost(CurvePoints(fLo, gmax, vLo, gv));
     }
 
+    private void FillFanPresets()
+    {
+        FanPresetCombo.Items.Clear();
+        FanPresetCombo.Items.Add(Item(L("Tuning.FanPresetDriver"), FanPresetDriver));
+        FanPresetCombo.Items.Add(Item(L("Tuning.FanPresetOptimized"), FanPresetOptimized));
+        FanPresetCombo.Items.Add(Item(L("Tuning.FanPresetCustom"), FanPresetCustom));
+        FanPresetCombo.SelectedIndex = MatchFanPreset();
+    }
+
+    private int MatchFanPreset()
+    {
+        if (SameCurve(_fan, _driverFan)) return 0;
+        if (SameCurve(_fan, OptimizedFan(_caps))) return 1;
+        return 2;
+    }
+
+    private static bool SameCurve(List<FanCurvePoint> a, List<FanCurvePoint>? b)
+    {
+        if (b == null || a.Count != b.Count) return false;
+        for (int i = 0; i < a.Count; i++)
+            if (a[i].TemperatureC != b[i].TemperatureC || a[i].FanSpeedPercent != b[i].FanSpeedPercent) return false;
+        return true;
+    }
+
+    // Common community curve: quiet at idle, steady ramp through the load range, full speed at 80 C.
+    private static readonly (int Temp, int Speed)[] OptimizedAnchors = { (30, 0), (40, 30), (50, 40), (60, 55), (70, 75), (80, 100), (110, 100) };
+
+    private static List<FanCurvePoint> OptimizedFan(TuningCapabilities t)
+    {
+        int n = Math.Max(2, t.FanPointCount > 0 ? t.FanPointCount : 5);
+        int tMin = t.FanTempRange.IsValid ? t.FanTempRange.Min : 25;
+        int tMax = t.FanTempRange.IsValid ? t.FanTempRange.Max : 100;
+        int sMin = t.FanSpeedRange.IsValid ? t.FanSpeedRange.Min : 0;
+        int sMax = t.FanSpeedRange.IsValid ? t.FanSpeedRange.Max : 100;
+        int first = Math.Clamp(40, tMin, tMax), last = Math.Clamp(80, tMin, tMax);
+        var list = new List<FanCurvePoint>();
+        for (int i = 0; i < n; i++)
+        {
+            int temp = n == 1 ? last : (int)Math.Round(first + (last - first) * i / (double)(n - 1));
+            if (i > 0 && temp <= list[i - 1].TemperatureC) temp = list[i - 1].TemperatureC + 1;
+            double speed = OptimizedAnchors[^1].Speed;
+            for (int k = 1; k < OptimizedAnchors.Length; k++)
+            {
+                var (t0, s0) = OptimizedAnchors[k - 1];
+                var (t1, s1) = OptimizedAnchors[k];
+                if (temp <= t1)
+                {
+                    speed = s0 + (s1 - s0) * (temp - t0) / (double)(t1 - t0);
+                    break;
+                }
+            }
+
+            int sp = (int)Math.Clamp(Math.Round(speed), sMin, sMax);
+            if (i > 0 && sp < list[i - 1].FanSpeedPercent) sp = list[i - 1].FanSpeedPercent;
+            list.Add(new FanCurvePoint { TemperatureC = temp, FanSpeedPercent = sp });
+        }
+
+        return list;
+    }
+
+    private void FanPreset_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || FanPresetCombo.SelectedItem is not ComboBoxItem { Tag: string key }) return;
+        if (key == FanPresetCustom) return;
+        var curve = key == FanPresetOptimized ? OptimizedFan(_caps) : _driverFan?.Select(p => p.Clone()).ToList();
+        if (curve == null) return;
+        bool was = _loading;
+        _loading = true;
+        try
+        {
+            _fan = curve;
+            BuildFanRows();
+        }
+        finally
+        {
+            _loading = was;
+        }
+
+        MarkPending();
+    }
+
+    private void SetFanPresetCustom()
+    {
+        if (FanPresetCombo.Items.Count < 3 || FanPresetCombo.SelectedIndex == 2) return;
+        bool was = _loading;
+        _loading = true;
+        FanPresetCombo.SelectedIndex = MatchFanPreset();
+        _loading = was;
+    }
+
     private void FanDragged(int i, double x, double y)
     {
         if (i < 0 || i >= _fan.Count) return;
@@ -481,6 +587,7 @@ public sealed partial class TuningPage : Page
 
         _loading = was;
         RefreshFanChart();
+        SetFanPresetCustom();
     }
 
     private void KeepMin_Toggled(object sender, RoutedEventArgs e)
@@ -570,7 +677,7 @@ public sealed partial class TuningPage : Page
         if (t.PowerSupported) s.PowerLimitPercent = (int)PowerSlider.Value;
         if (Adv && t.VramFreqSupported && !double.IsNaN(VramBox.Value)) s.VramMaxMhz = (int)VramBox.Value;
         if (Adv && t.VramTimingSupported && VramTimingCombo.SelectedItem is ComboBoxItem { Tag: int tm }) s.VramTiming = (AdlxMemoryTiming)tm;
-        if (Adv && t.FanSupported)
+        if (t.FanSupported)
         {
             if (t.ZeroRpmSupported) s.ZeroRpm = ZeroRpmToggle.IsOn;
             s.FanCurve = _fan.Select(p => p.Clone()).ToList();

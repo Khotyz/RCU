@@ -88,6 +88,11 @@ public sealed partial class AdlxSession
                 }
 
                 // --- Fans
+                {
+                    var fr = _tuning.GetBoolWith(TuneSlot.IsSupportedFan, _gpu.Ptr, out bool fsup);
+                    LogService.Info($"ADLX fan tuning: IsSupportedManualFanTuning result={fr} supported={fsup}");
+                }
+
                 using (var fan = TuningObject(TuneSlot.IsSupportedFan, TuneSlot.GetFan, "IADLXManualFanTuning"))
                 {
                     if (fan != null)

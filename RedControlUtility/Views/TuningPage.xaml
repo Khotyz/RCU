@@ -90,6 +90,8 @@
             <Border x:Name="FanCard" Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="8">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupFan" />
+                    <TextBlock x:Name="FanUnsupportedText" Visibility="Collapsed" TextWrapping="Wrap" Opacity="0.7" rcu:Loc.Key="Tuning.FanUnsupported" />
+                    <ComboBox x:Name="FanPresetCombo" Width="300" rcu:Loc.Header="Tuning.FanPreset" rcu:Loc.Tip="Tuning.FanPresetTip" SelectionChanged="FanPreset_Changed" />
                     <ToggleSwitch x:Name="ZeroRpmToggle" rcu:Loc.Header="Tuning.ZeroRpm" rcu:Loc.Tip="Tuning.ZeroRpmTip" Toggled="Field_Toggled" />
                     <ctl:CurveChart x:Name="FanChart" rcu:Loc.Tip="Tuning.FanChartTip" Height="220" />
                     <StackPanel x:Name="FanRows" Spacing="4" />

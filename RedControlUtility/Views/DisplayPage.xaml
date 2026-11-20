@@ -27,6 +27,7 @@
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="6">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Display.GroupColor" />
+                    <ComboBox x:Name="DriverPresetCombo" Width="300" rcu:Loc.Header="Display.DriverPreset" rcu:Loc.Tip="Display.DriverPresetTip" SelectionChanged="DriverPreset_Changed" />
                     <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Display.Hue" rcu:Loc.Tip="Display.HueTip" />

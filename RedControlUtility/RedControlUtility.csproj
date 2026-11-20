@@ -19,7 +19,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Product>Red Control Utility</Product>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <!-- Menos RAM: GC não concorrente, sem PGO e compactação mais agressiva -->
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <TieredPGO>false</TieredPGO>

@@ -58,6 +58,9 @@ public sealed partial class DisplayPage : Page
 
             ColorProfileCombo.Items.Clear();
             foreach (var k in ProfileKeys) ColorProfileCombo.Items.Add(Item(L($"ColorProfile.{k}"), k));
+            DriverPresetCombo.Items.Clear();
+            foreach (var k in DriverPresets.Keys) DriverPresetCombo.Items.Add(Item(L($"DriverPreset.{k}"), k));
+            DriverPresetCombo.SelectedIndex = -1;
 
             _displays = App.Hardware.ReadDisplays();
             DisplayCombo.Items.Clear();
@@ -123,6 +126,8 @@ public sealed partial class DisplayPage : Page
         ColorSlider(BriSlider, BriValue, c.Brightness, c.BrightnessRange, s.Brightness);
         ColorSlider(ConSlider, ConValue, c.Contrast, c.ContrastRange, s.Contrast);
         ColorSlider(TempSlider, TempValue, c.Temperature, c.TemperatureRange, s.Temperature);
+        DriverPresetCombo.IsEnabled = c.Hue || c.Saturation || c.Brightness || c.Contrast || c.Temperature;
+        DriverPresetCombo.SelectedIndex = -1;
     }
 
     private static void ColorSlider(Slider sl, TextBlock label, bool supported, AdlxRange range, int? value)
@@ -183,6 +188,30 @@ public sealed partial class DisplayPage : Page
 
     private void Driver_Changed(object sender, RoutedEventArgs e) => DriverChanged();
     private void Driver_SelectionChanged(object sender, SelectionChangedEventArgs e) => DriverChanged();
+
+    // Hue, saturation, brightness, contrast, temperature (K). Values are clamped to the ranges the driver reports.
+    private static readonly Dictionary<string, (int Hue, int Sat, int Bri, int Con, int Temp)> DriverPresets = new()
+    {
+        ["Default"] = (0, 100, 0, 100, 6500),
+        ["FakeHdr"] = (0, 118, 2, 112, 6500),
+        ["FakeOledIps"] = (0, 112, -3, 118, 6400),
+        ["FakeOledVa"] = (0, 108, 0, 110, 6500),
+    };
+
+    private void DriverPreset_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || DriverPresetCombo.SelectedItem is not ComboBoxItem { Tag: string key } || !DriverPresets.TryGetValue(key, out var p)) return;
+        SetIfEnabled(HueSlider, p.Hue);
+        SetIfEnabled(SatSlider, p.Sat);
+        SetIfEnabled(BriSlider, p.Bri);
+        SetIfEnabled(ConSlider, p.Con);
+        SetIfEnabled(TempSlider, p.Temp);
+    }
+
+    private static void SetIfEnabled(Slider s, int value)
+    {
+        if (s.IsEnabled) s.Value = Math.Clamp(value, s.Minimum, s.Maximum);
+    }
 
     private void Driver_Slider(object sender, RangeBaseValueChangedEventArgs e)
     {
