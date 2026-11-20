@@ -234,18 +234,18 @@ public sealed partial class AdlxSession
                 if (s.GpuScaling == false)
                 {
                     Add("Virtual Super Resolution", s.Vsr, Toggle("Virtual Super Resolution", DispSvc.Vsr, s.Vsr));
-                    Add("Escala inteira", s.IntegerScaling, Toggle("Escala inteira", DispSvc.IntegerScaling, s.IntegerScaling));
-                    Add("Escala da GPU", s.GpuScaling, Toggle("Escala da GPU", DispSvc.GpuScaling, s.GpuScaling));
+                    Add(UiHelper.L("Report.IntegerScaling"), s.IntegerScaling, Toggle(UiHelper.L("Report.IntegerScaling"), DispSvc.IntegerScaling, s.IntegerScaling));
+                    Add(UiHelper.L("Report.GpuScaling"), s.GpuScaling, Toggle(UiHelper.L("Report.GpuScaling"), DispSvc.GpuScaling, s.GpuScaling));
                 }
                 else
                 {
-                    Add("Escala da GPU", s.GpuScaling, Toggle("Escala da GPU", DispSvc.GpuScaling, s.GpuScaling));
+                    Add(UiHelper.L("Report.GpuScaling"), s.GpuScaling, Toggle(UiHelper.L("Report.GpuScaling"), DispSvc.GpuScaling, s.GpuScaling));
 
                     // O VSR só funciona com a escala da GPU ligada: liga sozinho, como o AMD Software faz.
                     if (s.Vsr == true && !(ReadBool(DispSvc.GpuScaling, out bool gsNow) && gsNow))
                     {
                         LogService.Info("VSR pedido: ligando a escala da GPU (pré-requisito)");
-                        report.Add("Escala da GPU (necessária para o VSR)", Toggle("Escala da GPU", DispSvc.GpuScaling, true));
+                        report.Add(UiHelper.L("Report.GpuScalingForVsr"), Toggle(UiHelper.L("Report.GpuScaling"), DispSvc.GpuScaling, true));
                     }
 
                     // O driver refaz a lista de modos depois de mexer na escala: espera ele responder.
@@ -255,13 +255,13 @@ public sealed partial class AdlxSession
                     }
 
                     Add("Virtual Super Resolution", s.Vsr, Toggle("Virtual Super Resolution", DispSvc.Vsr, s.Vsr));
-                    Add("Escala inteira", s.IntegerScaling, Toggle("Escala inteira", DispSvc.IntegerScaling, s.IntegerScaling));
+                    Add(UiHelper.L("Report.IntegerScaling"), s.IntegerScaling, Toggle(UiHelper.L("Report.IntegerScaling"), DispSvc.IntegerScaling, s.IntegerScaling));
                 }
 
                 if (s.ScalingMode != null)
                 {
                     using var f = DisplayFeature(d, DispSvc.ScalingMode);
-                    report.Add("Modo de escala", f == null ? AdlxResult.NotSupported : f.SetInt(5, s.ScalingMode.Value));
+                    report.Add(UiHelper.L("Report.ScalingMode"), f == null ? AdlxResult.NotSupported : f.SetInt(5, s.ScalingMode.Value));
                 }
 
                 Add("FreeSync", s.FreeSync, Toggle("FreeSync", DispSvc.FreeSync, s.FreeSync, force: false));
@@ -272,7 +272,7 @@ public sealed partial class AdlxSession
                 }
 
                 int?[] colors = { s.Hue, s.Saturation, s.Brightness, s.Contrast, s.Temperature };
-                string[] colorNames = { "Matiz", "Saturação", "Brilho", "Contraste", "Temperatura de cor" };
+                string[] colorNames = { UiHelper.L("Report.Hue"), UiHelper.L("Report.Saturation"), UiHelper.L("Report.Brightness"), UiHelper.L("Report.Contrast"), UiHelper.L("Report.ColorTemp") };
                 if (colors.Any(c => c != null))
                 {
                     using var f = DisplayFeature(d, DispSvc.CustomColor);

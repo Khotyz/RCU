@@ -332,7 +332,7 @@ public sealed partial class AdlxSession
                 {
                     using var pw = TuningObject(TuneSlot.IsSupportedPower, TuneSlot.GetPower, "IADLXManualPowerTuning");
                     int v = caps.PowerRange.IsValid ? caps.PowerRange.Clamp(t.PowerLimitPercent.Value) : t.PowerLimitPercent.Value;
-                    report.Add("Limite de potência", pw == null ? AdlxResult.NotSupported : pw.SetInt(5, v));
+                    report.Add(UiHelper.L("Report.PowerLimit"), pw == null ? AdlxResult.NotSupported : pw.SetInt(5, v));
                 }
 
                 if ((t.FanCurve is { Count: > 0 } || t.ZeroRpm != null) && caps.FanSupported)
@@ -368,7 +368,7 @@ public sealed partial class AdlxSession
         using var g = TuningObject(TuneSlot.IsSupportedGfx, TuneSlot.GetGfx, "IADLXManualGraphicsTuning2");
         if (g == null)
         {
-            report.Add("Clock/Voltagem da GPU", AdlxResult.NotSupported);
+            report.Add(UiHelper.L("Report.GpuClockVoltage"), AdlxResult.NotSupported);
             return;
         }
 
@@ -382,19 +382,19 @@ public sealed partial class AdlxSession
         bool minFirst = newMax != null && newMax.Value < curMin;
         if (minFirst)
         {
-            if (newMin != null) report.Add("GPU clock mínimo", g.SetInt(5, newMin.Value));
-            if (newMax != null) report.Add("GPU clock máximo", g.SetInt(8, newMax.Value));
+            if (newMin != null) report.Add(UiHelper.L("Report.GpuClockMin"), g.SetInt(5, newMin.Value));
+            if (newMax != null) report.Add(UiHelper.L("Report.GpuClockMax"), g.SetInt(8, newMax.Value));
         }
         else
         {
-            if (newMax != null) report.Add("GPU clock máximo", g.SetInt(8, newMax.Value));
-            if (newMin != null) report.Add("GPU clock mínimo", g.SetInt(5, newMin.Value));
+            if (newMax != null) report.Add(UiHelper.L("Report.GpuClockMax"), g.SetInt(8, newMax.Value));
+            if (newMin != null) report.Add(UiHelper.L("Report.GpuClockMin"), g.SetInt(5, newMin.Value));
         }
 
         if (t.VoltageMv != null)
         {
             int v = caps.VoltageRange.IsValid ? caps.VoltageRange.Clamp(t.VoltageMv.Value) : t.VoltageMv.Value;
-            report.Add("Voltagem da GPU", g.SetInt(11, v));
+            report.Add(UiHelper.L("Report.GpuVoltage"), g.SetInt(11, v));
         }
     }
 
@@ -403,7 +403,7 @@ public sealed partial class AdlxSession
         using var g = TuningObject(TuneSlot.IsSupportedGfx, TuneSlot.GetGfx, "IADLXManualGraphicsTuning1");
         if (g == null || !g.GetPtr(4, out IntPtr lp).Succeeded() || lp == IntPtr.Zero)
         {
-            report.Add("Estados V/F", AdlxResult.NotSupported);
+            report.Add(UiHelper.L("Report.VfStates"), AdlxResult.NotSupported);
             return;
         }
 
@@ -421,11 +421,11 @@ public sealed partial class AdlxSession
             if (!valid.Succeeded())
             {
                 LogService.Error($"Estados V/F inválidos (índice {errIdx}).");
-                report.Add($"Estados V/F (ponto {errIdx + 1} inválido)", valid);
+                report.Add($"{UiHelper.L("Report.VfStates")} ({UiHelper.L("Report.InvalidPoint", errIdx + 1)})", valid);
                 return;
             }
 
-            report.Add("Estados V/F", g.SetPtr(7, list.Ptr));
+            report.Add(UiHelper.L("Report.VfStates"), g.SetPtr(7, list.Ptr));
         }
         finally
         {
@@ -441,12 +441,12 @@ public sealed partial class AdlxSession
             if (t.VramMaxMhz != null && caps.VramFreqSupported)
             {
                 int f = caps.VramFreqRange.IsValid ? caps.VramFreqRange.Clamp(t.VramMaxMhz.Value) : t.VramMaxMhz.Value;
-                report.Add("Clock máximo da VRAM", v2.SetInt(9, f));
+                report.Add(UiHelper.L("Report.VramClock"), v2.SetInt(9, f));
             }
 
             if (t.VramTiming != null && caps.VramTimingSupported)
             {
-                report.Add("Timing da VRAM", v2.SetInt(6, (int)t.VramTiming.Value));
+                report.Add(UiHelper.L("Report.VramTiming"), v2.SetInt(6, (int)t.VramTiming.Value));
             }
 
             return;
@@ -461,7 +461,7 @@ public sealed partial class AdlxSession
 
         if (t.VramTiming != null && caps.VramTimingSupported)
         {
-            report.Add("Timing da VRAM", v1.SetInt(6, (int)t.VramTiming.Value));
+            report.Add(UiHelper.L("Report.VramTiming"), v1.SetInt(6, (int)t.VramTiming.Value));
         }
 
         if (t.VramMaxMhz != null && caps.VramFreqSupported && v1.GetPtr(8, out IntPtr lp).Succeeded() && lp != IntPtr.Zero)
@@ -475,7 +475,7 @@ public sealed partial class AdlxSession
                     int f = caps.VramFreqRange.IsValid ? caps.VramFreqRange.Clamp(t.VramMaxMhz.Value) : t.VramMaxMhz.Value;
                     items[^1].SetInt(4, f); // último estado = máximo
                     var valid = v1.ValidateStates(10, list.Ptr, out _);
-                    report.Add("Clock máximo da VRAM", valid.Succeeded() ? v1.SetPtr(11, list.Ptr) : valid);
+                    report.Add(UiHelper.L("Report.VramClock"), valid.Succeeded() ? v1.SetPtr(11, list.Ptr) : valid);
                 }
             }
             finally
@@ -490,7 +490,7 @@ public sealed partial class AdlxSession
         using var fan = TuningObject(TuneSlot.IsSupportedFan, TuneSlot.GetFan, "IADLXManualFanTuning");
         if (fan == null)
         {
-            report.Add("Ventoinhas", AdlxResult.NotSupported);
+            report.Add(UiHelper.L("Report.Fans"), AdlxResult.NotSupported);
             return;
         }
 
@@ -507,7 +507,7 @@ public sealed partial class AdlxSession
 
         if (!fan.GetPtr(4, out IntPtr lp).Succeeded() || lp == IntPtr.Zero)
         {
-            report.Add("Curva de ventoinha", AdlxResult.NotSupported);
+            report.Add(UiHelper.L("Report.FanCurve"), AdlxResult.NotSupported);
             return;
         }
 
@@ -529,11 +529,11 @@ public sealed partial class AdlxSession
             var valid = fan.ValidateStates(6, list.Ptr, out int errIdx);
             if (!valid.Succeeded())
             {
-                report.Add($"Curva de ventoinha (ponto {errIdx + 1} inválido)", valid);
+                report.Add($"{UiHelper.L("Report.FanCurve")} ({UiHelper.L("Report.InvalidPoint", errIdx + 1)})", valid);
                 return;
             }
 
-            report.Add("Curva de ventoinha", fan.SetPtr(7, list.Ptr));
+            report.Add(UiHelper.L("Report.FanCurve"), fan.SetPtr(7, list.Ptr));
         }
         finally
         {

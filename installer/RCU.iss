@@ -1,7 +1,7 @@
 ; Red Control Utility installer (Inno Setup 6).
 ; Build:  iscc /DAppVersion=1.2.3 /DSourceDir=..\publish installer\RCU.iss
 #ifndef AppVersion
-  #define AppVersion "0.2.0"
+  #define AppVersion "0.2.1"
 #endif
 #ifndef SourceDir
   #define SourceDir "..\RedControlUtility\bin\x64\Release\net8.0-windows10.0.19041.0\publish"

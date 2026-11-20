@@ -72,7 +72,7 @@ public sealed partial class AdlxSession : IDisposable
             }
             catch (Exception ex)
             {
-                log.AppendLine($"[{attempt}] Exceção ao abrir o ADLX: {ex.Message}");
+                log.AppendLine(UiHelper.L("Diag.AdlxOpenEx", attempt, ex.Message));
                 continue;
             }
 
@@ -84,7 +84,7 @@ public sealed partial class AdlxSession : IDisposable
                 session._system = new AdlxObject(lib.System, refCounted: false);
                 if (!session.EnumerateGpusInternal(log))
                 {
-                    log.AppendLine($"[{attempt}] ADLX inicializou ({lib.BackendName}), mas nenhuma GPU foi enumerada. Tentando o próximo método.");
+                    log.AppendLine(UiHelper.L("Diag.AdlxNoGpu", attempt, lib.BackendName));
                     session.Dispose();
                     continue;
                 }
@@ -96,7 +96,7 @@ public sealed partial class AdlxSession : IDisposable
             }
             catch (Exception ex)
             {
-                log.AppendLine($"[{attempt}] Exceção ao preparar a sessão ADLX: {ex.Message}");
+                log.AppendLine(UiHelper.L("Diag.AdlxSessionEx", attempt, ex.Message));
                 session.Dispose();
             }
         }
@@ -215,7 +215,7 @@ public sealed partial class AdlxSession : IDisposable
         _3d2 = _3d?.Query("IADLX3DSettingsServices2");
         _3d3 = _3d?.Query("IADLX3DSettingsServices3");
 
-        log?.AppendLine($"[ADLX] serviços: perf={_perf != null} tuning={_tuning != null} (Tuning1={_tuning1 != null}) 3D={_3d != null} (S1={_3d1 != null}, S2={_3d2 != null}, S3={_3d3 != null}) displays={_displays != null}");
+        log?.AppendLine($"[ADLX] {UiHelper.L("Diag.Services")}: perf={_perf != null} tuning={_tuning != null} (Tuning1={_tuning1 != null}) 3D={_3d != null} (S1={_3d1 != null}, S2={_3d2 != null}, S3={_3d3 != null}) displays={_displays != null}");
 
         if (_perf != null)
         {
@@ -274,7 +274,7 @@ public sealed partial class AdlxSession : IDisposable
         {
             if (_perf == null || _gpu == null)
             {
-                snap.Error = "Serviço de monitoramento indisponível";
+                snap.Error = UiHelper.L("Err.MonitorUnavailable");
                 return snap;
             }
 

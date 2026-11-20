@@ -21,7 +21,7 @@ public sealed class HardwareService : IDisposable
     public IReadOnlyList<GpuInfo> AllGpus => _gpus;
     public bool AdlxAvailable => _session != null;
     public bool LegacySensors => _adl != null;
-    public string BackendName => _session?.BackendName ?? (_adl != null ? "ADL legado (somente sensores)" : "Indisponível (modo somente leitura por registro)");
+    public string BackendName => _session?.BackendName ?? (_adl != null ? UiHelper.L("Backend.LegacyAdl") : UiHelper.L("Backend.ReadOnly"));
     public string AdlxVersion => _session?.AdlxVersion ?? string.Empty;
     public string InitReport { get; private set; } = string.Empty;
 
@@ -47,7 +47,7 @@ public sealed class HardwareService : IDisposable
         }
         catch (Exception ex)
         {
-            InitReport = $"Exceção: {ex.Message}";
+            InitReport = UiHelper.L("Diag.Exception", ex.Message);
             LogService.Error($"ADLX init: {ex}");
         }
 
@@ -123,7 +123,7 @@ public sealed class HardwareService : IDisposable
     {
         var adapters = DriverInfoService.ReadAmdAdapters();
         var best = adapters.OrderByDescending(a => a.VramBytes).FirstOrDefault();
-        var gpu = new GpuInfo { FromAdlx = false, Name = best?.Name ?? "AMD Radeon (ADLX indisponível)" };
+        var gpu = new GpuInfo { FromAdlx = false, Name = best?.Name ?? UiHelper.L("Err.GpuNameFallback") };
         if (best != null)
         {
             gpu.DeviceId = best.MatchingId;
@@ -147,7 +147,7 @@ public sealed class HardwareService : IDisposable
         var m = _session?.ReadMetrics();
         if (m is { Valid: true }) return m;
         if (_adl != null) return _adl.ReadMetrics();
-        return m ?? new MetricsSnapshot { Valid = false, Error = "ADLX indisponível" };
+        return m ?? new MetricsSnapshot { Valid = false, Error = UiHelper.L("Err.AdlxUnavailable") };
     }
 
     // ------------------------------------------------------------------ Gráficos 3D
@@ -238,8 +238,8 @@ public sealed class HardwareService : IDisposable
             report.Add(name, r.Ok ? AdlxResult.Ok : AdlxResult.Fail);
         }
 
-        One("Buffer triplo do OpenGL", KeyTripleBuffer, s.TripleBuffer);
-        One("Otimização de formato de superfície", KeySurfaceFormat, s.SurfaceFormatOpt);
+        One(UiHelper.L("Report.TripleBuffer"), KeyTripleBuffer, s.TripleBuffer);
+        One(UiHelper.L("Report.SurfaceFormat"), KeySurfaceFormat, s.SurfaceFormatOpt);
     }
 
     private void ReconcileEnhancedSync(bool want, ApplyReport report)
@@ -372,16 +372,16 @@ public sealed class HardwareService : IDisposable
             report.Items.RemoveAll(i => i.Feature == "Display" && !i.Result.Succeeded());
             NudgeDisplayModes();
 
-            // O ADL aplicou: o item "Escala da GPU" do ADLX (ex.: "nao suportado") deixa de valer.
+            // O ADL aplicou: o item UiHelper.L("Report.GpuScaling") do ADLX (ex.: "nao suportado") deixa de valer.
             for (int i = 0; i < report.Items.Count; i++)
             {
-                if (report.Items[i].Feature == "Escala da GPU" && !report.Items[i].Result.Succeeded())
-                    report.Items[i] = ("Escala da GPU", AdlxResult.Ok);
+                if (report.Items[i].Feature == UiHelper.L("Report.GpuScaling") && !report.Items[i].Result.Succeeded())
+                    report.Items[i] = (UiHelper.L("Report.GpuScaling"), AdlxResult.Ok);
             }
 
-            if (!report.Items.Any(i => i.Feature == "Escala da GPU")) report.Add("Escala da GPU", AdlxResult.Ok);
+            if (!report.Items.Any(i => i.Feature == UiHelper.L("Report.GpuScaling"))) report.Add(UiHelper.L("Report.GpuScaling"), AdlxResult.Ok);
         }
-        else if (adl is { Ok: false } && !report.Items.Any(i => i.Feature == "Escala da GPU")) report.Add("Escala da GPU", AdlxResult.Fail);
+        else if (adl is { Ok: false } && !report.Items.Any(i => i.Feature == UiHelper.L("Report.GpuScaling"))) report.Add(UiHelper.L("Report.GpuScaling"), AdlxResult.Fail);
 
         return report;
     }
@@ -414,12 +414,12 @@ public sealed class HardwareService : IDisposable
     public string BuildDiagnostics()
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"=== Red Control Utility {UpdateService.CurrentText} — diagnóstico ===");
-        sb.AppendLine($"Data: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-        sb.AppendLine($"SO: {Environment.OSVersion} | 64-bit processo: {Environment.Is64BitProcess}");
+        sb.AppendLine($"=== Red Control Utility {UpdateService.CurrentText} - "+UiHelper.L("Diag.Title")+" ===");
+        sb.AppendLine($"{UiHelper.L("Diag.Date")}: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        sb.AppendLine($"{UiHelper.L("Diag.Os")}: {Environment.OSVersion} | {UiHelper.L("Diag.Process64")}: {Environment.Is64BitProcess}");
         sb.AppendLine($"Backend ADLX: {BackendName} (v{AdlxVersion})");
         sb.AppendLine();
-        sb.AppendLine("--- Inicialização ---");
+        sb.AppendLine("--- "+UiHelper.L("Diag.Init")+" ---");
         sb.AppendLine(InitReport);
         sb.AppendLine();
         sb.AppendLine("--- GPU ---");
@@ -429,28 +429,28 @@ public sealed class HardwareService : IDisposable
         }
 
         sb.AppendLine();
-        sb.AppendLine("--- Instalação do driver ---");
+        sb.AppendLine("--- "+UiHelper.L("Diag.DriverInstall")+" ---");
         string sys = Environment.SystemDirectory;
         sb.AppendLine($"amdadlx64.dll: {File.Exists(Path.Combine(sys, "amdadlx64.dll"))} | atiadlxx.dll: {File.Exists(Path.Combine(sys, "atiadlxx.dll"))}");
         bool sw = System.Diagnostics.Process.GetProcessesByName("RadeonSoftware").Length > 0;
-        sb.AppendLine($"AMD Software (Adrenalin) em execução: {sw} (não é necessário para o app)");
-        sb.AppendLine($"Sensores via ADL legado: {_adl != null}");
+        sb.AppendLine(UiHelper.L("Diag.Adrenalin", sw));
+        sb.AppendLine(UiHelper.L("Diag.LegacySensors", _adl != null));
 
         var c = Caps;
         sb.AppendLine();
-        sb.AppendLine("--- Suporte (ADLX) ---");
-        sb.AppendLine($"Sensores: {c.MetricsAvailable} | SAM/ReBAR: sup={c.SamSupported} on={c.SamEnabled}");
+        sb.AppendLine("--- "+UiHelper.L("Diag.Support")+" ---");
+        sb.AppendLine($"{UiHelper.L("Diag.Sensors")}: {c.MetricsAvailable} | SAM/ReBAR: sup={c.SamSupported} on={c.SamEnabled}");
         var gr = c.Graphics;
         sb.AppendLine($"3D: AntiLag={gr.AntiLag} AFMF={gr.Afmf} FSR={gr.Fsr} Chill={gr.Chill} FRTC={gr.Frtc} RIS={gr.ImageSharpening} RSR={gr.Rsr} EnhSync={gr.EnhancedSync} Boost={gr.Boost} VSync={gr.VSync} AF={gr.AnisotropicFiltering} Tess={gr.Tessellation}");
         if (_session != null)
         {
-            sb.AppendLine("--- AFMF / FSR (resposta do driver) ---");
+            sb.AppendLine("--- "+UiHelper.L("Diag.Upscalers")+" ---");
             sb.AppendLine(_session.ProbeUpscalers());
         }
 
         var t = c.Tuning;
         sb.AppendLine($"Tuning: GFX={t.GfxMode} Power={t.PowerSupported} Fan={t.FanSupported}({t.FanPointCount} pts, zeroRPM={t.ZeroRpmSupported}) VRAM={t.VramSupported}(freq={t.VramFreqSupported}, timing={t.VramTimingSupported}) Preset={t.PresetSupported}");
-        sb.AppendLine($"  Faixas: minFreq={t.MinFreqRange} maxFreq={t.MaxFreqRange} volt={t.VoltageRange} power={t.PowerRange} vram={t.VramFreqRange}");
+        sb.AppendLine($"  {UiHelper.L("Diag.Ranges")}: minFreq={t.MinFreqRange} maxFreq={t.MaxFreqRange} volt={t.VoltageRange} power={t.PowerRange} vram={t.VramFreqRange}");
         return sb.ToString();
     }
 

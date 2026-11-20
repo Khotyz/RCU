@@ -94,7 +94,7 @@ public sealed unsafe class AdlLegacySession : IDisposable
         string path = Path.Combine(Environment.SystemDirectory, "atiadlxx.dll");
         if (!File.Exists(path))
         {
-            report = "[ADL] atiadlxx.dll não encontrada em System32.";
+            report = UiHelper.L("Diag.AdlDllMissing");
             return null;
         }
 
@@ -119,7 +119,7 @@ public sealed unsafe class AdlLegacySession : IDisposable
 
             if (pCreate == IntPtr.Zero || pNum == IntPtr.Zero || pInfo == IntPtr.Zero)
             {
-                report = "[ADL] Exports básicos do ADL2 ausentes.";
+                report = UiHelper.L("Diag.AdlExportsMissing");
                 s.Dispose();
                 return null;
             }
@@ -203,7 +203,7 @@ public sealed unsafe class AdlLegacySession : IDisposable
         }
         catch (Exception ex)
         {
-            report = $"[ADL] Exceção: {ex.Message}";
+            report = UiHelper.L("Diag.AdlException", ex.Message);
             s.Dispose();
             return null;
         }
@@ -221,7 +221,7 @@ public sealed unsafe class AdlLegacySession : IDisposable
         var snap = new MetricsSnapshot { Timestamp = DateTime.Now };
         if (_ctx == IntPtr.Zero || _adapter < 0)
         {
-            snap.Error = "ADL indisponível";
+            snap.Error = UiHelper.L("Err.AdlUnavailable");
             return snap;
         }
 
@@ -267,7 +267,7 @@ public sealed unsafe class AdlLegacySession : IDisposable
             }
 
             snap.Valid = snap.GpuClockMhz != null || snap.TempEdgeC != null || snap.GpuUsage != null || snap.FanRpm != null || snap.FanDutyPercent != null;
-            if (!snap.Valid) snap.Error = "ADL não retornou métricas";
+            if (!snap.Valid) snap.Error = UiHelper.L("Err.AdlNoMetrics");
         }
         catch (Exception ex)
         {

@@ -36,7 +36,7 @@ public sealed class ApplyReport
     public void Add(string feature, AdlxResult result) => Items.Add((feature, result));
 
     /// <summary>Uma linha por ajuste, com o código devolvido pelo driver (útil para diagnosticar).</summary>
-    public string Detail => string.Join("\n", Items.Select(i => $"{(i.Result.Succeeded() ? "OK" : "FALHOU")}  {i.Feature}: {i.Result.Describe()}"));
+    public string Detail => string.Join("\n", Items.Select(i => $"{(i.Result.Succeeded() ? UiHelper.L("Common.Ok") : UiHelper.L("Common.Failed"))}  {i.Feature}: {i.Result.Describe()}"));
 
     public string Summary
     {

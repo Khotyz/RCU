@@ -88,7 +88,7 @@ public static class UpdateService
             using var res = await Http.GetAsync(url, ct).ConfigureAwait(false);
             if (!res.IsSuccessStatusCode)
             {
-                return (null, $"GitHub respondeu {(int)res.StatusCode}");
+                return (null, UiHelper.L("Err.GitHubStatus", (int)res.StatusCode));
             }
 
             await using var stream = await res.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
@@ -99,7 +99,7 @@ public static class UpdateService
             var version = ParseVersion(tag);
             if (version == null)
             {
-                return (null, "a release não tem uma versão reconhecível");
+                return (null, UiHelper.L("Err.ReleaseNoVersion"));
             }
 
             string page = root.TryGetProperty("html_url", out var htmlEl) && htmlEl.GetString() is { Length: > 0 } h
@@ -135,7 +135,7 @@ public static class UpdateService
         }
         catch (OperationCanceledException)
         {
-            return (null, "tempo esgotado");
+            return (null, UiHelper.L("Err.Timeout"));
         }
         catch (Exception ex)
         {
@@ -154,7 +154,7 @@ public static class UpdateService
             if (string.IsNullOrEmpty(info.AssetUrl))
             {
                 OpenPage(info.PageUrl);
-                return (true, "página da release aberta no navegador");
+                return (true, UiHelper.L("Update.PageOpened"));
             }
 
             string dir = Path.Combine(Path.GetTempPath(), "RedControlUtility", "update-" + info.Tag.Replace('/', '_'));

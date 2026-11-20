@@ -41,9 +41,12 @@ public sealed partial class SettingsPage : Page
         _loading = true;
         try
         {
-            LanguageCombo.Items.Clear();
-            LanguageCombo.Items.Add(Item("Português (Brasil)", "pt-BR"));
-            LanguageCombo.Items.Add(Item("English (US)", "en-US"));
+            if (LanguageCombo.Items.Count == 0)
+            {
+                LanguageCombo.Items.Add(Item("Português (Brasil)", "pt-BR"));
+                LanguageCombo.Items.Add(Item("English (US)", "en-US"));
+            }
+
             LanguageCombo.SelectedIndex = App.Localization.Language == "pt-BR" ? 0 : 1;
 
             ApplyModeCombo.Items.Clear();
@@ -108,8 +111,8 @@ public sealed partial class SettingsPage : Page
     {
         if (_loading || LanguageCombo.SelectedItem is not ComboBoxItem { Tag: string lang }) return;
         S.Language = lang;
-        App.Localization.LoadLanguage(lang);
         App.Settings.Save();
+        DispatcherQueue.TryEnqueue(() => App.Localization.LoadLanguage(lang));
     }
 
     private void ApplyMode_Changed(object sender, SelectionChangedEventArgs e)

@@ -23,7 +23,13 @@ public sealed class LocalizationService
         _fallback = Read("en-US");
         _current = language == "en-US" ? _fallback : Read(language);
         Language = language;
-        LanguageChanged?.Invoke();
+        var handlers = LanguageChanged;
+        if (handlers == null) return;
+        foreach (Action h in handlers.GetInvocationList())
+        {
+            try { h(); }
+            catch (Exception ex) { LogService.Error($"Idioma: {ex.Message}"); }
+        }
     }
 
     private static Dictionary<string, string> Read(string lang)

@@ -98,6 +98,12 @@ public static class Loc
     private static void Apply(DependencyObject d)
     {
         var loc = App.Localization;
+        if (d is ToggleSwitch sw)
+        {
+            if (sw.OnContent is null || sw.OnContent is string { Length: > 0 }) sw.OnContent = loc.Get("Common.On");
+            if (sw.OffContent is null || sw.OffContent is string { Length: > 0 }) sw.OffContent = loc.Get("Common.Off");
+        }
+
         string? key = GetKey(d);
         if (key != null)
         {

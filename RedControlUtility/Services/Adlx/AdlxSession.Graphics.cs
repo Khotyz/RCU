@@ -377,7 +377,7 @@ public sealed partial class AdlxSession
             catch (Exception ex)
             {
                 LogService.Error($"ApplyGraphics: {ex.Message}");
-                report.Add("Gráficos", AdlxResult.Fail);
+                report.Add(UiHelper.L("Report.Graphics"), AdlxResult.Fail);
             }
         }
 
@@ -442,11 +442,11 @@ public sealed partial class AdlxSession
             if (req.Chill == true || req.Frtc == true || req.ImageSharpening == true || req.Rsr == true || req.Boost == true)
             {
                 LogService.Info("AFMF não convive com Chill/FRTC/Image Sharpening/RSR/Boost: mantendo só o AFMF");
-                if (req.Chill == true) report.Add($"{NChill} (incompatível com AFMF)", AdlxResult.NotSupported);
-                if (req.Frtc == true) report.Add($"{NFrtc} (incompatível com AFMF)", AdlxResult.NotSupported);
-                if (req.ImageSharpening == true) report.Add($"{NRis} (incompatível com AFMF)", AdlxResult.NotSupported);
-                if (req.Rsr == true) report.Add($"{NRsr} (incompatível com AFMF)", AdlxResult.NotSupported);
-                if (req.Boost == true) report.Add($"{NBoost} (incompatível com AFMF)", AdlxResult.NotSupported);
+                if (req.Chill == true) report.Add($"{NChill} ({UiHelper.L("Report.AfmfConflict")})", AdlxResult.NotSupported);
+                if (req.Frtc == true) report.Add($"{NFrtc} ({UiHelper.L("Report.AfmfConflict")})", AdlxResult.NotSupported);
+                if (req.ImageSharpening == true) report.Add($"{NRis} ({UiHelper.L("Report.AfmfConflict")})", AdlxResult.NotSupported);
+                if (req.Rsr == true) report.Add($"{NRsr} ({UiHelper.L("Report.AfmfConflict")})", AdlxResult.NotSupported);
+                if (req.Boost == true) report.Add($"{NBoost} ({UiHelper.L("Report.AfmfConflict")})", AdlxResult.NotSupported);
             }
 
             req.Chill = req.Chill == true ? false : req.Chill;
@@ -602,14 +602,14 @@ public sealed partial class AdlxSession
             }));
         }
 
-        ValueOp($"{NRis} (nitidez)", NRis, s.ImageSharpening == true, s.ImageSharpeningLevel, 5, S3D.SetSharpness);
-        ValueOp($"{NRsr} (nitidez)", NRsr, s.Rsr == true, s.RsrSharpness, 6, S3D.SetSharpness);
-        ValueOp($"{NBoost} (resolução)", NBoost, s.Boost == true, s.BoostResolution, 5, S3D.SetBoostResolution);
+        ValueOp($"{NRis} ({UiHelper.L("Report.Sharpness")})", NRis, s.ImageSharpening == true, s.ImageSharpeningLevel, 5, S3D.SetSharpness);
+        ValueOp($"{NRsr} ({UiHelper.L("Report.Sharpness")})", NRsr, s.Rsr == true, s.RsrSharpness, 6, S3D.SetSharpness);
+        ValueOp($"{NBoost} ({UiHelper.L("Report.Resolution")})", NBoost, s.Boost == true, s.BoostResolution, 5, S3D.SetBoostResolution);
 
         if (s.VSyncMode != null)
         {
             int mode = s.VSyncMode.Value;
-            ons.Add(new Op("Esperar atualização vertical (VSync)", true, () =>
+            ons.Add(new Op(UiHelper.L("Report.VSync"), true, () =>
             {
                 using var f = Feature(_3d, S3D.WaitForVerticalRefresh, true);
                 if (f == null) return AdlxResult.NotSupported;
@@ -632,7 +632,7 @@ public sealed partial class AdlxSession
         if (s.AnisotropicFiltering != null || s.AnisotropicLevel != null)
         {
             bool on = s.AnisotropicFiltering ?? true;
-            var op = new Op("Filtragem anisotrópica", on, () =>
+            var op = new Op(UiHelper.L("Report.Af"), on, () =>
             {
                 using var f = Feature(_3d, S3D.AnisotropicFiltering, true);
                 if (f == null || !f.Supported()) return AdlxResult.NotSupported;
@@ -679,7 +679,7 @@ public sealed partial class AdlxSession
         if (s.Mlaa != null)
         {
             bool want = s.Mlaa.Value;
-            ons.Add(new Op("Anti-aliasing morfológico", true, () =>
+            ons.Add(new Op(UiHelper.L("Report.Mlaa"), true, () =>
             {
                 using var f = Feature(_3d, S3D.Mlaa, true);
                 if (f == null || !f.Supported()) return AdlxResult.NotSupported;
@@ -738,7 +738,7 @@ public sealed partial class AdlxSession
             {
                 using var a = _3d?.Query(name);
                 using var b = _gpu?.Query(name);
-                sb.AppendLine($"QueryInterface({name}): serviços={(a != null ? "SIM" : "não")} gpu={(b != null ? "SIM" : "não")}");
+                sb.AppendLine($"QueryInterface({name}): {UiHelper.L("Diag.Services")}={(a != null ? UiHelper.L("Common.Yes") : UiHelper.L("Common.No"))} gpu={(b != null ? UiHelper.L("Common.Yes") : UiHelper.L("Common.No"))}");
             }
         }
 
@@ -749,7 +749,7 @@ public sealed partial class AdlxSession
     {
         if (services == null || _gpu == null)
         {
-            sb.AppendLine($"{name}: serviço indisponível (o driver não expõe esta versão do ADLX)");
+            sb.AppendLine(UiHelper.L("Diag.ServiceUnavailable", name));
             return;
         }
 

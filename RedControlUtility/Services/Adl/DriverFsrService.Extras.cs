@@ -21,10 +21,10 @@ public static unsafe partial class DriverFsrService
         try
         {
             using var s = Open(gpuIndex);
-            if (s == null) return (false, "atiadlxx.dll indisponivel");
+            if (s == null) return (false, UiHelper.L("Err.AtiMissing"));
             IntPtr pSet = Export(s, "ADL2_FPS_Settings_Set"), pGet = Export(s, "ADL2_FPS_Settings_Get"),
                    pCaps = Export(s, "ADL2_FPS_Caps");
-            if (pSet == IntPtr.Zero) return (false, "ADL2_FPS_Settings_Set ausente");
+            if (pSet == IntPtr.Zero) return (false, UiHelper.L("Err.ExportMissing", "ADL2_FPS_Settings_Set"));
 
             if (pCaps != IntPtr.Zero)
             {
@@ -32,7 +32,7 @@ public static unsafe partial class DriverFsrService
                 int crc = ((delegate* unmanaged[Cdecl]<IntPtr, int, int*, int*, int>)pCaps)(s.Ctx, s.Adapter, &supported, &version);
                 if (crc != 0 || supported == 0)
                 {
-                    return (false, $"o driver não expõe limite global de FPS (ADL2_FPS_Caps => {crc}, suporte={supported})");
+                    return (false, UiHelper.L("Err.NoGlobalFps", crc, supported));
                 }
             }
 
@@ -70,7 +70,7 @@ public static unsafe partial class DriverFsrService
                 }
             }
 
-            return (true, $"FRTC {(enable ? fps + " fps" : "desligado")} ({s.Name}){back}");
+            return (true, $"FRTC {(enable ? fps + " fps" : UiHelper.L("Common.Off"))} ({s.Name}){back}");
         }
         catch (Exception ex)
         {
@@ -124,12 +124,12 @@ public static unsafe partial class DriverFsrService
         try
         {
             using var s = Open(gpuIndex);
-            if (s == null) return (false, false, 0, "atiadlxx.dll indisponivel");
+            if (s == null) return (false, false, 0, UiHelper.L("Err.AtiMissing"));
             IntPtr pGet = Export(s, "ADL2_DFP_GPUScalingEnable_Get");
-            if (pGet == IntPtr.Zero) return (false, false, 0, "ADL2_DFP_GPUScalingEnable_Get ausente");
+            if (pGet == IntPtr.Zero) return (false, false, 0, UiHelper.L("Err.ExportMissing", "ADL2_DFP_GPUScalingEnable_Get"));
 
             var displays = ConnectedDisplays(s, out int rc);
-            if (displays.Count == 0) return (false, false, 0, $"nenhum monitor ligado/mapeado (rc={rc})");
+            if (displays.Count == 0) return (false, false, 0, UiHelper.L("Err.NoDisplay", rc));
 
             int supported = 0, enabled = 0;
             var log = new List<string>();
@@ -162,13 +162,13 @@ public static unsafe partial class DriverFsrService
         try
         {
             using var s = Open(gpuIndex);
-            if (s == null) return (false, "atiadlxx.dll indisponivel");
+            if (s == null) return (false, UiHelper.L("Err.AtiMissing"));
             IntPtr pSet = Export(s, "ADL2_DFP_GPUScalingEnable_Set"), pGet = Export(s, "ADL2_DFP_GPUScalingEnable_Get"),
                    pRegSet = Export(s, "ADL2_Adapter_RegValueInt_Set");
-            if (pSet == IntPtr.Zero) return (false, "ADL2_DFP_GPUScalingEnable_Set ausente");
+            if (pSet == IntPtr.Zero) return (false, UiHelper.L("Err.ExportMissing", "ADL2_DFP_GPUScalingEnable_Set"));
 
             var displays = ConnectedDisplays(s, out int rc);
-            if (displays.Count == 0) return (false, $"nenhum monitor ligado/mapeado (ADL2_Display_DisplayInfo_Get => {rc})");
+            if (displays.Count == 0) return (false, UiHelper.L("Err.NoDisplay", rc));
 
             var log = new List<string>();
             int okCount = 0;
@@ -243,7 +243,7 @@ public static unsafe partial class DriverFsrService
         try
         {
             using var s = Open(gpuIndex);
-            if (s == null) return (false, false, "atiadlxx.dll indisponivel");
+            if (s == null) return (false, false, UiHelper.L("Err.AtiMissing"));
             IntPtr pSup = Export(s, "ADL2_TurboSyncSupport_Get");
             int sup = 0;
             int rc = pSup != IntPtr.Zero ? ((delegate* unmanaged[Cdecl]<IntPtr, int, int*, int>)pSup)(s.Ctx, s.Adapter, &sup) : -1;
@@ -263,7 +263,7 @@ public static unsafe partial class DriverFsrService
         try
         {
             using var s = Open(gpuIndex);
-            if (s == null) return (false, "atiadlxx.dll indisponivel");
+            if (s == null) return (false, UiHelper.L("Err.AtiMissing"));
 
             // O ADLX grava o texto em ASCII com o tamanho de 1 caractere; o driver relê no inicio do jogo.
             IntPtr sub = Marshal.StringToHGlobalAnsi(SubKey), key = Marshal.StringToHGlobalAnsi("TurboSync");
@@ -370,7 +370,7 @@ public static unsafe partial class DriverFsrService
         try
         {
             using var s = Open(gpuIndex);
-            if (s == null) return (false, "atiadlxx.dll indisponivel");
+            if (s == null) return (false, UiHelper.L("Err.AtiMissing"));
             IntPtr sub = Marshal.StringToHGlobalAnsi(SubKey), k = Marshal.StringToHGlobalAnsi(key);
             IntPtr buf = Marshal.AllocHGlobal(16);
             try

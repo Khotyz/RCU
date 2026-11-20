@@ -60,6 +60,7 @@ public sealed partial class DisplayPage : Page
             foreach (var k in ProfileKeys) ColorProfileCombo.Items.Add(Item(L($"ColorProfile.{k}"), k));
             DriverPresetCombo.Items.Clear();
             foreach (var k in DriverPresets.Keys) DriverPresetCombo.Items.Add(Item(L($"DriverPreset.{k}"), k));
+            DriverPresetCombo.PlaceholderText = L("Display.DriverPresetPlaceholder");
             DriverPresetCombo.SelectedIndex = -1;
 
             _displays = App.Hardware.ReadDisplays();

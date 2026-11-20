@@ -211,7 +211,7 @@ public static unsafe partial class DriverFsrService
         try
         {
             using var s = Open(gpuIndex);
-            if (s == null) return (false, "atiadlxx.dll indisponivel");
+            if (s == null) return (false, UiHelper.L("Err.AtiMissing"));
             string value = enable ? "1" : "0";
 
             // Mesmo formato que o AMD Software usa: texto UTF-16, tamanho = caracteres * 2.
