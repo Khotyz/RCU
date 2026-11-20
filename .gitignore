@@ -1,0 +1,14 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.cache
+projeto_completo.txt
+docs/REFACTORING-BRIEF.md
+
+publish/
+dist/
+*.msix
+*.pdb
+Setup*.exe

@@ -1,0 +1,115 @@
+<Page
+    x:Class="RedControlUtility.Views.TuningPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:rcu="using:RedControlUtility"
+    xmlns:ctl="using:RedControlUtility.Controls">
+    <Grid>
+    <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="1000" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+        <StackPanel Spacing="14" HorizontalAlignment="Stretch">
+            <TextBlock Style="{StaticResource TitleTextBlockStyle}" rcu:Loc.Key="Tuning.Title" />
+            <TextBlock x:Name="UnsupportedText" TextWrapping="Wrap" Visibility="Collapsed" rcu:Loc.Key="Tuning.Unsupported" />
+
+
+            <Border x:Name="FrtcCard" Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupFrtc" />
+                    <ToggleSwitch x:Name="FrtcToggle" rcu:Loc.Header="Tuning.FrtcToggle" rcu:Loc.Tip="Tip.FrtcGlobal" Toggled="Frtc_Changed" />
+                    <NumberBox x:Name="FrtcBox" Width="190" Minimum="30" Maximum="360" Value="60" SmallChange="1" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Feature.FrtcFps" rcu:Loc.Tip="Tip.FrtcFps" ValueChanged="Frtc_ValueChanged" />
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="PresetCard" Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="6">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupPreset" />
+                    <ComboBox x:Name="PresetCombo" Width="300" rcu:Loc.Header="Tuning.Preset" rcu:Loc.Tip="Tuning.PresetTip" SelectionChanged="Field_SelectionChanged" />
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="CoreCard" Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupCore" />
+                    <StackPanel x:Name="MinMaxPanel" Orientation="Horizontal" Spacing="12">
+                        <NumberBox x:Name="GpuMinBox" Width="170" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.GpuMin" rcu:Loc.Tip="Tuning.GpuMinTip" ValueChanged="Field_NumberChanged" />
+                        <NumberBox x:Name="GpuMaxBox" Width="170" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.GpuMax" rcu:Loc.Tip="Tuning.GpuMaxTip" ValueChanged="Field_NumberChanged" />
+                    </StackPanel>
+                    <Grid x:Name="VoltagePanel" ColumnSpacing="16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions>
+                        <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Tuning.Voltage" rcu:Loc.Tip="Tuning.VoltageTip" />
+                        <Slider x:Name="VoltageSlider" rcu:Loc.Tip="Tuning.VoltageTip" Grid.Column="1" ValueChanged="Voltage_Changed" />
+                        <TextBlock x:Name="VoltageValue" Grid.Column="2" VerticalAlignment="Center" />
+                    </Grid>
+                    <StackPanel x:Name="OffsetPanel" Orientation="Horizontal" Spacing="8">
+                        <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Tuning.UniformOffset" rcu:Loc.Tip="Tuning.UniformOffsetTip" />
+                        <Button Content="-10 mV" Tag="-10" Click="Offset_Click" rcu:Loc.Tip="Tuning.OffsetTip" />
+                        <Button Content="-25 mV" Tag="-25" Click="Offset_Click" rcu:Loc.Tip="Tuning.OffsetTip" />
+                        <Button Content="-50 mV" Tag="-50" Click="Offset_Click" rcu:Loc.Tip="Tuning.OffsetTip" />
+                        <Button Tag="0" Click="Offset_Click" rcu:Loc.Key="Tuning.OffsetReset" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="KeepMinToggle" rcu:Loc.Header="Tuning.KeepMin" rcu:Loc.Tip="Tuning.KeepMinTip" Toggled="KeepMin_Toggled" />
+                    <Grid x:Name="PowerPanel" ColumnSpacing="16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions>
+                        <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Tuning.PowerLimit" rcu:Loc.Tip="Tuning.PowerLimitTip" />
+                        <Slider x:Name="PowerSlider" rcu:Loc.Tip="Tuning.PowerLimitTip" Grid.Column="1" ValueChanged="Power_Changed" />
+                        <TextBlock x:Name="PowerValue" Grid.Column="2" VerticalAlignment="Center" />
+                    </Grid>
+                    <StackPanel x:Name="MmChartPanel" Spacing="4">
+                        <ctl:CurveChart x:Name="MmChart" rcu:Loc.Tip="Tuning.MmChartTip" Height="240" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="StatesCard" Style="{StaticResource CardStyle}" Visibility="Collapsed">
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupStates" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Tuning.UniformOffset" rcu:Loc.Tip="Tuning.UniformOffsetTip" />
+                        <Button Content="-10 mV" Tag="-10" Click="StateOffset_Click" rcu:Loc.Tip="Tuning.OffsetTip" />
+                        <Button Content="-25 mV" Tag="-25" Click="StateOffset_Click" rcu:Loc.Tip="Tuning.OffsetTip" />
+                        <Button Content="-50 mV" Tag="-50" Click="StateOffset_Click" rcu:Loc.Tip="Tuning.OffsetTip" />
+                        <Button Tag="0" Click="StateOffset_Click" rcu:Loc.Key="Tuning.OffsetReset" />
+                    </StackPanel>
+                    <ctl:CurveChart x:Name="VfChart" rcu:Loc.Tip="Tuning.VfChartTip" Height="260" />
+                    <StackPanel x:Name="StatesRows" Spacing="4" />
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="VramCard" Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupVram" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <NumberBox x:Name="VramBox" Width="190" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.VramClock" rcu:Loc.Tip="Tuning.VramClockTip" ValueChanged="Field_NumberChanged" />
+                        <ComboBox x:Name="VramTimingCombo" Width="240" rcu:Loc.Header="Tuning.VramTiming" rcu:Loc.Tip="Tuning.VramTimingTip" SelectionChanged="Field_SelectionChanged" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="FanCard" Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupFan" />
+                    <ToggleSwitch x:Name="ZeroRpmToggle" rcu:Loc.Header="Tuning.ZeroRpm" rcu:Loc.Tip="Tuning.ZeroRpmTip" Toggled="Field_Toggled" />
+                    <ctl:CurveChart x:Name="FanChart" rcu:Loc.Tip="Tuning.FanChartTip" Height="220" />
+                    <StackPanel x:Name="FanRows" Spacing="4" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+    <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0" Padding="16,10">
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <TextBlock x:Name="PendingText" VerticalAlignment="Center" Opacity="0.75" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button x:Name="FactoryButton" Click="Factory_Click" rcu:Loc.Key="Tuning.ResetFactory" rcu:Loc.Tip="Tuning.ResetFactoryTip" />
+                <Button x:Name="ReloadButton" Click="Reload_Click" rcu:Loc.Key="Common.ReloadFromDriver" rcu:Loc.Tip="Common.ReloadFromDriverTip" />
+                <Button x:Name="ApplyButton" Style="{StaticResource AccentButtonStyle}" Click="Apply_Click" rcu:Loc.Key="Common.Apply" rcu:Loc.Tip="Common.ApplyTip" />
+            </StackPanel>
+        </Grid>
+    </Border>
+    <InfoBar x:Name="StatusBar" Grid.Row="0" IsOpen="False" IsClosable="True" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+             MaxWidth="720" Margin="16,0,16,12" />
+    </Grid>
+</Page>

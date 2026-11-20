@@ -1,0 +1,185 @@
+<Page
+    x:Class="RedControlUtility.Views.AppsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:rcu="using:RedControlUtility"
+    xmlns:ctl="using:RedControlUtility.Controls"
+    AllowDrop="True" Background="Transparent"
+    DragOver="Page_DragOver" Drop="Page_Drop">
+    <Page.Resources>
+        <Style x:Key="RowLabel" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </Page.Resources>
+    <Grid>
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="1280" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+        <StackPanel Spacing="14" HorizontalAlignment="Stretch">
+            <TextBlock Style="{StaticResource TitleTextBlockStyle}" rcu:Loc.Key="Apps.Title" />
+            <TextBlock x:Name="ActiveText" Opacity="0.85" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Style="{StaticResource AccentButtonStyle}" Click="Add_Click" rcu:Loc.Key="Apps.Add" rcu:Loc.Tip="Apps.AddTip" />
+                <Button x:Name="RemoveButton" Click="Remove_Click" rcu:Loc.Key="Apps.Remove" />
+                <Button x:Name="TestButton" Click="Test_Click" rcu:Loc.Key="Apps.TestNow" rcu:Loc.Tip="Apps.TestNowTip" />
+                <TextBlock VerticalAlignment="Center" Opacity="0.65" rcu:Loc.Key="Apps.DropHint" />
+            </StackPanel>
+
+            <Grid ColumnSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="300" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Style="{StaticResource CardStyle}" VerticalAlignment="Top">
+                    <StackPanel Spacing="8">
+                        <ListView x:Name="AppsList" MinHeight="220" SelectionChanged="AppsList_SelectionChanged" />
+                        <TextBlock x:Name="EmptyText" TextWrapping="Wrap" Opacity="0.7" rcu:Loc.Key="Apps.Empty" />
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="EditorPanel" Grid.Column="1" Style="{StaticResource CardStyle}" VerticalAlignment="Top">
+                    <StackPanel Spacing="14">
+                        <TextBlock x:Name="EditorEmpty" TextWrapping="Wrap" Opacity="0.7" rcu:Loc.Key="Apps.SelectHint" />
+                        <!-- ContentControl (e não StackPanel) porque só Control tem IsEnabled:
+                             é o que desabilita o editor inteiro quando nenhum app está selecionado. -->
+                        <ContentControl x:Name="EditorBody" HorizontalContentAlignment="Stretch"
+                                        VerticalContentAlignment="Top">
+                        <StackPanel Spacing="14">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Image x:Name="AppIconImage" Width="40" Height="40" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBox x:Name="NameBox" rcu:Loc.Tip="Apps.NameTip" TextChanged="NameBox_TextChanged" />
+                                <TextBlock x:Name="PathText" Opacity="0.6" FontSize="12" TextTrimming="CharacterEllipsis" IsTextSelectionEnabled="True" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="EnabledToggle" Grid.Column="2" OnContent="" OffContent="" MinWidth="0" VerticalAlignment="Center" rcu:Loc.Tip="Apps.EnabledTip" Toggled="Field_Toggled" />
+                        </Grid>
+                        <CheckBox x:Name="KeepCheck" rcu:Loc.Key="Apps.KeepAfterExit" rcu:Loc.Tip="Apps.KeepAfterExitTip" Checked="Field_Toggled" Unchecked="Field_Toggled" />
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Apps.QuickTitle" rcu:Loc.Tip="Apps.QuickTitleTip" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Tag="competitive" Click="Quick_Click" rcu:Loc.Key="Apps.PresetCompetitive" rcu:Loc.Tip="Apps.PresetCompetitiveTip" />
+                                <Button Tag="fps60" Click="Quick_Click" rcu:Loc.Key="Apps.Preset60" rcu:Loc.Tip="Apps.Preset60Tip" />
+                                <Button Tag="saver" Click="Quick_Click" rcu:Loc.Key="Apps.PresetSaver" rcu:Loc.Tip="Apps.PresetSaverTip" />
+                                <Button Tag="quality" Click="Quick_Click" rcu:Loc.Key="Apps.PresetQuality" rcu:Loc.Tip="Apps.PresetQualityTip" />
+                                <Button Tag="clear" Click="Quick_Click" rcu:Loc.Key="Apps.PresetClear" rcu:Loc.Tip="Apps.PresetClearTip" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Grid ColumnSpacing="16" RowSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="250" />
+                                <ColumnDefinition Width="160" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.ColumnSpan="3" Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Apps.GroupTech" />
+
+                            <TextBlock Grid.Row="1" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.AntiLag" rcu:Loc.Tip="Tip.AntiLag" />
+                            <ComboBox x:Name="AntiLagCombo" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.AntiLag" SelectionChanged="Field_SelectionChanged" />
+
+                            <TextBlock Grid.Row="2" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Afmf" rcu:Loc.Tip="Tip.Afmf" />
+                            <ComboBox x:Name="AfmfCombo" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Afmf" SelectionChanged="Field_SelectionChanged" />
+
+                            <TextBlock Grid.Row="3" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Fsr" rcu:Loc.Tip="Tip.Fsr" />
+                            <ComboBox x:Name="FsrCombo" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Fsr" SelectionChanged="Field_SelectionChanged" />
+                            <TextBlock x:Name="FsrNote" Grid.Row="3" Grid.Column="2" Opacity="0.7" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center" Visibility="Collapsed" />
+
+                            <TextBlock Grid.Row="4" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Rsr" rcu:Loc.Tip="Tip.Rsr" />
+                            <ComboBox x:Name="RsrCombo" Grid.Row="4" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Rsr" SelectionChanged="Field_SelectionChanged" />
+                            <ctl:ValueEditor x:Name="RsrEditor" Grid.Row="4" Grid.Column="2" rcu:Loc.Tip="Tip.RsrLevel" />
+
+                            <TextBlock Grid.Row="5" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Ris" rcu:Loc.Tip="Tip.Ris" />
+                            <ComboBox x:Name="RisCombo" Grid.Row="5" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Ris" SelectionChanged="Field_SelectionChanged" />
+                            <ctl:ValueEditor x:Name="RisEditor" Grid.Row="5" Grid.Column="2" rcu:Loc.Tip="Tip.RisLevel" />
+
+                            <TextBlock Grid.Row="6" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Boost" rcu:Loc.Tip="Tip.Boost" />
+                            <ComboBox x:Name="BoostCombo" Grid.Row="6" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Boost" SelectionChanged="Field_SelectionChanged" />
+                            <ctl:ValueEditor x:Name="BoostEditor" Grid.Row="6" Grid.Column="2" rcu:Loc.Tip="Tip.BoostRes" />
+
+                            <TextBlock Grid.Row="7" Grid.ColumnSpan="3" Margin="0,10,0,0" Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Apps.GroupFrames" />
+
+                            <TextBlock Grid.Row="8" Visibility="Collapsed" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Frtc" rcu:Loc.Tip="Tip.Frtc" />
+                            <ComboBox x:Name="FrtcCombo" Visibility="Collapsed" Grid.Row="8" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Frtc" SelectionChanged="Field_SelectionChanged" />
+                            <ctl:ValueEditor x:Name="FrtcEditor" Visibility="Collapsed" Grid.Row="8" Grid.Column="2" rcu:Loc.Tip="Tip.FrtcFps" />
+
+                            <TextBlock Grid.Row="9" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Chill" rcu:Loc.Tip="Tip.Chill" />
+                            <ComboBox x:Name="ChillCombo" Grid.Row="9" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Chill" SelectionChanged="Field_SelectionChanged" />
+                            <StackPanel x:Name="ChillPanel" Grid.Row="9" Grid.Column="2" Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <TextBlock Width="64" VerticalAlignment="Center" Opacity="0.7" rcu:Loc.Key="Feature.ChillMin" />
+                                    <ctl:ValueEditor x:Name="ChillMinEditor" rcu:Loc.Tip="Tip.ChillMin" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <TextBlock Width="64" VerticalAlignment="Center" Opacity="0.7" rcu:Loc.Key="Feature.ChillMax" />
+                                    <ctl:ValueEditor x:Name="ChillMaxEditor" rcu:Loc.Tip="Tip.ChillMax" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="10" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.VSync" rcu:Loc.Tip="Tip.VSync" />
+                            <ComboBox x:Name="VSyncCombo" Grid.Row="10" Grid.Column="1" Grid.ColumnSpan="2" HorizontalAlignment="Left" Width="260" rcu:Loc.Tip="Tip.VSync" SelectionChanged="Field_SelectionChanged" />
+
+                            <TextBlock Grid.Row="11" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.EnhancedSync" rcu:Loc.Tip="Tip.EnhancedSync" />
+                            <ComboBox x:Name="EnhSyncCombo" Grid.Row="11" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.EnhancedSync" SelectionChanged="Field_SelectionChanged" />
+
+                            <TextBlock Grid.Row="12" Grid.ColumnSpan="3" Margin="0,10,0,0" Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Apps.GroupTuning" />
+
+                            <TextBlock Grid.Row="13" Style="{StaticResource RowLabel}" rcu:Loc.Key="Apps.PowerLimit" rcu:Loc.Tip="Tip.PowerLimit" />
+                            <ComboBox x:Name="PowerCombo" Grid.Row="13" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.PowerLimit" SelectionChanged="Field_SelectionChanged" />
+                            <ctl:ValueEditor x:Name="PowerEditor" Grid.Row="13" Grid.Column="2" rcu:Loc.Tip="Tip.PowerLimit" />
+
+                            <TextBlock Grid.Row="14" Style="{StaticResource RowLabel}" rcu:Loc.Key="Apps.TuningPreset" rcu:Loc.Tip="Tip.TuningPreset" />
+                            <ComboBox x:Name="PresetCombo" Grid.Row="14" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.TuningPreset" SelectionChanged="Field_SelectionChanged" />
+                        </Grid>
+                        <Expander x:Name="AdvancedExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12">
+                            <Expander.Header><TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Apps.Advanced" /></Expander.Header>
+                            <Grid ColumnSpacing="16" RowSpacing="12">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="234" /><ColumnDefinition Width="160" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.AaMode" rcu:Loc.Tip="Tip.AaMode" />
+                                <ComboBox x:Name="AaModeCombo" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.AaMode" SelectionChanged="Field_SelectionChanged" />
+                                <TextBlock Grid.Row="1" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.AaMethod" rcu:Loc.Tip="Tip.AaMethod" />
+                                <ComboBox x:Name="AaMethodCombo" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.AaMethod" SelectionChanged="Field_SelectionChanged" />
+                                <TextBlock Grid.Row="2" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.AaLevel" rcu:Loc.Tip="Tip.AaLevel" />
+                                <ComboBox x:Name="AaLevelCombo" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.AaLevel" SelectionChanged="Field_SelectionChanged" />
+                                <TextBlock Grid.Row="3" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Mlaa" rcu:Loc.Tip="Tip.Mlaa" />
+                                <ComboBox x:Name="MlaaCombo" Grid.Row="3" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Mlaa" SelectionChanged="Field_SelectionChanged" />
+                                <TextBlock Grid.Row="4" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Af" rcu:Loc.Tip="Tip.Af" />
+                                <ComboBox x:Name="AfCombo" Grid.Row="4" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Af" SelectionChanged="Field_SelectionChanged" />
+                                <ComboBox x:Name="AfLevelCombo" Grid.Row="4" Grid.Column="2" Width="120" rcu:Loc.Tip="Tip.Af" SelectionChanged="Field_SelectionChanged" />
+                                <TextBlock Grid.Row="5" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Tess" rcu:Loc.Tip="Tip.Tess" />
+                                <ComboBox x:Name="TessCombo" Grid.Row="5" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Tess" SelectionChanged="Field_SelectionChanged" />
+                                <ComboBox x:Name="TessLevelCombo" Grid.Row="5" Grid.Column="2" Width="120" rcu:Loc.Tip="Tip.Tess" SelectionChanged="Field_SelectionChanged" />
+                                <TextBlock Grid.Row="6" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.TripleBuffer" rcu:Loc.Tip="Tip.TripleBuffer" />
+                                <ComboBox x:Name="TripleBufferCombo" Grid.Row="6" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.TripleBuffer" SelectionChanged="Field_SelectionChanged" />
+                                <TextBlock Grid.Row="7" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.SurfaceFormat" rcu:Loc.Tip="Tip.SurfaceFormat" />
+                                <ComboBox x:Name="SurfaceFormatCombo" Grid.Row="7" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.SurfaceFormat" SelectionChanged="Field_SelectionChanged" />
+                            </Grid>
+                        </Expander>
+                        </StackPanel>
+                        </ContentControl>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+    <InfoBar x:Name="StatusBar" IsOpen="False" IsClosable="True" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+             MaxWidth="720" Margin="16,0,16,12" />
+    </Grid>
+</Page>

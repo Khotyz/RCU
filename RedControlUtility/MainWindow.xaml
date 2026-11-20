@@ -1,0 +1,52 @@
+<Window
+    x:Class="RedControlUtility.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:rcu="using:RedControlUtility"
+    Title="Red Control Utility">
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="Base" />
+    </Window.SystemBackdrop>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="32" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Padding="16,0" Background="Transparent">
+            <TextBlock
+                x:Name="AppTitleText"
+                Text="Red Control Utility"
+                VerticalAlignment="Center"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="{ThemeResource SystemAccentColorLight1}" />
+        </Grid>
+        <NavigationView
+            x:Name="NavView"
+            Grid.Row="1"
+            IsBackButtonVisible="Collapsed"
+            IsSettingsVisible="False"
+            PaneDisplayMode="Left"
+            SelectionChanged="NavView_SelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem x:Name="NavDashboardItem" Icon="Home" Tag="Dashboard" rcu:Loc.Key="Nav.Dashboard" />
+                <NavigationViewItem x:Name="NavDisplayItem" Tag="Display" rcu:Loc.Key="Nav.Display">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE7F4;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Icon="Play" Tag="Apps" rcu:Loc.Key="Nav.Apps" />
+                <NavigationViewItem Icon="Repair" Tag="Tuning" rcu:Loc.Key="Nav.Tuning" />
+                <NavigationViewItem x:Name="NavProfilesItem" Icon="Save" Tag="Profiles" rcu:Loc.Key="Nav.Profiles" />
+                <NavigationViewItem Icon="Setting" Tag="Settings" rcu:Loc.Key="Nav.Settings" />
+            </NavigationView.MenuItems>
+            <Frame x:Name="ContentFrame" Padding="24,32,24,24" />
+        </NavigationView>
+        <InfoBar x:Name="UpdateBar" Grid.Row="1" IsOpen="False" IsClosable="True" Severity="Informational"
+                 VerticalAlignment="Bottom" HorizontalAlignment="Center" MaxWidth="720" Margin="16,0,16,12">
+            <InfoBar.ActionButton>
+                <Button x:Name="UpdateButton" Click="Update_Click" rcu:Loc.Key="Update.Download" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+    </Grid>
+</Window>

@@ -1,0 +1,109 @@
+<Page
+    x:Class="RedControlUtility.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:rcu="using:RedControlUtility">
+    <Grid>
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="900" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+        <StackPanel Spacing="14" HorizontalAlignment="Stretch">
+            <TextBlock Style="{StaticResource TitleTextBlockStyle}" rcu:Loc.Key="Settings.Title" />
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Settings.GroupGeneral" />
+                    <ComboBox x:Name="LanguageCombo" Width="300" rcu:Loc.Header="Settings.Language" rcu:Loc.Tip="Settings.LanguageTip" SelectionChanged="Language_Changed" />
+                    <ComboBox x:Name="ApplyModeCombo" Width="420" rcu:Loc.Header="Settings.ApplyMode" rcu:Loc.Tip="Settings.ApplyModeTip" SelectionChanged="ApplyMode_Changed" />
+                    <ToggleSwitch x:Name="AdvancedToggle" rcu:Loc.Header="Settings.Advanced" rcu:Loc.Tip="Settings.AdvancedTip" Toggled="Toggle_Changed" />
+                    <ToggleSwitch x:Name="AutoResetToggle" rcu:Loc.Header="Settings.AutoReset" rcu:Loc.Tip="Settings.AutoResetTip" Toggled="Toggle_Changed" />
+                    <ToggleSwitch x:Name="OverheatToggle" rcu:Loc.Header="Settings.Overheat" rcu:Loc.Tip="Settings.OverheatTip" Toggled="Toggle_Changed" />
+                    <StackPanel x:Name="OverheatOptions" Spacing="8" Margin="0,0,0,4">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" MaxWidth="360" />
+                                <ColumnDefinition Width="64" />
+                            </Grid.ColumnDefinitions>
+                            <Slider x:Name="OverheatSlider" Minimum="50" Maximum="110" StepFrequency="1" SmallChange="1" LargeChange="5" IsThumbToolTipEnabled="False" rcu:Loc.Header="Settings.OverheatTemp" ValueChanged="Overheat_Changed" />
+                            <TextBlock x:Name="OverheatValueText" Grid.Column="1" VerticalAlignment="Bottom" HorizontalTextAlignment="End" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        </Grid>
+                        <ToggleSwitch x:Name="OverheatAlwaysToggle" rcu:Loc.Header="Settings.OverheatAlways" rcu:Loc.Tip="Settings.OverheatAlwaysTip" Toggled="Toggle_Changed" />
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" MaxWidth="360" />
+                                <ColumnDefinition Width="64" />
+                            </Grid.ColumnDefinitions>
+                            <Slider x:Name="OverheatSecondsSlider" Minimum="3" Maximum="60" StepFrequency="1" SmallChange="1" LargeChange="5" IsThumbToolTipEnabled="False" rcu:Loc.Header="Settings.OverheatSeconds" ValueChanged="Overheat_Changed" />
+                            <TextBlock x:Name="OverheatSecondsText" Grid.Column="1" VerticalAlignment="Bottom" HorizontalTextAlignment="End" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        </Grid>
+                    </StackPanel>
+                    <ToggleSwitch x:Name="AutoRevertToggle" rcu:Loc.Header="Settings.AutoRevert" rcu:Loc.Tip="Settings.AutoRevertTip" Toggled="Toggle_Changed" />
+                    <ToggleSwitch x:Name="LiveUndervoltToggle" rcu:Loc.Header="Settings.LiveUndervolt" rcu:Loc.Tip="Settings.LiveUndervoltTip" Toggled="Toggle_Changed" />
+                    <ToggleSwitch x:Name="ApplyOnStartupToggle" rcu:Loc.Header="Settings.ApplyOnStartup" rcu:Loc.Tip="Settings.ApplyOnStartupTip" Toggled="Toggle_Changed" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Settings.GroupApps" />
+                    <ToggleSwitch x:Name="PerAppToggle" rcu:Loc.Header="Settings.PerApp" rcu:Loc.Tip="Settings.PerAppTip" Toggled="Toggle_Changed" />
+                    <ToggleSwitch x:Name="RestoreToggle" rcu:Loc.Header="Settings.RestoreOnExit" rcu:Loc.Tip="Settings.RestoreOnExitTip" Toggled="Toggle_Changed" />
+                    <ToggleSwitch x:Name="NotifyToggle" rcu:Loc.Header="Settings.NotifyOnProfile" rcu:Loc.Tip="Settings.NotifyOnProfileTip" Toggled="Toggle_Changed" />
+                    <ComboBox x:Name="OverlayCornerCombo" Width="220" rcu:Loc.Header="Settings.OverlayCorner" rcu:Loc.Tip="Settings.OverlayCornerTip" SelectionChanged="OverlayCorner_Changed" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <NumberBox x:Name="OverlaySecondsBox" Width="220" Minimum="1" Maximum="30" SmallChange="1" LargeChange="5" SpinButtonPlacementMode="Inline" rcu:Loc.Header="Settings.OverlaySeconds" rcu:Loc.Tip="Settings.OverlaySecondsTip" ValueChanged="OverlaySeconds_Changed" />
+                        <Button VerticalAlignment="Bottom" Click="OverlayTest_Click" rcu:Loc.Key="Settings.OverlayTest" rcu:Loc.Tip="Settings.OverlayTestTip" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Settings.GroupStartup" />
+                    <ToggleSwitch x:Name="StartWithWindowsToggle" rcu:Loc.Header="Settings.StartWithWindows" rcu:Loc.Tip="Settings.StartWithWindowsTip" Toggled="Toggle_Changed" />
+                    <ToggleSwitch x:Name="StartMinimizedToggle" rcu:Loc.Header="Settings.StartMinimized" rcu:Loc.Tip="Settings.StartMinimizedTip" Toggled="Toggle_Changed" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Settings.GroupHardware" />
+                    <ComboBox x:Name="BackendCombo" Width="420" rcu:Loc.Header="Settings.Backend" rcu:Loc.Tip="Settings.BackendTip" SelectionChanged="Backend_Changed" />
+                    <ComboBox x:Name="GpuCombo" Width="420" rcu:Loc.Header="Settings.Gpu" rcu:Loc.Tip="Settings.GpuTip" SelectionChanged="Gpu_Changed" />
+                    <ComboBox x:Name="IntervalCombo" Width="300" rcu:Loc.Header="Settings.SensorInterval" rcu:Loc.Tip="Settings.SensorIntervalTip" SelectionChanged="Interval_Changed" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Click="Reinit_Click" rcu:Loc.Key="Settings.Reinit" rcu:Loc.Tip="Settings.ReinitTip" />
+                        <Button Click="ClearShader_Click" rcu:Loc.Key="Settings.ClearShader" rcu:Loc.Tip="Settings.ClearShaderTip" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Settings.GroupUpdates" />
+                    <ToggleSwitch x:Name="AutoUpdateToggle" rcu:Loc.Header="Settings.UpdateAuto" rcu:Loc.Tip="Settings.UpdateAutoTip" Toggled="Toggle_Changed" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button x:Name="CheckUpdateButton" Click="CheckUpdate_Click" rcu:Loc.Key="Settings.UpdateCheck" />
+                        <TextBlock x:Name="VersionText" VerticalAlignment="Center" Opacity="0.7" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel Spacing="8">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Settings.GroupDiag" />
+                    <TextBox x:Name="DiagBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap" MinHeight="200" MaxHeight="380"
+                             FontFamily="Consolas" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Click="CopyDiag_Click" rcu:Loc.Key="Settings.CopyDiag" rcu:Loc.Tip="Settings.CopyDiagTip" />
+                        <Button Click="OpenLogs_Click" rcu:Loc.Key="Settings.OpenLogs" rcu:Loc.Tip="Settings.OpenLogsTip" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+    <InfoBar x:Name="StatusBar" IsOpen="False" IsClosable="True" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+             MaxWidth="720" Margin="16,0,16,12" />
+    </Grid>
+</Page>
