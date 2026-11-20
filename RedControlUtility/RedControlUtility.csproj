@@ -13,26 +13,32 @@
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsPackageType>None</WindowsPackageType>
-    <!-- Self-contained by default: the PC does not need .NET or the Windows App Runtime (fixes
-         "Required components of the Windows App Runtime are missing, Version 1.8"). -->
     <SelfContained>true</SelfContained>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <WindowsAppSdkBootstrapInitialize>false</WindowsAppSdkBootstrapInitialize>
+    <RcuBuildInstaller Condition="'$(RcuBuildInstaller)' == ''">true</RcuBuildInstaller>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Product>Red Control Utility</Product>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
-    <Version>0.2.3</Version>
-    <!-- Only keep English and Portuguese (Brazil) language resources -->
-    <SatelliteResourceLanguages>en-US;pt-BR</SatelliteResourceLanguages>
+    <Version>0.2.4</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <SatelliteResourceLanguages>en;en-US;pt;pt-BR;es;es-ES;zh;zh-CN;zh-Hans;zh-Hans-CN</SatelliteResourceLanguages>
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <TieredPGO>false</TieredPGO>
     <AutoreleasePoolSupport>false</AutoreleasePoolSupport>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.*" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260921001" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.10" />
   </ItemGroup>
@@ -46,8 +52,9 @@
       <Link>AppIcon.ico</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="locales\**\*.*">
+    <Content Include="locales\en-US.json;locales\pt-BR.json;locales\es-ES.json;locales\zh-CN.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
     <Content Include="native\RedAdlxHelper.dll" Condition="Exists('native\RedAdlxHelper.dll')">
       <Link>RedAdlxHelper.dll</Link>
@@ -55,28 +62,35 @@
     </Content>
   </ItemGroup>
 
-  <!-- The app only ships in en-US and pt-BR. Drop the ~150 other language folders (Windows App SDK / WinUI MUI
-       resources) from the publish list and from the publish folder. Non-language folders (locales, native,
-       Assets, Microsoft.*) are never matched because the pattern only matches culture names like "fr-FR". -->
   <PropertyGroup>
-    <RcuLangFolderPattern>^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$</RcuLangFolderPattern>
-    <RcuKeepLangPattern>^(en|en-US|pt|pt-BR)$</RcuKeepLangPattern>
+    <RcuCultureFolder>^(?i:[a-z]{2,3}(?:-[a-z0-9]{2,8})*)$</RcuCultureFolder>
+    <RcuIncludedCultureFolder>^(?i:$(SatelliteResourceLanguages.Replace(';', '|')))$</RcuIncludedCultureFolder>
   </PropertyGroup>
 
-  <Target Name="RcuTrimLanguagesFromPublishList" AfterTargets="ComputeResolvedFilesToPublishList">
-    <ItemGroup>
-      <_RcuDrop Include="@(ResolvedFileToPublish)"
-                Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(ResolvedFileToPublish.RelativePath)', '^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*[\\/]')) And !$([System.Text.RegularExpressions.Regex]::IsMatch('%(ResolvedFileToPublish.RelativePath)', '^(en|en-US|pt|pt-BR)[\\/]', System.Text.RegularExpressions.RegexOptions.IgnoreCase))" />
-      <ResolvedFileToPublish Remove="@(_RcuDrop)" />
+  <Target Name="TrimPublishedCultures" AfterTargets="Publish" Condition="'$(PublishDir)' != ''">
+    <PropertyGroup>
+      <_RcuPublishPath>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(PublishDir)'))</_RcuPublishPath>
+    </PropertyGroup>
+    <ItemGroup Condition="Exists('$(_RcuPublishPath)')">
+      <_RcuPublishedDirectory Include="$([System.IO.Directory]::GetDirectories('$(_RcuPublishPath)'))" />
+      <_RcuExcludedDirectory Include="@(_RcuPublishedDirectory)"
+                             Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(_RcuPublishedDirectory.Filename)%(_RcuPublishedDirectory.Extension)', '$(RcuCultureFolder)')) And !$([System.Text.RegularExpressions.Regex]::IsMatch('%(_RcuPublishedDirectory.Filename)%(_RcuPublishedDirectory.Extension)', '$(RcuIncludedCultureFolder)'))" />
     </ItemGroup>
+    <RemoveDir Directories="@(_RcuExcludedDirectory)" />
   </Target>
 
-  <Target Name="RcuTrimLanguagesFromPublishDir" AfterTargets="Publish" Condition="'$(PublishDir)' != '' And Exists('$(PublishDir)')">
-    <ItemGroup>
-      <_RcuDirs Include="$([System.IO.Directory]::GetDirectories('$(PublishDir)'))" />
-      <_RcuDirsDrop Include="@(_RcuDirs)"
-                    Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(_RcuDirs.Filename)%(_RcuDirs.Extension)', '$(RcuLangFolderPattern)')) And !$([System.Text.RegularExpressions.Regex]::IsMatch('%(_RcuDirs.Filename)%(_RcuDirs.Extension)', '$(RcuKeepLangPattern)', System.Text.RegularExpressions.RegexOptions.IgnoreCase))" />
-    </ItemGroup>
-    <RemoveDir Directories="@(_RcuDirsDrop)" />
+  <Target Name="BuildInstaller" AfterTargets="TrimPublishedCultures" Condition="'$(RcuBuildInstaller)' == 'true' And '$(OS)' == 'Windows_NT' And '$(PublishDir)' != ''">
+    <PropertyGroup>
+      <_RcuSolutionDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..'))\</_RcuSolutionDir>
+      <_RcuIscc>$(ProgramFiles)\Inno Setup 6\ISCC.exe</_RcuIscc>
+      <_RcuIscc Condition="!Exists('$(_RcuIscc)')">$([MSBuild]::GetRegistryValueFromView('HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1', 'InstallLocation', null, RegistryView.Registry32))ISCC.exe</_RcuIscc>
+      <_RcuIscc Condition="!Exists('$(_RcuIscc)')">$(MSBuildProgramFiles32)\Inno Setup 6\ISCC.exe</_RcuIscc>
+    </PropertyGroup>
+    <Exec Condition="!Exists('$(_RcuSolutionDir)installer\redist\vc_redist.x64.exe')"
+          Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(_RcuSolutionDir)installer\get-redist.ps1&quot;"
+          ContinueOnError="true" IgnoreExitCode="true" />
+    <Warning Condition="!Exists('$(_RcuIscc)')" Text="Inno Setup 6 was not found, so the installer was not built. Install it from https://jrsoftware.org/isdl.php and publish again." />
+    <Exec Condition="Exists('$(_RcuIscc)')"
+          Command="&quot;$(_RcuIscc)&quot; &quot;/DSourceDir=$(_RcuPublishPath.TrimEnd('\'))&quot; &quot;$(_RcuSolutionDir)installer\RCU.iss&quot;" />
   </Target>
 </Project>

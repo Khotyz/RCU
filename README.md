@@ -1,12 +1,12 @@
 # Red Control Utility (RCU), An open-source, lightweight control utility for AMD drivers. (Unofficial community project, not affiliated with AMD).
 
-![version](https://img.shields.io/badge/version-0.2.3-blue)
+![version](https://img.shields.io/badge/version-0.2.4-blue)
 
 RCU is a small WinUI 3 / .NET 8 app that replaces AMD Software (Adrenalin) for everyday control of a Radeon GPU. It talks straight to the AMD display driver through ADLX (`amdadlx64.dll`) and ADL (`atiadlxx.dll`), which ship with the driver, so a **driver-only install is enough**, Adrenalin does not need to be installed and does not need to be running.
 
 It covers GPU clocks, undervolt, power limit, fan curve, VRAM, per-monitor display options (VSR, FreeSync, GPU scaling, integer scaling, custom color), the 3D feature set (Anti-Lag, AFMF, FSR upgrade, RSR, Image Sharpening, Radeon Boost, Chill, FRTC, Enhanced Sync, V-Sync, anisotropic filtering, tessellation) and per-application profiles, because the driver keeps forgetting everything when the game closes or the PC restarts.
 
-> **Status:** version 0.2.3, early release. Not every driver/GPU combination behaves the same; if an option does not respond, the Diagnostics panel tells you exactly what the driver answered. See [Troubleshooting](#troubleshooting).
+> **Status:** version 0.2.4, early release. Not every driver/GPU combination behaves the same; if an option does not respond, the Diagnostics panel tells you exactly what the driver answered. See [Troubleshooting](#troubleshooting).
 
 ---
 
@@ -87,7 +87,7 @@ In **Automatic** mode the app tries these backends in order:
 
 1. **AMD's own DLL**: `C:\Windows\System32\amdadlx64.dll`, installed with the display driver (no Adrenalin needed). The app asks it for the *driver's own* ADLX version first, exactly like AMD's official `ADLXHelper`.
 2. **Helper DLL**: `RedAdlxHelper.dll` next to the executable (optional fallback).
-3. **Read-only mode**: if ADLX is not available, the app still shows GPU name, driver version, VRAM and architecture from the registry and the PCI ID, and disables the controls instead of pretending they worked.
+3. **Fallback without ADLX**: the app shows GPU details from the registry and reads sensors through ADL where supported. On a verified Polaris adapter, Overdrive N can also provide core and fan tuning. Controls that require ADLX remain unavailable.
 
 You can force a backend in **Settings → Hardware**.
 
@@ -118,7 +118,7 @@ The app watches processes every 0.4 s so options such as FRTC, AFMF and FSR are 
 
 ### Tuning
 
-Manual GPU tuning: presets, min/max clock, voltage (undervolt), power limit, VRAM clock/timing, fan curve and Zero RPM. Cards that expose a voltage/frequency state list get an editable list with a chart.
+Manual GPU tuning: presets, min/max clock, voltage (undervolt), power limit, VRAM clock/timing, fan curve or direct RPM settings, and Zero RPM, depending on driver support. Cards that expose a voltage/frequency state list get an editable list with a chart.
 
 * Moving a slider only updates the label; nothing goes to the driver until you press **Apply**, unless *live apply* is enabled.
 * **Uniform offset** (-10, -25, -50 mV) lowers the voltage linearly from the factory value, like MSI Afterburner: -25 after -10 means -25, not -35. **Reset** returns to the baseline.
@@ -134,7 +134,7 @@ Save the current driver state into a profile, apply it, export it to JSON or imp
 
 ### Settings
 
-Language (Brazilian Portuguese and English), apply mode, advanced mode, confirmation before tuning, live undervolt, auto revert, apply on startup, per-app profiles, restore on exit, overlay on/off/corner/duration, start with Windows, start minimized, backend, GPU selection, sensor interval, shader cache cleanup, update check and diagnostics.
+Language (Brazilian Portuguese, English, Spanish and Simplified Chinese), apply mode, advanced mode, confirmation before tuning, live undervolt, auto revert, apply on startup, per-app profiles, restore on exit, overlay on/off/corner/duration, start with Windows, start minimized, backend, GPU selection, sensor interval, shader cache cleanup, update check and diagnostics.
 
 **Apply mode:** *Instant* sends every change to the driver as you make it (with a short debounce); *Manual* waits for the Apply button. Fine tuning always uses Apply.
 
@@ -193,8 +193,9 @@ If the PC freezes or reboots before you confirm, the app notices on the next sta
 
 The GPU model and architecture are detected from the PCI device ID and name, covering Polaris, Vega, RDNA 1, RDNA 2, RDNA 3 and RDNA 4. What you can control depends on what your driver reports; the app disables what it cannot confirm (and where the driver lies about support, it tries anyway and reports the real answer).
 
-* **RDNA 1 to RDNA 4:** full feature set through ADLX.
-* **Polaris and older:** GPU identification and live sensors; if ADLX has no metrics, the legacy ADL library (`atiadlxx.dll`) is used in **read-only** mode for clocks, usage, temperature and fan speed. Writing tuning values through ADL is deliberately not implemented, because a wrong write can damage a card and it could not be tested.
+* **AMD RDNA 1 to AMD RDNA 4:** tuning through ADLX for the features reported by the driver.
+* **AMD Polaris (Radeon RX 400/500):** frequency and voltage per performance state for undervolting and overclocking. The app prefers the [ADLX manual graphics and fan tuning interfaces](https://gpuopen.com/manuals/adlx/programming-with-adlx/adlx-samples/cplus-samples/gpu-tuning/manualgraphicstuning/). If ADLX does not expose core tuning or fan control, the app probes [AMD Display Library Overdrive N](https://gpuopen-librariesandsdks.github.io/adl/group__OVERDRIVENAPI.html) for the missing controls. An unambiguous PCI adapter match is required to write through ADL. Rather than simulating a fan curve, the fallback exposes minimum and target fan speed in RPM where supported. **Reset to factory** restores the available tuning controls, including automatic fan control on Overdrive N.
+* **Other pre-RDNA GPUs:** existing ADLX support where available; the ADL sensor fallback remains read-only for these GPUs.
 
 ## FRTC and GPU scaling
 
@@ -244,10 +245,10 @@ After applying, the app reads everything back from the driver. The message lists
 
 RCU updates itself from this repository's GitHub releases, no store, no installer service.
 
-* **Settings → Updates** shows the version you are running (currently **0.2.3**) and has a **Check now** button.
+* **Settings → Updates** shows the version you are running (currently **0.2.4**) and has a **Check now** button.
 * **Check for updates automatically** (on by default) asks `api.github.com/repos/Khotyz/RCU/releases/latest` once at startup. Nothing is downloaded without your confirmation.
 * When a newer release exists, an information bar appears at the bottom of the window with a **Download** button. RCU downloads the release asset (`.exe`, `.msi` or `.zip`) to `%TEMP%\RedControlUtility\update-<tag>` and opens it; if the release has no asset, it opens the release page in your browser.
-* The comparison uses the tag (`v0.3.0` > `0.2.3`). Turn the option off in Settings if you prefer to update manually.
+* The comparison uses the tag (`v0.3.0` > `0.2.4`). Turn the option off in Settings if you prefer to update manually.
 
 ## Window size
 
@@ -283,11 +284,11 @@ RedControlUtility/
   Models/            settings and profile models
   Services/          hardware facade
     Adlx/            ADLX interop (vtable calls), sessions for 3D, display and tuning
-    Adl/             legacy ADL fallback (FRTC, GPU scaling, FSR override, sensors)
+    Adl/             ADL fallbacks (Overdrive N, FRTC, GPU scaling, FSR override, sensors)
     *.cs             profiles, sensors, overlay, tray, updates, stability watchdog
   Views/             WinUI pages (Dashboard, Display, Apps, Tuning, Profiles, Settings)
   Controls/          interactive charts
-  locales/           pt-BR.json, en-US.json
+  locales/           pt-BR.json, en-US.json, es-ES.json, zh-CN.json
   native/            optional RedAdlxHelper.dll
 ```
 
@@ -303,10 +304,16 @@ Manual overclocking, undervolting and firmware-level changes are always at your 
 
 The installer is an Inno Setup script in `installer/RCU.iss`. It installs to `C:\RCU` by default (the folder can be changed in the wizard), adds Start menu and optional desktop shortcuts, an optional "start with Windows" entry, and a normal uninstaller. Settings and logs stay in your user profile, so uninstalling does not touch them.
 
-Publishing a release is automatic:
+To build locally with the full Microsoft Visual Studio:
 
-1. Bump nothing by hand. Create and push a tag such as `v0.2.0`.
-2. The workflow in `.github/workflows/release.yml` publishes a self-contained build (no .NET or Windows App Runtime needed on the PC), builds `RCU-Setup-0.2.0.exe` and a portable zip, and attaches both to the GitHub release.
-3. The app checks `releases/latest` on `Khotyz/RCU`, compares the tag with its own version, and the update button downloads the `RCU-Setup` file and runs it silently, then the app reopens.
+1. Open `RedControlUtility.sln` in Visual Studio with the WinUI project tooling, Windows SDK and .NET 8 SDK installed.
+2. Choose **Release | x64**, right-click the **RedControlUtility** project, choose **Publish** and run the included **FolderProfile**. Publish to the profile's default folder before compiling `installer/RCU.iss` in **Inno Setup 6.5 or later**.
+3. The installer reads `Product` and `Version` from the published executable's metadata, generated from `RedControlUtility.csproj`. No duplicate version or product name needs to be edited in the `.iss`. For this release, the output is `dist/RCU-Setup-0.2.4.exe`.
 
-To build the installer locally, publish with `dotnet publish -c Release -r win-x64 -p:Platform=x64 -p:SelfContained=true -p:WindowsAppSDKSelfContained=true -o publish` and run `iscc /DAppVersion=0.2.3 installer\RCU.iss` (Inno Setup 6 required). The result goes to `dist\`.
+The package is self-contained and uses solid LZMA2 compression. It includes only the English, Brazilian Portuguese, Spanish and Simplified Chinese UI resources. The Simplified Chinese setup messages are from [Inno Setup's translation collection](https://github.com/jrsoftware/issrc/blob/is-6_7_4/Files/Languages/Unofficial/ChineseSimplified.isl).
+
+To publish a GitHub release, set `Version` in the project file, then push a matching tag such as `v0.2.4`. The release workflow publishes the app, builds the installer and a portable ZIP, and attaches both to the release. The updater compares the latest release tag with the installed version.
+
+---
+
+Built with help from AI.

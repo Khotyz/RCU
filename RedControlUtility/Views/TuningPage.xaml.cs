@@ -17,7 +17,8 @@ public sealed partial class TuningPage : Page
     private List<FanCurvePoint> _fan = new();
     private readonly List<NumberBox> _stateBoxes = new();
     private readonly List<NumberBox> _fanBoxes = new();
-    private static List<FanCurvePoint>? _driverFan;
+    private List<FanCurvePoint>? _driverFan;
+    private string? _loadedPreset;
     private const string FanPresetDriver = "driver", FanPresetOptimized = "optimized", FanPresetCustom = "custom";
     private bool _loading = true;
     private int _baseVoltage;
@@ -126,7 +127,7 @@ public sealed partial class TuningPage : Page
             FrtcBox.IsEnabled = FrtcToggle.IsOn;
 
             _caps = App.Hardware.Caps.Tuning;
-            bool any = App.Hardware.AdlxAvailable && _caps.AnyTuning;
+            bool any = _caps.AnyTuning;
             UnsupportedText.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
             ApplyButton.IsEnabled = ReloadButton.IsEnabled = FactoryButton.IsEnabled = any;
             foreach (var c in new UIElement[] { PresetCard, CoreCard, VramCard, FanCard })
@@ -145,12 +146,14 @@ public sealed partial class TuningPage : Page
             PresetCard.Visibility = t.PresetSupported ? Visibility.Visible : Visibility.Collapsed;
             PresetCombo.Items.Clear();
             PresetCombo.Items.Add(Item(L("Tuning.PresetNone"), null));
-            foreach (var p in t.Presets) PresetCombo.Items.Add(Item(p, p));
+            foreach (var p in t.Presets) PresetCombo.Items.Add(Item(L($"Tuning.PresetName.{p}"), p));
             PresetCombo.SelectedIndex = 0;
             for (int i = 0; i < PresetCombo.Items.Count; i++)
                 if (PresetCombo.Items[i] is ComboBoxItem { Tag: string tag } && tag == s.Preset) PresetCombo.SelectedIndex = i;
+            _loadedPreset = s.Preset;
 
             bool minMax = t.GfxMode == GfxTuningMode.MinMaxVoltage;
+            CoreCard.Visibility = minMax || t.PowerSupported ? Visibility.Visible : Visibility.Collapsed;
             MinMaxPanel.Visibility = minMax ? Visibility.Visible : Visibility.Collapsed;
             VoltagePanel.Visibility = minMax && t.VoltageRange.IsValid ? Visibility.Visible : Visibility.Collapsed;
             OffsetPanel.Visibility = VoltagePanel.Visibility;
@@ -181,6 +184,8 @@ public sealed partial class TuningPage : Page
 
             bool stateList = t.GfxMode == GfxTuningMode.StateList && s.VfStates is { Count: > 0 };
             StatesCard.Visibility = stateList ? Visibility.Visible : Visibility.Collapsed;
+            _states.Clear();
+            _baseStates.Clear();
             if (stateList)
             {
                 _states = s.VfStates!.Select(p => p.Clone()).ToList();
@@ -199,31 +204,31 @@ public sealed partial class TuningPage : Page
                 if (VramTimingCombo.Items[i] is ComboBoxItem { Tag: int tg } && s.VramTiming != null && tg == (int)s.VramTiming) VramTimingCombo.SelectedIndex = i;
 
             FanCard.Visibility = Visibility.Visible;
-            FanUnsupportedText.Visibility = t.FanSupported ? Visibility.Collapsed : Visibility.Visible;
-            FanPresetCombo.IsEnabled = ZeroRpmToggle.IsEnabled = t.FanSupported;
-            if (!t.FanSupported)
+            bool hasCurve = t.FanCurveSupported && s.FanCurve is { Count: > 0 };
+            FanChart.Visibility = FanRows.Visibility = FanPresetCombo.Visibility = hasCurve ? Visibility.Visible : Visibility.Collapsed;
+            ZeroRpmToggle.Visibility = s.ZeroRpm != null && t.ZeroRpmSupported ? Visibility.Visible : Visibility.Collapsed;
+            ZeroRpmToggle.IsOn = s.ZeroRpm == true;
+            bool hasMinimum = t.FanMinRpmRange.IsValid && s.FanMinRpm != null;
+            bool hasTarget = t.FanTargetRpmRange.IsValid && s.FanTargetRpm != null;
+            FanRpmPanel.Visibility = hasMinimum || hasTarget ? Visibility.Visible : Visibility.Collapsed;
+            FanUnsupportedText.Visibility = hasCurve || hasMinimum || hasTarget || ZeroRpmToggle.Visibility == Visibility.Visible
+                ? Visibility.Collapsed : Visibility.Visible;
+            FanMinRpmBox.Visibility = hasMinimum ? Visibility.Visible : Visibility.Collapsed;
+            FanTargetRpmBox.Visibility = hasTarget ? Visibility.Visible : Visibility.Collapsed;
+            if (hasMinimum) SetupNumber(FanMinRpmBox, t.FanMinRpmRange, s.FanMinRpm, t.FanMinRpmRange.Min);
+            if (hasTarget) SetupNumber(FanTargetRpmBox, t.FanTargetRpmRange, s.FanTargetRpm, t.FanTargetRpmRange.Min);
+            _fan = s.FanCurve?.Select(p => p.Clone()).ToList() ?? new();
+            if (hasCurve)
             {
-                ZeroRpmToggle.Visibility = Visibility.Collapsed;
-                FanChart.Visibility = Visibility.Collapsed;
-            }
-            else
-            {
-                FanChart.Visibility = Visibility.Visible;
-            }
-
-            if (t.FanSupported)
-            {
-                ZeroRpmToggle.Visibility = t.ZeroRpmSupported ? Visibility.Visible : Visibility.Collapsed;
-                ZeroRpmToggle.IsOn = s.ZeroRpm == true;
-                _fan = s.FanCurve is { Count: > 0 } ? s.FanCurve.Select(p => p.Clone()).ToList() : DefaultFan(t);
-                _driverFan ??= _fan.Select(p => p.Clone()).ToList();
+                _driverFan = (App.Hardware.TuningBaseline?.FanCurve ?? _fan).Select(p => p.Clone()).ToList();
                 BuildFanRows();
                 FillFanPresets();
             }
 
-            if (!App.Settings.Current.AdvancedMode)
+            if (!Adv)
             {
-                StatesCard.Visibility = VramCard.Visibility = Visibility.Collapsed;
+                if (!IsPolaris) StatesCard.Visibility = Visibility.Collapsed;
+                VramCard.Visibility = Visibility.Collapsed;
             }
 
             PendingText.Text = string.Empty;
@@ -232,23 +237,6 @@ public sealed partial class TuningPage : Page
         {
             _loading = false;
         }
-    }
-
-    private static List<FanCurvePoint> DefaultFan(TuningCapabilities t)
-    {
-        int n = Math.Max(2, t.FanPointCount);
-        int tMin = t.FanTempRange.IsValid ? t.FanTempRange.Min : 25;
-        int tMax = t.FanTempRange.IsValid ? t.FanTempRange.Max : 100;
-        int sMin = t.FanSpeedRange.IsValid ? t.FanSpeedRange.Min : 0;
-        int sMax = t.FanSpeedRange.IsValid ? t.FanSpeedRange.Max : 100;
-        var list = new List<FanCurvePoint>();
-        for (int i = 0; i < n; i++)
-        {
-            double f = i / (double)(n - 1);
-            list.Add(new FanCurvePoint { TemperatureC = (int)(tMin + (tMax - tMin) * f), FanSpeedPercent = (int)(sMin + (sMax - sMin) * f) });
-        }
-
-        return list;
     }
 
     private void BuildStateRows()
@@ -262,10 +250,12 @@ public sealed partial class TuningPage : Page
             var p = _states[i];
             var f = Box(t.StateFreqRange.IsValid ? t.StateFreqRange.Min : 0, t.StateFreqRange.IsValid ? t.StateFreqRange.Max : 5000, p.FrequencyMHz, 140);
             var v = Box(t.StateVoltageRange.IsValid ? t.StateVoltageRange.Min : 0, t.StateVoltageRange.IsValid ? t.StateVoltageRange.Max : 1500, p.VoltageMv, 140);
+            f.SmallChange = Math.Max(1, t.StateFreqRange.Step);
+            v.SmallChange = Math.Max(1, t.StateVoltageRange.Step);
             f.ValueChanged += (_, _) => { if (_loading || double.IsNaN(f.Value)) return; _states[idx].FrequencyMHz = (int)f.Value; StatesEdited(); };
             v.ValueChanged += (_, _) => { if (_loading || double.IsNaN(v.Value)) return; _states[idx].VoltageMv = (int)v.Value; StatesEdited(); };
             var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
-            row.Children.Add(new TextBlock { Text = L("Tuning.State", idx), Width = 80, VerticalAlignment = VerticalAlignment.Center });
+            row.Children.Add(new TextBlock { Text = L("Tuning.State", p.Index), Width = 80, VerticalAlignment = VerticalAlignment.Center });
             row.Children.Add(f);
             row.Children.Add(new TextBlock { Text = "MHz", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.7 });
             row.Children.Add(v);
@@ -629,6 +619,8 @@ public sealed partial class TuningPage : Page
         if (!_loading) PendingText.Text = L("Common.PendingChanges");
     }
 
+    private static bool IsPolaris => App.Hardware.CurrentGpu.Architecture == GpuArchitecture.Polaris;
+
     private static bool Adv => App.Settings.Current.AdvancedMode;
 
     private TuningSettings Collect()
@@ -641,7 +633,7 @@ public sealed partial class TuningPage : Page
             if (!double.IsNaN(GpuMaxBox.Value)) s.GpuMaxMhz = (int)GpuMaxBox.Value;
             if (t.VoltageRange.IsValid) s.VoltageMv = (int)VoltageSlider.Value;
         }
-        else if (t.GfxMode == GfxTuningMode.StateList && _states.Count > 0 && Adv)
+        else if (t.GfxMode == GfxTuningMode.StateList && _states.Count > 0 && (Adv || IsPolaris))
         {
             s.VfStates = _states.Select(p => p.Clone()).ToList();
         }
@@ -651,11 +643,17 @@ public sealed partial class TuningPage : Page
         if (Adv && t.VramTimingSupported && VramTimingCombo.SelectedItem is ComboBoxItem { Tag: int tm }) s.VramTiming = (AdlxMemoryTiming)tm;
         if (t.FanSupported)
         {
-            if (t.ZeroRpmSupported) s.ZeroRpm = ZeroRpmToggle.IsOn;
-            s.FanCurve = _fan.Select(p => p.Clone()).ToList();
+            if (ZeroRpmToggle.Visibility == Visibility.Visible) s.ZeroRpm = ZeroRpmToggle.IsOn;
+            if (t.FanCurveSupported && _fan.Count > 0) s.FanCurve = _fan.Select(p => p.Clone()).ToList();
+            if (FanMinRpmBox.Visibility == Visibility.Visible && !double.IsNaN(FanMinRpmBox.Value)) s.FanMinRpm = (int)FanMinRpmBox.Value;
+            if (FanTargetRpmBox.Visibility == Visibility.Visible && !double.IsNaN(FanTargetRpmBox.Value)) s.FanTargetRpm = (int)FanTargetRpmBox.Value;
         }
 
-        if (t.PresetSupported && PresetCombo.SelectedItem is ComboBoxItem { Tag: string preset }) s.Preset = preset;
+        if (t.PresetSupported && PresetCombo.SelectedItem is ComboBoxItem { Tag: string preset } && preset != _loadedPreset)
+        {
+            return new TuningSettings { Preset = preset };
+        }
+
         return s;
     }
 

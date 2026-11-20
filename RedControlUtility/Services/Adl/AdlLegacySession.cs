@@ -5,7 +5,7 @@ using RedControlUtility.Models;
 
 namespace RedControlUtility.Services.Adl;
 
-public sealed unsafe class AdlLegacySession : IDisposable
+public sealed unsafe partial class AdlLegacySession : IDisposable
 {
     private const int AdapterInfoSize = 1572;
     private const int BufSize = 512;
@@ -38,7 +38,7 @@ public sealed unsafe class AdlLegacySession : IDisposable
             IntPtr Exp(string n) => NativeLibrary.TryGetExport(module, n, out IntPtr p) ? p : IntPtr.Zero;
             IntPtr pCreate = Exp("ADL2_Main_Control_Create"), pDestroy = Exp("ADL2_Main_Control_Destroy");
             IntPtr pNum = Exp("ADL2_Adapter_NumberOfAdapters_Get"), pInfo = Exp("ADL2_Adapter_AdapterInfo_Get");
-            if (pCreate == IntPtr.Zero || pNum == IntPtr.Zero || pInfo == IntPtr.Zero) return list;
+            if (pCreate == IntPtr.Zero || pDestroy == IntPtr.Zero || pNum == IntPtr.Zero || pInfo == IntPtr.Zero) return list;
 
             IntPtr ctx = IntPtr.Zero;
             var alloc = (IntPtr)(delegate* unmanaged[Stdcall]<int, IntPtr>)&Alloc;
@@ -80,7 +80,18 @@ public sealed unsafe class AdlLegacySession : IDisposable
         return list;
     }
 
-    public static AdlLegacySession? Open(int gpuIndex, out string report)
+    public static AdlLegacySession? Open(int gpuIndex, out string report) => Open(gpuIndex, out report, null, null);
+
+    internal static AdlLegacySession? OpenForGpu(GpuInfo gpu, int? pciLocation, out string report)
+    {
+        if (GpuArchitectureDetector.TryParseDeviceId(gpu.DeviceId, out int deviceId) ||
+            GpuArchitectureDetector.TryParseDeviceId(gpu.PnpString, out deviceId))
+            return Open(0, out report, deviceId, pciLocation);
+        report = "[ADL] PCI device ID unavailable.";
+        return null;
+    }
+
+    private static AdlLegacySession? Open(int gpuIndex, out string report, int? deviceId, int? pciLocation)
     {
         var log = new StringBuilder();
         report = string.Empty;
@@ -93,7 +104,7 @@ public sealed unsafe class AdlLegacySession : IDisposable
 
         if (!NativeLibrary.TryLoad(path, out IntPtr module))
         {
-            report = "[ADL] Falha ao carregar atiadlxx.dll.";
+            report = "[ADL] Could not load atiadlxx.dll.";
             return null;
         }
 
@@ -110,7 +121,7 @@ public sealed unsafe class AdlLegacySession : IDisposable
             IntPtr pTemp = Exp("ADL2_OverdriveN_Temperature_Get");
             IntPtr pFan = Exp("ADL2_Overdrive5_FanSpeed_Get");
 
-            if (pCreate == IntPtr.Zero || pNum == IntPtr.Zero || pInfo == IntPtr.Zero)
+            if (pCreate == IntPtr.Zero || pDestroy == IntPtr.Zero || pNum == IntPtr.Zero || pInfo == IntPtr.Zero)
             {
                 report = UiHelper.L("Diag.AdlExportsMissing");
                 s.Dispose();
@@ -159,7 +170,7 @@ public sealed unsafe class AdlLegacySession : IDisposable
                     return null;
                 }
 
-                var found = new List<(int Index, int Bus, string Name)>();
+                var found = new List<(int Index, int Location, string Name)>();
                 for (int i = 0; i < n; i++)
                 {
                     byte* b = (byte*)buf + i * AdapterInfoSize;
@@ -168,23 +179,39 @@ public sealed unsafe class AdlLegacySession : IDisposable
                     int vendor = *(int*)(b + 276);
                     int present = *(int*)(b + 792);
                     string name = Marshal.PtrToStringAnsi((IntPtr)(b + 280), 256).Split('\0')[0];
-                    log.AppendLine($"[ADL] adaptador #{i}: index={index} bus={bus} vendor=0x{vendor:X} present={present} nome=\"{name}\"");
-                    bool amd = vendor == 0x1002 || name.Contains("Radeon", StringComparison.OrdinalIgnoreCase) || name.Contains("AMD", StringComparison.OrdinalIgnoreCase);
-                    if (amd && !found.Any(f => f.Bus == bus)) found.Add((index, bus, name));
+                    log.AppendLine($"[ADL] adapter #{i}: index={index} bus={bus} vendor=0x{vendor:X} present={present} name=\"{name}\"");
+                    if (deviceId is int targetId)
+                    {
+                        int dev = *(int*)(b + 268), func = *(int*)(b + 272);
+                        if (vendor is not (0x1002 or 1002) || index < 0 || bus is < 0 or > 255 ||
+                            dev is < 0 or > 31 || func is < 0 or > 7 || *(int*)(b + 796) == 0) continue;
+                        int location = (bus << 8) | (dev << 3) | func;
+                        if (pciLocation != null && location != pciLocation) continue;
+                        string pnp = Marshal.PtrToStringAnsi((IntPtr)(b + 1312), 256).Split('\0')[0];
+                        string udid = Marshal.PtrToStringAnsi((IntPtr)(b + 8), 256).Split('\0')[0];
+                        if ((!GpuArchitectureDetector.TryParseDeviceId(pnp, out int id) &&
+                             !GpuArchitectureDetector.TryParseDeviceId(udid, out id)) || id != targetId) continue;
+                        if (!found.Any(f => f.Location == location)) found.Add((index, location, name));
+                    }
+                    else if ((vendor is 0x1002 or 1002 || name.Contains("Radeon", StringComparison.OrdinalIgnoreCase) ||
+                              name.Contains("AMD", StringComparison.OrdinalIgnoreCase)) && !found.Any(f => f.Location == bus))
+                    {
+                        found.Add((index, bus, name));
+                    }
                 }
 
-                if (found.Count == 0)
+                if (found.Count == 0 || (deviceId != null && found.Count != 1))
                 {
-                    log.AppendLine("[ADL] Nenhum adaptador AMD presente.");
+                    log.AppendLine("[ADL] No unambiguous AMD adapter match.");
                     report = log.ToString().Trim();
                     s.Dispose();
                     return null;
                 }
 
-                var pick = found[Math.Clamp(gpuIndex, 0, found.Count - 1)];
+                var pick = found[deviceId == null ? Math.Clamp(gpuIndex, 0, found.Count - 1) : 0];
                 s._adapter = pick.Index;
                 s.AdapterName = pick.Name;
-                log.AppendLine($"[ADL] Adaptador {pick.Index}: {pick.Name} (somente sensores)");
+                log.AppendLine($"[ADL] Selected adapter {pick.Index}: {pick.Name}");
             }
             finally
             {

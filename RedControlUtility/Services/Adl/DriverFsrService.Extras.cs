@@ -279,7 +279,6 @@ public static unsafe partial class DriverFsrService
             IntPtr pCap = Export(s, "ADL2_Display_FreeSync_Cap"), pGet = Export(s, "ADL2_Display_FreeSyncState_Get");
             if (pCap == IntPtr.Zero) return result;
 
-            // Allocated once, outside the loop (CA2014): reused and zeroed for every display.
             int* cap = stackalloc int[8];
             foreach (var d in ConnectedDisplays(s, out _))
             {

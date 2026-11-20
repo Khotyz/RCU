@@ -101,7 +101,7 @@ public sealed partial class DashboardPage : Page
             StatusBar.IsOpen = false;
         }
 
-        PresetCard.Visibility = hw.AdlxAvailable && hw.Caps.Tuning.AnyTuning ? Visibility.Visible : Visibility.Collapsed;
+        PresetCard.Visibility = hw.Caps.Tuning.AnyTuning ? Visibility.Visible : Visibility.Collapsed;
         foreach (var t in _all) { t.Title = L(t.TitleKey); t.Tip = L(t.TipKey); }
         DiagBox.Text = hw.BuildDiagnostics();
         UpdateActive();

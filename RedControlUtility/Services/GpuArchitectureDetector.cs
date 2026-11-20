@@ -66,7 +66,7 @@ public static class GpuArchitectureDetector
         id = 0;
         if (string.IsNullOrWhiteSpace(text)) return false;
 
-        var m = Regex.Match(text, @"DEV_([0-9A-Fa-f]{4})");
+        var m = Regex.Match(text, @"DEV_([0-9A-Fa-f]{4})", RegexOptions.IgnoreCase);
         string hex = m.Success ? m.Groups[1].Value : text.Trim();
         if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) hex = hex[2..];
         return int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out id);

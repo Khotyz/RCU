@@ -23,7 +23,7 @@ public sealed partial class AdlxSession
         return raw.Query(interfaceName);
     }
 
-    public TuningCapabilities QueryTuningCapabilities()
+    public TuningCapabilities QueryTuningCapabilities(bool polaris = false)
     {
         var caps = new TuningCapabilities();
         lock (_sync)
@@ -38,7 +38,7 @@ public sealed partial class AdlxSession
                     caps.IsAtFactory = factory;
                 }
 
-                using (var g2 = TuningObject(TuneSlot.IsSupportedGfx, TuneSlot.GetGfx, "IADLXManualGraphicsTuning2"))
+                using (var g2 = polaris ? null : TuningObject(TuneSlot.IsSupportedGfx, TuneSlot.GetGfx, "IADLXManualGraphicsTuning2"))
                 {
                     if (g2 != null)
                     {
@@ -60,14 +60,12 @@ public sealed partial class AdlxSession
                 if (caps.GfxMode == GfxTuningMode.None)
                 {
                     using var g1 = TuningObject(TuneSlot.IsSupportedGfx, TuneSlot.GetGfx, "IADLXManualGraphicsTuning1");
-                    if (g1 != null)
+                    if (g1 != null && g1.GetRange2(3, out var fr, out var vr).Succeeded() && fr.IsValid && vr.IsValid &&
+                        ReadGfxStates(g1) is { Count: > 0 })
                     {
                         caps.GfxMode = GfxTuningMode.StateList;
-                        if (g1.GetRange2(3, out var fr, out var vr).Succeeded())
-                        {
-                            caps.StateFreqRange = fr;
-                            caps.StateVoltageRange = vr;
-                        }
+                        caps.StateFreqRange = fr;
+                        caps.StateVoltageRange = vr;
                     }
                 }
 
@@ -91,20 +89,22 @@ public sealed partial class AdlxSession
                 {
                     if (fan != null)
                     {
-                        caps.FanSupported = true;
                         if (fan.GetRange2(3, out var sr, out var tr).Succeeded())
                         {
                             caps.FanSpeedRange = sr;
                             caps.FanTempRange = tr;
                         }
 
-                        if (fan.GetPtr(4, out IntPtr lp).Succeeded() && lp != IntPtr.Zero)
+                        caps.FanPointCount = ReadFanCurve(fan)?.Count ?? 0;
+                        if (polaris && (!caps.FanSpeedRange.IsValid || !caps.FanTempRange.IsValid)) caps.FanPointCount = 0;
+                        caps.ZeroRpmSupported = fan.Supported(8);
+                        if (polaris && !caps.FanCurveSupported)
                         {
-                            using var list = new AdlxObject(lp);
-                            caps.FanPointCount = (int)list.ListSize();
+                            caps.FanMinRpmRange = ReadFanSpeedRange(fan, 15);
+                            caps.FanTargetRpmRange = ReadFanSpeedRange(fan, 19);
                         }
-
-                        caps.ZeroRpmSupported = fan.GetBool(8, out bool z).Succeeded() && z;
+                        caps.FanSupported = caps.FanCurveSupported || caps.FanMinRpmRange.IsValid ||
+                            caps.FanTargetRpmRange.IsValid || caps.ZeroRpmSupported;
                     }
                 }
 
@@ -164,6 +164,49 @@ public sealed partial class AdlxSession
         return caps;
     }
 
+    private static AdlxRange ReadFanSpeedRange(AdlxObject fan, int slot) =>
+        fan.Supported(slot) && fan.GetRange(slot + 1, out var range).Succeeded() && range.IsValid &&
+        fan.GetInt(slot + 2, out int speed).Succeeded() && speed >= range.Min && speed <= range.Max
+            ? range : AdlxRange.Empty;
+
+    private static List<FanCurvePoint>? ReadFanCurve(AdlxObject fan)
+    {
+        if (!fan.GetPtr(4, out IntPtr ptr).Succeeded() || ptr == IntPtr.Zero) return null;
+        using var list = new AdlxObject(ptr);
+        uint count = list.ListSize(), begin = list.ListBegin();
+        if (count is 0 or > 32) return null;
+        var points = new List<FanCurvePoint>();
+        for (uint i = 0; i < count; i++)
+        {
+            if (!list.ListAt(begin + i, out var state, 11).Succeeded() || state == null) return null;
+            using (state)
+            {
+                if (!state.GetInt(3, out int speed).Succeeded() || !state.GetInt(5, out int temperature).Succeeded()) return null;
+                points.Add(new FanCurvePoint { FanSpeedPercent = speed, TemperatureC = temperature });
+            }
+        }
+        return points;
+    }
+
+    private static List<VfCurvePoint>? ReadGfxStates(AdlxObject gfx)
+    {
+        if (!gfx.GetPtr(4, out IntPtr ptr).Succeeded() || ptr == IntPtr.Zero) return null;
+        using var list = new AdlxObject(ptr);
+        uint count = list.ListSize(), begin = list.ListBegin();
+        if (count is 0 or > 32) return null;
+        var states = new List<VfCurvePoint>();
+        for (uint i = 0; i < count; i++)
+        {
+            if (!list.ListAt(begin + i, out var state, 11).Succeeded() || state == null) return null;
+            using (state)
+            {
+                if (!state.GetInt(3, out int frequency).Succeeded() || !state.GetInt(5, out int voltage).Succeeded()) return null;
+                states.Add(new VfCurvePoint { Index = (int)i, FrequencyMHz = frequency, VoltageMv = voltage });
+            }
+        }
+        return states;
+    }
+
     private static void ReadTimings(AdlxObject vram, TuningCapabilities caps)
     {
         if (!vram.GetBool(3, out bool sup).Succeeded() || !sup) return;
@@ -204,21 +247,7 @@ public sealed partial class AdlxSession
                 else if (caps.GfxMode == GfxTuningMode.StateList)
                 {
                     using var g = TuningObject(TuneSlot.IsSupportedGfx, TuneSlot.GetGfx, "IADLXManualGraphicsTuning1");
-                    if (g != null && g.GetPtr(4, out IntPtr lp).Succeeded() && lp != IntPtr.Zero)
-                    {
-                        using var list = new AdlxObject(lp);
-                        s.VfStates = new List<VfCurvePoint>();
-                        int i = 0;
-                        foreach (var st in list.ListItems())
-                        {
-                            using (st)
-                            {
-                                st.GetInt(3, out int f);
-                                st.GetInt(5, out int volt);
-                                s.VfStates.Add(new VfCurvePoint { Index = i++, FrequencyMHz = f, VoltageMv = volt });
-                            }
-                        }
-                    }
+                    if (g != null) s.VfStates = ReadGfxStates(g);
                 }
 
                 if (caps.PowerSupported)
@@ -232,21 +261,9 @@ public sealed partial class AdlxSession
                     using var fan = TuningObject(TuneSlot.IsSupportedFan, TuneSlot.GetFan, "IADLXManualFanTuning");
                     if (fan != null)
                     {
-                        if (fan.GetPtr(4, out IntPtr lp).Succeeded() && lp != IntPtr.Zero)
-                        {
-                            using var list = new AdlxObject(lp);
-                            s.FanCurve = new List<FanCurvePoint>();
-                            foreach (var st in list.ListItems())
-                            {
-                                using (st)
-                                {
-                                    st.GetInt(3, out int speed);
-                                    st.GetInt(5, out int temp);
-                                    s.FanCurve.Add(new FanCurvePoint { TemperatureC = temp, FanSpeedPercent = speed });
-                                }
-                            }
-                        }
-
+                        if (caps.FanCurveSupported) s.FanCurve = ReadFanCurve(fan);
+                        if (caps.FanMinRpmRange.IsValid && fan.GetInt(17, out int minRpm).Succeeded()) s.FanMinRpm = minRpm;
+                        if (caps.FanTargetRpmRange.IsValid && fan.GetInt(21, out int targetRpm).Succeeded()) s.FanTargetRpm = targetRpm;
                         if (caps.ZeroRpmSupported && fan.GetBool(9, out bool z).Succeeded()) s.ZeroRpm = z;
                     }
                 }
@@ -295,7 +312,8 @@ public sealed partial class AdlxSession
             {
                 if (!string.IsNullOrEmpty(t.Preset))
                 {
-                    report.Add($"Preset {t.Preset}", ApplyPreset(t.Preset));
+                    report.Add($"{UiHelper.L("Tuning.Preset")}: {UiHelper.L($"Tuning.PresetName.{t.Preset}")}", ApplyPreset(t.Preset));
+                    Thread.Sleep(400);
                 }
 
                 if (caps.GfxMode == GfxTuningMode.MinMaxVoltage &&
@@ -320,9 +338,11 @@ public sealed partial class AdlxSession
                     report.Add(UiHelper.L("Report.PowerLimit"), pw == null ? AdlxResult.NotSupported : pw.SetInt(5, v));
                 }
 
-                if ((t.FanCurve is { Count: > 0 } || t.ZeroRpm != null) && caps.FanSupported)
+                if (((caps.FanCurveSupported && t.FanCurve is { Count: > 0 }) || t.ZeroRpm != null ||
+                    (caps.FanMinRpmRange.IsValid && t.FanMinRpm != null) ||
+                    (caps.FanTargetRpmRange.IsValid && t.FanTargetRpm != null)) && caps.FanSupported)
                 {
-                    ApplyFan(t, report);
+                    ApplyFan(t, caps, report);
                 }
             }
             catch (Exception ex)
@@ -392,29 +412,41 @@ public sealed partial class AdlxSession
         }
 
         using var list = new AdlxObject(lp);
-        var items = list.ListItems();
-        try
+        uint count = list.ListSize(), begin = list.ListBegin();
+        var states = t.VfStates!;
+        string feature = UiHelper.L("Report.VfStates");
+        if (count is 0 or > 32 || states.Count != count || states.Select(p => p.Index).Distinct().Count() != states.Count)
         {
-            for (int i = 0; i < items.Count && i < t.VfStates!.Count; i++)
+            report.Add(feature, AdlxResult.InvalidArgs);
+            return;
+        }
+        foreach (var point in states)
+        {
+            if (point.Index < 0 || point.Index >= count ||
+                !list.ListAt(begin + (uint)point.Index, out var item, 11).Succeeded() || item == null)
             {
-                items[i].SetInt(4, t.VfStates[i].FrequencyMHz);
-                items[i].SetInt(6, t.VfStates[i].VoltageMv);
-            }
-
-            var valid = g.ValidateStates(6, list.Ptr, out int errIdx);
-            if (!valid.Succeeded())
-            {
-                LogService.Error($"Estados V/F inválidos (índice {errIdx}).");
-                report.Add($"{UiHelper.L("Report.VfStates")} ({UiHelper.L("Report.InvalidPoint", errIdx + 1)})", valid);
+                report.Add(feature, AdlxResult.InvalidArgs);
                 return;
             }
+            using (item)
+            {
+                var result = item.SetInt(4, point.FrequencyMHz);
+                if (result.Succeeded()) result = item.SetInt(6, point.VoltageMv);
+                if (!result.Succeeded())
+                {
+                    report.Add(feature, result);
+                    return;
+                }
+            }
+        }
 
-            report.Add(UiHelper.L("Report.VfStates"), g.SetPtr(7, list.Ptr));
-        }
-        finally
+        var valid = g.ValidateStates(6, list.Ptr, out int errorIndex);
+        if (!valid.Succeeded())
         {
-            foreach (var i in items) i.Dispose();
+            report.Add($"{feature} ({UiHelper.L("Report.InvalidPoint", errorIndex + 1)})", valid);
+            return;
         }
+        report.Add(feature, g.SetPtr(7, list.Ptr));
     }
 
     private void ApplyVram(TuningSettings t, TuningCapabilities caps, ApplyReport report)
@@ -469,7 +501,7 @@ public sealed partial class AdlxSession
         }
     }
 
-    private void ApplyFan(TuningSettings t, ApplyReport report)
+    private void ApplyFan(TuningSettings t, TuningCapabilities caps, ApplyReport report)
     {
         using var fan = TuningObject(TuneSlot.IsSupportedFan, TuneSlot.GetFan, "IADLXManualFanTuning");
         if (fan == null)
@@ -483,7 +515,12 @@ public sealed partial class AdlxSession
             report.Add("Zero RPM", fan.SetBool(10, t.ZeroRpm.Value));
         }
 
-        if (t.FanCurve is not { Count: > 0 })
+        if (t.FanMinRpm is int min && caps.FanMinRpmRange.IsValid)
+            report.Add(UiHelper.L("Tuning.FanMinRpm"), SetFanSpeed(fan, 17, min, caps.FanMinRpmRange));
+        if (t.FanTargetRpm is int target && caps.FanTargetRpmRange.IsValid)
+            report.Add(UiHelper.L("Tuning.FanTargetRpm"), SetFanSpeed(fan, 21, target, caps.FanTargetRpmRange));
+
+        if (!caps.FanCurveSupported || t.FanCurve is not { Count: > 0 })
         {
             return;
         }
@@ -522,6 +559,14 @@ public sealed partial class AdlxSession
         {
             foreach (var i in items) i.Dispose();
         }
+    }
+
+    private static AdlxResult SetFanSpeed(AdlxObject fan, int getSlot, int value, AdlxRange range)
+    {
+        if (value < range.Min || value > range.Max)
+            return AdlxResult.InvalidArgs;
+        var result = fan.GetInt(getSlot, out int current);
+        return !result.Succeeded() || current == value ? result : fan.SetInt(getSlot + 1, value);
     }
 
     public static List<FanCurvePoint> ResampleFanCurve(List<FanCurvePoint> curve, int count)

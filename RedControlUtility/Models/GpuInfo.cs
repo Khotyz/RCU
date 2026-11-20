@@ -94,6 +94,9 @@ public sealed class TuningCapabilities
     public int? PowerDefault { get; set; }
 
     public bool FanSupported { get; set; }
+    public bool FanCurveSupported => FanPointCount > 0;
+    public AdlxRange FanMinRpmRange { get; set; } = AdlxRange.Empty;
+    public AdlxRange FanTargetRpmRange { get; set; } = AdlxRange.Empty;
     public AdlxRange FanSpeedRange { get; set; } = AdlxRange.Empty;
     public AdlxRange FanTempRange { get; set; } = AdlxRange.Empty;
     public int FanPointCount { get; set; }
@@ -110,6 +113,8 @@ public sealed class TuningCapabilities
 
     public bool AtFactoryKnown { get; set; }
     public bool IsAtFactory { get; set; }
+
+    internal TuningCapabilities Copy() => (TuningCapabilities)MemberwiseClone();
 
     public bool AnyTuning => GfxMode != GfxTuningMode.None || PowerSupported || FanSupported || VramSupported || PresetSupported;
 }

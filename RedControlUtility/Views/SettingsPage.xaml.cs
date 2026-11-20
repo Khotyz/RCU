@@ -43,11 +43,12 @@ public sealed partial class SettingsPage : Page
         {
             if (LanguageCombo.Items.Count == 0)
             {
-                LanguageCombo.Items.Add(Item("Português (Brasil)", "pt-BR"));
-                LanguageCombo.Items.Add(Item("English (US)", "en-US"));
+                foreach (var (code, name) in LocalizationService.Supported)
+                    LanguageCombo.Items.Add(Item(name, code));
             }
 
-            LanguageCombo.SelectedIndex = App.Localization.Language == "pt-BR" ? 0 : 1;
+            LanguageCombo.SelectedItem = LanguageCombo.Items.OfType<ComboBoxItem>()
+                .FirstOrDefault(item => Equals(item.Tag, App.Localization.Language));
 
             ApplyModeCombo.Items.Clear();
             ApplyModeCombo.Items.Add(Item(L("Settings.ModeInstant"), ApplyMode.Instant));

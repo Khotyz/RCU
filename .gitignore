@@ -12,3 +12,4 @@ dist/
 *.msix
 *.pdb
 Setup*.exe
+installer/redist/*.exe

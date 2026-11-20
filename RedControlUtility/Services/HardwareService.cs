@@ -9,6 +9,9 @@ public sealed class HardwareService : IDisposable
 {
     private AdlxSession? _session;
     private AdlLegacySession? _adl;
+    private AdlLegacySession? _overdrive;
+    private TuningCapabilities _adlxTuning = new();
+    private readonly object _tuningLock = new();
     private readonly List<GpuInfo> _gpus = new();
 
     public GpuInfo CurrentGpu { get; private set; } = new();
@@ -16,7 +19,8 @@ public sealed class HardwareService : IDisposable
     public IReadOnlyList<GpuInfo> AllGpus => _gpus;
     public bool AdlxAvailable => _session != null;
     public bool LegacySensors => _adl != null;
-    public string BackendName => _session?.BackendName ?? (_adl != null ? UiHelper.L("Backend.LegacyAdl") : UiHelper.L("Backend.ReadOnly"));
+    public string BackendName => _session?.BackendName ?? (_overdrive != null ? "AMD Display Library Overdrive N" :
+        _adl != null ? UiHelper.L("Backend.LegacyAdl") : UiHelper.L("Backend.ReadOnly"));
     public string AdlxVersion => _session?.AdlxVersion ?? string.Empty;
     public string InitReport { get; private set; } = string.Empty;
 
@@ -26,10 +30,17 @@ public sealed class HardwareService : IDisposable
 
     public void Initialize(AdlxBackendKind kind, int gpuIndex)
     {
+        lock (_tuningLock) InitializeCore(kind, gpuIndex);
+        Reinitialized?.Invoke();
+    }
+
+    private void InitializeCore(AdlxBackendKind kind, int gpuIndex)
+    {
         _session?.Dispose();
         _session = null;
         _adl?.Dispose();
         _adl = null;
+        CloseOverdrive();
         _gpus.Clear();
         TuningBaseline = null;
 
@@ -48,20 +59,30 @@ public sealed class HardwareService : IDisposable
         if (_session != null)
         {
             _gpus.AddRange(_session.Gpus);
-            SelectGpu(Math.Clamp(gpuIndex, 0, Math.Max(0, _gpus.Count - 1)), notify: false);
+            SelectGpuCore(gpuIndex);
             LogService.Info($"ADLX OK via {_session.BackendName} (v{_session.AdlxVersion}). GPU: {CurrentGpu.Name} | {CurrentGpu.ArchitectureText} | DevID {CurrentGpu.DeviceId}");
         }
         else
         {
             LoadFallback();
-            LogService.Warn($"Sem ADLX. Fallback: {CurrentGpu.Name} | {CurrentGpu.ArchitectureText}");
+            RefreshCapabilities();
+            LogService.Warn($"ADLX unavailable. Fallback: {CurrentGpu.Name} | {CurrentGpu.ArchitectureText}");
         }
 
+        RefreshLegacySensors(CurrentGpu.Index);
+    }
+
+    private void RefreshLegacySensors(int gpuIndex)
+    {
+        _adl?.Dispose();
+        _adl = null;
         if (_session == null || !Caps.MetricsAvailable)
         {
             try
             {
-                _adl = AdlLegacySession.Open(gpuIndex, out string adlReport);
+                _adl = CurrentGpu.Architecture == GpuArchitecture.Polaris
+                    ? AdlLegacySession.OpenForGpu(CurrentGpu, _session?.GetPciLocation(), out string adlReport)
+                    : AdlLegacySession.Open(gpuIndex, out adlReport);
                 InitReport += (InitReport.Length > 0 ? Environment.NewLine : string.Empty) + adlReport;
                 LogService.Info(adlReport);
                 if (_adl != null && _adl.ReadMetrics().Valid) Caps.MetricsAvailable = true;
@@ -72,11 +93,20 @@ public sealed class HardwareService : IDisposable
                 LogService.Error($"ADL: {ex.Message}");
             }
         }
+    }
 
+    public void SelectGpu(int index)
+    {
+        lock (_tuningLock)
+        {
+            if (_session == null || _gpus.Count == 0) return;
+            SelectGpuCore(index);
+            RefreshLegacySensors(CurrentGpu.Index);
+        }
         Reinitialized?.Invoke();
     }
 
-    public void SelectGpu(int index, bool notify = true)
+    private void SelectGpuCore(int index)
     {
         if (_session == null || _gpus.Count == 0) return;
         index = Math.Clamp(index, 0, _gpus.Count - 1);
@@ -90,7 +120,6 @@ public sealed class HardwareService : IDisposable
         DriverInfoService.Enrich(CurrentGpu);
 
         RefreshCapabilities();
-        if (notify) Reinitialized?.Invoke();
     }
 
     private void RefreshCapabilities()
@@ -102,14 +131,62 @@ public sealed class HardwareService : IDisposable
             PatchEnhancedSyncCaps(g, gs);
             PatchUmdCaps(g, gs);
             caps.Graphics = g;
-            caps.Tuning = _session.QueryTuningCapabilities();
             var (sup, en) = _session.ReadSam();
             caps.SamSupported = sup;
             caps.SamEnabled = en;
             caps.MetricsAvailable = _session.ReadMetrics().Valid;
         }
 
+        CloseOverdrive();
+        bool polaris = CurrentGpu.Architecture == GpuArchitecture.Polaris;
+        _adlxTuning = _session?.QueryTuningCapabilities(polaris) ?? new();
+        if (polaris)
+        {
+            bool needFan = !_adlxTuning.FanCurveSupported && !_adlxTuning.FanMinRpmRange.IsValid && !_adlxTuning.FanTargetRpmRange.IsValid;
+            _overdrive = AdlLegacySession.OpenOverdriveN(CurrentGpu, _session?.GetPciLocation(),
+                _adlxTuning.GfxMode == GfxTuningMode.None, needFan, !_adlxTuning.VramFreqSupported, !_adlxTuning.PowerSupported);
+        }
+        caps.Tuning = MergeTuningCapabilities();
         Caps = caps;
+    }
+
+    private void CloseOverdrive()
+    {
+        _overdrive?.Dispose();
+        _overdrive = null;
+    }
+
+    private TuningCapabilities MergeTuningCapabilities()
+    {
+        var caps = _adlxTuning.Copy();
+        if (_overdrive == null) return caps;
+        var legacy = _overdrive.OverdriveTuning;
+        caps.AtFactoryKnown = false;
+        if (legacy.GfxMode == GfxTuningMode.StateList)
+        {
+            caps.GfxMode = legacy.GfxMode;
+            caps.StateFreqRange = legacy.StateFreqRange;
+            caps.StateVoltageRange = legacy.StateVoltageRange;
+        }
+        if (legacy.VramFreqSupported)
+        {
+            caps.VramSupported = true;
+            caps.VramFreqSupported = true;
+            caps.VramFreqRange = legacy.VramFreqRange;
+        }
+        if (legacy.PowerSupported)
+        {
+            caps.PowerSupported = true;
+            caps.PowerRange = legacy.PowerRange;
+            caps.PowerDefault = legacy.PowerDefault;
+        }
+        if (legacy.FanSupported)
+        {
+            caps.FanSupported = true;
+            caps.FanMinRpmRange = legacy.FanMinRpmRange;
+            caps.FanTargetRpmRange = legacy.FanTargetRpmRange;
+        }
+        return caps;
     }
 
     private void LoadFallback()
@@ -135,10 +212,12 @@ public sealed class HardwareService : IDisposable
 
     public MetricsSnapshot ReadMetrics()
     {
-        var m = _session?.ReadMetrics();
-        if (m is { Valid: true }) return m;
-        if (_adl != null) return _adl.ReadMetrics();
-        return m ?? new MetricsSnapshot { Valid = false, Error = UiHelper.L("Err.AdlxUnavailable") };
+        lock (_tuningLock)
+        {
+            var metrics = _session?.ReadMetrics();
+            if (metrics is { Valid: true }) return metrics;
+            return _adl?.ReadMetrics() ?? metrics ?? new MetricsSnapshot { Error = UiHelper.L("Err.AdlxUnavailable") };
+        }
     }
 
     private static ApplyReport Unavailable(string feature)
@@ -274,25 +353,40 @@ public sealed class HardwareService : IDisposable
 
     public TuningSettings ReadTuning()
     {
-        if (_session == null) return new TuningSettings();
-        var s = _session.ReadTuning(Caps.Tuning);
-        TuningBaseline ??= s.Clone();
-        return s;
+        lock (_tuningLock)
+        {
+            var settings = _session?.ReadTuning(_adlxTuning) ?? new TuningSettings();
+            _overdrive?.ReadOverdriveTuning(settings);
+            TuningBaseline ??= settings.Clone();
+            return settings;
+        }
     }
 
-    public ApplyReport ApplyTuning(TuningSettings s) =>
-        _session?.ApplyTuning(s, Caps.Tuning) ?? Unavailable("Tuning");
+    public ApplyReport ApplyTuning(TuningSettings settings)
+    {
+        lock (_tuningLock)
+        {
+            if (!Caps.Tuning.AnyTuning) return Unavailable("Tuning");
+            var report = _session?.ApplyTuning(settings, _adlxTuning) ?? new ApplyReport();
+            _overdrive?.ApplyOverdriveTuning(settings, report);
+            return report;
+        }
+    }
 
     public AdlxResult ResetTuningToFactory()
     {
-        if (_session == null) return AdlxResult.Unavailable;
-        var r = _session.ResetTuningToFactory();
-        if (r.Succeeded())
+        lock (_tuningLock)
         {
-            Caps.Tuning = _session.QueryTuningCapabilities();
+            if (!Caps.Tuning.AnyTuning) return AdlxResult.Unavailable;
+            var adlxResult = _adlxTuning.AnyTuning ? _session!.ResetTuningToFactory() : AdlxResult.Ok;
+            var legacyResult = _overdrive?.ResetOverdriveTuning() ?? AdlxResult.Ok;
+            if (!adlxResult.Succeeded()) return adlxResult;
+            if (!legacyResult.Succeeded()) return legacyResult;
+            TuningBaseline = null;
+            _adlxTuning = _session?.QueryTuningCapabilities(CurrentGpu.Architecture == GpuArchitecture.Polaris) ?? new();
+            Caps.Tuning = MergeTuningCapabilities();
+            return AdlxResult.Ok;
         }
-
-        return r;
     }
 
     private List<DisplayInfo> _displayCache = new();
@@ -471,6 +565,7 @@ public sealed class HardwareService : IDisposable
         }
 
         var t = c.Tuning;
+        sb.AppendLine($"AMD Display Library Overdrive N: {_overdrive != null}");
         sb.AppendLine($"Tuning: GFX={t.GfxMode} Power={t.PowerSupported} Fan={t.FanSupported}({t.FanPointCount} pts, zeroRPM={t.ZeroRpmSupported}) VRAM={t.VramSupported}(freq={t.VramFreqSupported}, timing={t.VramTimingSupported}) Preset={t.PresetSupported}");
         sb.AppendLine($"  {UiHelper.L("Diag.Ranges")}: minFreq={t.MinFreqRange} maxFreq={t.MaxFreqRange} volt={t.VoltageRange} power={t.PowerRange} vram={t.VramFreqRange}");
         return sb.ToString();
@@ -478,9 +573,15 @@ public sealed class HardwareService : IDisposable
 
     public void Dispose()
     {
-        _session?.Dispose();
-        _session = null;
-        _adl?.Dispose();
-        _adl = null;
+        lock (_tuningLock)
+        {
+            CloseOverdrive();
+            _session?.Dispose();
+            _session = null;
+            _adl?.Dispose();
+            _adl = null;
+            _adlxTuning = new();
+            Caps = new();
+        }
     }
 }

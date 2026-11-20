@@ -24,6 +24,7 @@ public sealed unsafe class AdlxLibrary : IDisposable
     public ulong FullVersion { get; private set; }
 
     public IntPtr System { get; private set; }
+    public IntPtr AdlMapping { get; private set; }
 
     private AdlxLibrary()
     {
@@ -144,6 +145,7 @@ public sealed unsafe class AdlxLibrary : IDisposable
                     if (last.Succeeded() && system != IntPtr.Zero)
                     {
                         lib.System = system;
+                        lib.AdlMapping = mapping;
                         if (incompatible)
                         {
                             lib.BackendName += " [modo driver legado]";
@@ -246,6 +248,7 @@ public sealed unsafe class AdlxLibrary : IDisposable
         }
 
         System = IntPtr.Zero;
+        AdlMapping = IntPtr.Zero;
         if (_module != IntPtr.Zero)
         {
             try { NativeLibrary.Free(_module); } catch { }

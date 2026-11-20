@@ -173,6 +173,21 @@ public sealed partial class AdlxSession : IDisposable
         return info;
     }
 
+    internal unsafe int? GetPciLocation()
+    {
+        lock (_sync)
+        {
+            if (_lib == null || _lib.AdlMapping == IntPtr.Zero || _gpu == null) return null;
+            IntPtr mapping = _lib.AdlMapping;
+            var vtable = *(IntPtr**)mapping;
+            var getBdf = (delegate* unmanaged[Stdcall]<IntPtr, IntPtr, int*, int*, int*, AdlxResult>)vtable[2];
+            int bus = -1, device = -1, function = -1;
+            if (!getBdf(mapping, _gpu.Ptr, &bus, &device, &function).Succeeded()) return null;
+            return bus is >= 0 and <= 255 && device is >= 0 and <= 31 && function is >= 0 and <= 7
+                ? (bus << 8) | (device << 3) | function : null;
+        }
+    }
+
     public void SelectGpu(int index)
     {
         lock (_sync)

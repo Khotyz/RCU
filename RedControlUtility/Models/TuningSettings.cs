@@ -11,9 +11,15 @@ public sealed class TuningSettings
     public int? VramMaxMhz { get; set; }
     public AdlxMemoryTiming? VramTiming { get; set; }
     public bool? ZeroRpm { get; set; }
+    public int? FanMinRpm { get; set; }
+    public int? FanTargetRpm { get; set; }
     public List<FanCurvePoint>? FanCurve { get; set; }
     public List<VfCurvePoint>? VfStates { get; set; }
     public string? Preset { get; set; }
+
+    public bool HasValues() => GpuMinMhz != null || GpuMaxMhz != null || VoltageMv != null || PowerLimitPercent != null ||
+        VramMaxMhz != null || VramTiming != null || ZeroRpm != null || FanMinRpm != null || FanTargetRpm != null ||
+        FanCurve is { Count: > 0 } || VfStates is { Count: > 0 } || !string.IsNullOrEmpty(Preset);
 
     public TuningSettings Clone()
     {
@@ -39,9 +45,9 @@ public sealed class ApplyReport
     {
         get
         {
-            if (Items.Count == 0) return "Nada para aplicar.";
+            if (Items.Count == 0) return UiHelper.L("Report.NothingToApply");
             var failed = Items.Where(i => !i.Result.Succeeded()).ToList();
-            if (failed.Count == 0) return $"{Items.Count} ajuste(s) aplicado(s).";
+            if (failed.Count == 0) return UiHelper.L("Report.AppliedCount", Items.Count);
             return string.Join("; ", failed.Select(f => $"{f.Feature}: {f.Result.Describe()}"));
         }
     }

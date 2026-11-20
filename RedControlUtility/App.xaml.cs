@@ -127,18 +127,13 @@ public partial class App : Application
         }
     }
 
-    private static bool HasTuning(TuningSettings t) =>
-        t.GpuMinMhz != null || t.GpuMaxMhz != null || t.VoltageMv != null || t.PowerLimitPercent != null ||
-        t.VramMaxMhz != null || t.VramTiming != null || t.FanCurve is { Count: > 0 } || t.VfStates is { Count: > 0 } ||
-        !string.IsNullOrEmpty(t.Preset);
-
     private static void OnGpuUnstable(string what)
     {
         try
         {
             LogService.Warn($"Instabilidade da GPU detectada ({what}).");
             if (!Settings.Current.AutoResetOnInstability) return;
-            bool hadTuning = HasTuning(CurrentProfile.Tuning);
+            bool hadTuning = CurrentProfile.Tuning.HasValues();
             if (!hadTuning) return;
 
             Hardware.Initialize(Settings.Current.Backend, Settings.Current.GpuIndex);
@@ -185,10 +180,7 @@ public partial class App : Application
         }
 
         var t = p.Tuning;
-        bool hasTuning = t.GpuMinMhz != null || t.GpuMaxMhz != null || t.VoltageMv != null || t.PowerLimitPercent != null ||
-                         t.VramMaxMhz != null || t.VramTiming != null || t.ZeroRpm != null || t.FanCurve is { Count: > 0 } ||
-                         t.VfStates is { Count: > 0 } || !string.IsNullOrEmpty(t.Preset);
-        if (hasTuning && Hardware.Caps.Tuning.AnyTuning)
+        if (t.HasValues() && Hardware.Caps.Tuning.AnyTuning)
         {
             foreach (var i in Hardware.ApplyTuning(t).Items) all.Items.Add(i);
         }
@@ -212,11 +204,8 @@ public partial class App : Application
         var p = CurrentProfile;
         p.GpuModel = Hardware.CurrentGpu.Name;
         p.Architecture = Hardware.CurrentGpu.Architecture;
-        if (Hardware.AdlxAvailable)
-        {
-            p.Graphics = Hardware.ReadGraphics();
-            if (Hardware.Caps.Tuning.AnyTuning) p.Tuning = Hardware.ReadTuning();
-        }
+        if (Hardware.AdlxAvailable) p.Graphics = Hardware.ReadGraphics();
+        if (Hardware.Caps.Tuning.AnyTuning) p.Tuning = Hardware.ReadTuning();
 
         return p;
     }

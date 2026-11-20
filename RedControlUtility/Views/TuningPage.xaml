@@ -94,6 +94,10 @@
                     <ComboBox x:Name="FanPresetCombo" Width="300" rcu:Loc.Header="Tuning.FanPreset" rcu:Loc.Tip="Tuning.FanPresetTip" SelectionChanged="FanPreset_Changed" />
                     <ToggleSwitch x:Name="ZeroRpmToggle" rcu:Loc.Header="Tuning.ZeroRpm" rcu:Loc.Tip="Tuning.ZeroRpmTip" Toggled="Field_Toggled" />
                     <ctl:CurveChart x:Name="FanChart" rcu:Loc.Tip="Tuning.FanChartTip" Height="220" />
+                    <StackPanel x:Name="FanRpmPanel" Orientation="Horizontal" Spacing="12" Visibility="Collapsed">
+                        <NumberBox x:Name="FanMinRpmBox" Width="210" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.FanMinRpm" ValueChanged="Field_NumberChanged" />
+                        <NumberBox x:Name="FanTargetRpmBox" Width="210" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.FanTargetRpm" ValueChanged="Field_NumberChanged" />
+                    </StackPanel>
                     <StackPanel x:Name="FanRows" Spacing="4" />
                 </StackPanel>
             </Border>
