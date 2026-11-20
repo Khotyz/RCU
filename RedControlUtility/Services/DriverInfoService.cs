@@ -3,7 +3,6 @@ using RedControlUtility.Models;
 
 namespace RedControlUtility.Services;
 
-/// <summary>Leitura do registro do Windows (classe Display): usado como fallback quando o ADLX não está disponível e para a versão do driver.</summary>
 public static class DriverInfoService
 {
     private const string DisplayClass = @"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}";
@@ -61,7 +60,6 @@ public static class DriverInfoService
         return list;
     }
 
-    /// <summary>Preenche versão do driver/VRAM da GPU a partir do registro (casando por Device ID ou nome).</summary>
     public static void Enrich(GpuInfo gpu)
     {
         var adapters = ReadAmdAdapters();

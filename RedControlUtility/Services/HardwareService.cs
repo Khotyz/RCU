@@ -5,11 +5,6 @@ using RedControlUtility.Services.Adlx;
 
 namespace RedControlUtility.Services;
 
-/// <summary>
-/// Fachada de hardware usada pela UI. Usa o ADLX (DLL helper e/ou DLL da AMD) e, se indisponível,
-/// cai para detecção por registro (nome/arquitetura/driver) — nesse caso os controles ficam desabilitados
-/// e NENHUMA aplicação é reportada como "sucesso" (o app antigo retornava true mesmo sem driver).
-/// </summary>
 public sealed class HardwareService : IDisposable
 {
     private AdlxSession? _session;
@@ -25,7 +20,6 @@ public sealed class HardwareService : IDisposable
     public string AdlxVersion => _session?.AdlxVersion ?? string.Empty;
     public string InitReport { get; private set; } = string.Empty;
 
-    /// <summary>Valores de tuning no primeiro carregamento (usados como "padrão" se o driver não informar o default).</summary>
     public TuningSettings? TuningBaseline { get; private set; }
 
     public event Action? Reinitialized;
@@ -63,7 +57,6 @@ public sealed class HardwareService : IDisposable
             LogService.Warn($"Sem ADLX. Fallback: {CurrentGpu.Name} | {CurrentGpu.ArchitectureText}");
         }
 
-        // Polaris e GPUs antigas: se o ADLX não entrega métricas, tenta sensores via ADL (somente leitura).
         if (_session == null || !Caps.MetricsAvailable)
         {
             try
@@ -140,8 +133,6 @@ public sealed class HardwareService : IDisposable
         Caps = new GpuCapabilities { AdlxAvailable = false };
     }
 
-    // ------------------------------------------------------------------ Sensores
-
     public MetricsSnapshot ReadMetrics()
     {
         var m = _session?.ReadMetrics();
@@ -149,8 +140,6 @@ public sealed class HardwareService : IDisposable
         if (_adl != null) return _adl.ReadMetrics();
         return m ?? new MetricsSnapshot { Valid = false, Error = UiHelper.L("Err.AdlxUnavailable") };
     }
-
-    // ------------------------------------------------------------------ Gráficos 3D
 
     private static ApplyReport Unavailable(string feature)
     {
@@ -169,9 +158,6 @@ public sealed class HardwareService : IDisposable
         return s;
     }
 
-    /// <summary>
-    /// Enhanced Sync: se o ADLX nao entrega o recurso, o suporte e o estado vem direto do driver (ADL), como o ADLX faz por dentro.
-    /// </summary>
     private void PatchEnhancedSyncCaps(GraphicsCapabilities caps, GraphicsSettings cur)
     {
         if (caps.EnhancedSync) return;
@@ -189,7 +175,6 @@ public sealed class HardwareService : IDisposable
         var report = new ApplyReport();
         var forSession = s.Clone();
 
-        // FRTC e global (ApplyGlobalFrtc); perfis por jogo nunca mexem nele.
         forSession.Frtc = null;
         forSession.FrtcFps = null;
 
@@ -199,7 +184,6 @@ public sealed class HardwareService : IDisposable
         if (s.EnhancedSync != null) ReconcileEnhancedSync(s.EnhancedSync.Value, report);
         ApplyUmdFlags(s, report);
 
-        // Uma linha com o que o driver guardou de fato (aparece no log e no diagnóstico).
         try
         {
             var a = _session.ReadGraphics(out _);
@@ -217,7 +201,6 @@ public sealed class HardwareService : IDisposable
 
     private const string KeyTripleBuffer = "EnableTripleBuffering", KeySurfaceFormat = "SurfaceFormatReplacements";
 
-    /// <summary>Buffer triplo do OpenGL e otimizacao de formato de superficie: opcoes de texto do driver (UMD), fora do ADLX.</summary>
     private void PatchUmdCaps(GraphicsCapabilities caps, GraphicsSettings cur)
     {
         var tb = Adl.DriverFsrService.GetUmdFlag(KeyTripleBuffer, CurrentGpu.Index);
@@ -266,7 +249,6 @@ public sealed class HardwareService : IDisposable
         report.Add(name, r.Ok ? AdlxResult.Ok : AdlxResult.Fail);
     }
 
-    /// <summary>Limite de FPS global pelo caminho do driver (ADL), o mesmo do AMD Software.</summary>
     public (bool Ok, string Message) ApplyGlobalFrtc(bool enable, int fps)
     {
         var r = Adl.DriverFsrService.SetFrtc(enable, fps, CurrentGpu.Index);
@@ -275,8 +257,6 @@ public sealed class HardwareService : IDisposable
     }
 
     public AdlxResult ResetDriverShaderCache() => _session?.ResetShaderCache() ?? AdlxResult.Unavailable;
-
-    // ------------------------------------------------------------------ SAM
 
     public AdlxResult SetSam(bool enabled)
     {
@@ -291,8 +271,6 @@ public sealed class HardwareService : IDisposable
 
         return r;
     }
-
-    // ------------------------------------------------------------------ Tuning
 
     public TuningSettings ReadTuning()
     {
@@ -317,15 +295,16 @@ public sealed class HardwareService : IDisposable
         return r;
     }
 
-    // ------------------------------------------------------------------ Displays
+    private List<DisplayInfo> _displayCache = new();
 
     public List<DisplayInfo> ReadDisplays()
     {
         var list = _session?.ReadDisplays() ?? new List<DisplayInfo>();
+        MergeAdlFreeSync(list);
+        _displayCache = list;
         LogService.Info($"Monitores pelo ADLX: {list.Count}" + string.Concat(list.Select(d =>
             $" | [{d.Index}] {d.Name}: FreeSync={d.Caps.FreeSync} VSR={d.Caps.Vsr} Escala={d.Caps.GpuScaling}")));
 
-        // O ADLX as vezes nao lista monitores (ou nao libera a escala da GPU); o ADL, mesmo caminho do AMD Software, ainda controla.
         var adl = Adl.DriverFsrService.ListDisplays(CurrentGpu.Index);
         LogService.Info($"Monitores pelo ADL: {adl.Count}" + string.Concat(adl.Select(d =>
             $" | {d.Logical} '{d.Name}': escala suporte={d.ScalingSupported} ligada={d.ScalingOn}")));
@@ -357,9 +336,56 @@ public sealed class HardwareService : IDisposable
         return list;
     }
 
+    private void MergeAdlFreeSync(List<DisplayInfo> list)
+    {
+        if (list.Count == 0) return;
+        var fs = Adl.DriverFsrService.ReadFreeSync(CurrentGpu.Index);
+        if (fs.Count == 0) return;
+        for (int i = 0; i < list.Count; i++)
+        {
+            int j = fs.Count == list.Count ? i : (list.Count == 1 ? 0 : -1);
+            if (j < 0) continue;
+            var c = list[i].Caps;
+            if (fs[j].MaxHz > 0)
+            {
+                c.FreeSyncMinHz = fs[j].MinHz;
+                c.FreeSyncMaxHz = fs[j].MaxHz;
+            }
+
+            if (!c.FreeSync && fs[j].Supported)
+            {
+                c.FreeSync = true;
+                c.FreeSyncViaAdl = true;
+                list[i].Current.FreeSync = fs[j].Enabled;
+            }
+        }
+    }
+
     public ApplyReport ApplyDisplay(int index, DisplaySettings s)
     {
-        // Ligar: a escala da GPU vai antes (VSR e escala inteira dependem dela). Desligar: vai depois.
+        bool viaAdl = s.FreeSync != null && index >= 0 && index < _displayCache.Count && _displayCache[index].Caps.FreeSyncViaAdl;
+        bool? fsWanted = s.FreeSync;
+        if (viaAdl) s.FreeSync = null;
+        try
+        {
+            var report = ApplyDisplayCore(index, s);
+            if (viaAdl)
+            {
+                var r = Adl.DriverFsrService.SetFreeSync(index, fsWanted!.Value, CurrentGpu.Index);
+                LogService.Info($"ADL FreeSync set: {r.Message}");
+                report.Add(UiHelper.L("Report.AdaptiveSync"), r.Ok ? AdlxResult.Ok : AdlxResult.Fail);
+            }
+
+            return report;
+        }
+        finally
+        {
+            s.FreeSync = fsWanted;
+        }
+    }
+
+    private ApplyReport ApplyDisplayCore(int index, DisplaySettings s)
+    {
         (bool Ok, string Message)? adl = null;
         if (s.GpuScaling == true) adl = RunAdlScaling(true);
 
@@ -372,7 +398,6 @@ public sealed class HardwareService : IDisposable
             report.Items.RemoveAll(i => i.Feature == "Display" && !i.Result.Succeeded());
             NudgeDisplayModes();
 
-            // O ADL aplicou: o item UiHelper.L("Report.GpuScaling") do ADLX (ex.: "nao suportado") deixa de valer.
             for (int i = 0; i < report.Items.Count; i++)
             {
                 if (report.Items[i].Feature == UiHelper.L("Report.GpuScaling") && !report.Items[i].Result.Succeeded())
@@ -389,7 +414,6 @@ public sealed class HardwareService : IDisposable
     [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
     private static extern int ChangeDisplaySettingsExW(string? device, IntPtr devMode, IntPtr hwnd, uint flags, IntPtr param);
 
-    /// <summary>Pede ao Windows para reler os modos dos monitores, para as resolucoes novas da escala da GPU aparecerem.</summary>
     private static void NudgeDisplayModes()
     {
         try
@@ -408,8 +432,6 @@ public sealed class HardwareService : IDisposable
         LogService.Info($"Escala da GPU via ADL ({(enable ? "ligar" : "desligar")}): {(r.Ok ? "ok" : "falhou")} - {r.Message}");
         return r;
     }
-
-    // ------------------------------------------------------------------ Diagnóstico
 
     public string BuildDiagnostics()
     {

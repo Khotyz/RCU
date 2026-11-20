@@ -2,14 +2,8 @@ using System.Runtime.InteropServices;
 
 namespace RedControlUtility.Services;
 
-/// <summary>Uma linha do overlay: nome da tecnologia, valor e se está ativa.</summary>
 public sealed record OverlayItem(string Name, string Value, bool On);
 
-/// <summary>
-/// Overlay minimalista por cima do jogo: janela Win32 topmost, translúcida e que não pega clique nem foco.
-/// Desenhada com GDI (sem janela WinUI), some sozinha depois do tempo configurado.
-/// Precisa ser chamado na thread da interface (a que tem o loop de mensagens).
-/// </summary>
 public sealed class OverlayService : IDisposable
 {
     private const string ClassName = "RcuOverlayWindow";
@@ -90,18 +84,14 @@ public sealed class OverlayService : IDisposable
     private double _scale = 1;
     private IntPtr _fontTitle, _font;
 
-    // COLORREF = 0x00BBGGRR
     private static uint Rgb(int r, int g, int b) => (uint)(r | (g << 8) | (b << 16));
     private static readonly uint Bg = Rgb(32, 32, 32), Text = Rgb(243, 243, 243), Muted = Rgb(150, 150, 150),
         Green = Rgb(108, 203, 95), Accent = Rgb(229, 37, 42);
 
-    /// <summary>Instância única, usada pela janela principal e pela página de configurações.</summary>
     public static OverlayService Shared { get; } = new();
 
     public bool IsShowing => _hwnd != IntPtr.Zero;
 
-    /// <summary>Mostra o overlay por <paramref name="seconds"/> segundos (substitui o anterior, se houver).</summary>
-    /// <param name="corner">0 canto superior esquerdo, 1 superior direito, 2 inferior esquerdo, 3 inferior direito, 4 topo central.</param>
     public void Show(string title, IReadOnlyList<OverlayItem> items, double seconds, int corner = 0)
     {
         Close();
@@ -159,7 +149,7 @@ public sealed class OverlayService : IDisposable
     }
 
     private IntPtr MakeFont(int px, int weight) =>
-        CreateFontW(-(int)Math.Round(px * _scale), 0, 0, 0, weight, 0, 0, 0, 1, 0, 0, 5 /* CLEARTYPE */, 0, "Segoe UI");
+        CreateFontW(-(int)Math.Round(px * _scale), 0, 0, 0, weight, 0, 0, 0, 1, 0, 0, 5  , 0, "Segoe UI");
 
     private void FreeFonts()
     {
@@ -211,13 +201,12 @@ public sealed class OverlayService : IDisposable
         FillRect(hdc, ref all, bg);
         DeleteObject(bg);
 
-        // Filete vermelho do app no topo.
         var bar = new RECT { L = 0, T = 0, R = _w, B = Math.Max(2, (int)(3 * _scale)) };
         IntPtr ab = CreateSolidBrush(Accent);
         FillRect(hdc, ref bar, ab);
         DeleteObject(ab);
 
-        SetBkMode(hdc, 1 /* TRANSPARENT */);
+        SetBkMode(hdc, 1  );
         IntPtr old = SelectObject(hdc, _fontTitle);
         SetTextColor(hdc, Text);
         TextOutW(hdc, _pad, _pad, _title, _title.Length);
@@ -225,7 +214,7 @@ public sealed class OverlayService : IDisposable
         SelectObject(hdc, _font);
         int y = _pad + _titleH;
         int dotSize = (int)(8 * _scale);
-        IntPtr nullPen = GetStockObject(8 /* NULL_PEN */);
+        IntPtr nullPen = GetStockObject(8  );
         IntPtr oldPen = SelectObject(hdc, nullPen);
         foreach (var it in _items)
         {
@@ -263,7 +252,7 @@ public sealed class OverlayService : IDisposable
             case WM_ERASEBKGND:
                 return new IntPtr(1);
             case WM_NCHITTEST:
-                return new IntPtr(-1); // HTTRANSPARENT: o clique passa para o jogo
+                return new IntPtr(-1);
             case WM_TIMER:
                 KillTimer(h, new UIntPtr(1));
                 DestroyWindow(h);

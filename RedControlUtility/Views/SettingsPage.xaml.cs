@@ -85,8 +85,6 @@ public sealed partial class SettingsPage : Page
             foreach (var g in App.Hardware.AllGpus) GpuCombo.Items.Add(Item($"[{g.Index}] {g.Name}", g.Index));
             GpuCombo.IsEnabled = App.Hardware.AllGpus.Count > 1;
             GpuCombo.Opacity = App.Hardware.AllGpus.Count > 1 ? 1 : 0.5;
-            // Modo avançado: os campos continuam no lugar (desabilitados) para a tela não crescer
-            // nem encolher quando a opção é ligada.
             BackendCombo.IsEnabled = S.AdvancedMode;
             ApplyModeCombo.IsEnabled = S.AdvancedMode;
             GpuCombo.SelectedIndex = Math.Clamp(App.Hardware.CurrentGpu.Index, 0, Math.Max(0, GpuCombo.Items.Count - 1));
@@ -222,7 +220,7 @@ public sealed partial class SettingsPage : Page
     {
         if (_loading || IntervalCombo.SelectedItem is not ComboBoxItem { Tag: int ms }) return;
         S.SensorIntervalMs = ms;
-        App.Settings.Save(); // vale na próxima vez que o Painel abrir (os sensores só rodam nele)
+        App.Settings.Save();
     }
 
     private async void Reinit_Click(object sender, RoutedEventArgs e)

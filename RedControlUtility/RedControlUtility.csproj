@@ -8,19 +8,22 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x64</Platforms>
     <Platform>x64</Platform>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsPackageType>None</WindowsPackageType>
-    <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
+    <!-- Self-contained by default: the PC does not need .NET or the Windows App Runtime (fixes
+         "Required components of the Windows App Runtime are missing, Version 1.8"). -->
+    <SelfContained>true</SelfContained>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Product>Red Control Utility</Product>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
-    <Version>0.2.1</Version>
-    <!-- Menos RAM: GC não concorrente, sem PGO e compactação mais agressiva -->
+    <Version>0.2.2</Version>
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <TieredPGO>false</TieredPGO>
     <AutoreleasePoolSupport>false</AutoreleasePoolSupport>
@@ -44,7 +47,6 @@
     <Content Include="locales\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <!-- DLL helper opcional (sua DLL compilada, renomeada). NUNCA chame de amdadlx64.dll. -->
     <Content Include="native\RedAdlxHelper.dll" Condition="Exists('native\RedAdlxHelper.dll')">
       <Link>RedAdlxHelper.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

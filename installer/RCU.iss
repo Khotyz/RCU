@@ -1,14 +1,4 @@
-; Red Control Utility installer (Inno Setup 6).
-; Build:  iscc /DAppVersion=1.2.3 /DSourceDir=..\publish installer\RCU.iss
-#ifndef AppVersion
-  #define AppVersion "0.2.1"
-#endif
-#ifndef SourceDir
-  #define SourceDir "..\RedControlUtility\bin\x64\Release\net8.0-windows10.0.19041.0\publish"
-#endif
 
-#define AppName "Red Control Utility"
-#define AppExe "RedControlUtility.exe"
 
 [Setup]
 AppId={{7D3C2B61-5E0A-4F7B-9B1D-2A6C4E8F1A93}
@@ -61,7 +51,6 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
-; Atualizacao silenciosa feita pelo proprio app: reabre o programa ao terminar.
 Filename: "{app}\{#AppExe}"; Flags: nowait; Check: WizardSilent
 
 [UninstallRun]

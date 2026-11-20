@@ -1,12 +1,12 @@
 # Red Control Utility (RCU), An open-source, lightweight control utility for AMD drivers. (Unofficial community project, not affiliated with AMD).
 
-![version](https://img.shields.io/badge/version-0.2.1-blue)
+![version](https://img.shields.io/badge/version-0.2.2-blue)
 
 RCU is a small WinUI 3 / .NET 8 app that replaces AMD Software (Adrenalin) for everyday control of a Radeon GPU. It talks straight to the AMD display driver through ADLX (`amdadlx64.dll`) and ADL (`atiadlxx.dll`), which ship with the driver, so a **driver-only install is enough**, Adrenalin does not need to be installed and does not need to be running.
 
 It covers GPU clocks, undervolt, power limit, fan curve, VRAM, per-monitor display options (VSR, FreeSync, GPU scaling, integer scaling, custom color), the 3D feature set (Anti-Lag, AFMF, FSR upgrade, RSR, Image Sharpening, Radeon Boost, Chill, FRTC, Enhanced Sync, V-Sync, anisotropic filtering, tessellation) and per-application profiles, because the driver keeps forgetting everything when the game closes or the PC restarts.
 
-> **Status:** version 0.2.1, early release. Not every driver/GPU combination behaves the same; if an option does not respond, the Diagnostics panel tells you exactly what the driver answered. See [Troubleshooting](#troubleshooting).
+> **Status:** version 0.2.2, early release. Not every driver/GPU combination behaves the same; if an option does not respond, the Diagnostics panel tells you exactly what the driver answered. See [Troubleshooting](#troubleshooting).
 
 ---
 
@@ -56,7 +56,7 @@ It covers GPU clocks, undervolt, power limit, fan curve, VRAM, per-monitor displ
 | --- | --- |
 | OS | Windows 10 19041 (20H1) or newer, 64 bit |
 | GPU | AMD Radeon, Polaris (RX 400/500) up to RDNA 4, with the AMD display driver installed |
-| Runtime | .NET 8 Desktop Runtime (or a self-contained build) |
+| Runtime | None needed (the build is self-contained: .NET and Windows App Runtime are bundled) |
 | Build tools | Visual Studio 2022 with the .NET desktop workload and the Windows App SDK |
 
 AMD Software / Adrenalin is **not** required. Everything goes through the driver libraries that the display driver installs into `System32`.
@@ -76,7 +76,7 @@ The app stores its settings in `%APPDATA%\RedControlUtility` and its logs in `%L
 3. Build **Release** (Debug works but uses the Visual Studio debug CRT and much more memory).
 
 ```
-dotnet publish RedControlUtility -c Release -r win-x64 --self-contained false
+dotnet publish RedControlUtility -c Release -r win-x64 -p:Platform=x64
 ```
 
 The `locales` and `native` folders are copied into the output automatically.
@@ -244,10 +244,10 @@ After applying, the app reads everything back from the driver. The message lists
 
 RCU updates itself from this repository's GitHub releases, no store, no installer service.
 
-* **Settings → Updates** shows the version you are running (currently **0.2.1**) and has a **Check now** button.
+* **Settings → Updates** shows the version you are running (currently **0.2.2**) and has a **Check now** button.
 * **Check for updates automatically** (on by default) asks `api.github.com/repos/Khotyz/RCU/releases/latest` once at startup. Nothing is downloaded without your confirmation.
 * When a newer release exists, an information bar appears at the bottom of the window with a **Download** button. RCU downloads the release asset (`.exe`, `.msi` or `.zip`) to `%TEMP%\RedControlUtility\update-<tag>` and opens it; if the release has no asset, it opens the release page in your browser.
-* The comparison uses the tag (`v0.3.0` > `0.2.1`). Turn the option off in Settings if you prefer to update manually.
+* The comparison uses the tag (`v0.3.0` > `0.2.2`). Turn the option off in Settings if you prefer to update manually.
 
 ## Window size
 

@@ -2,13 +2,8 @@ using RedControlUtility.Models;
 
 namespace RedControlUtility.Services.Adlx;
 
-/// <summary>
-/// Sessão ADLX de alto nível: enumeração de GPUs, sensores, SAM (Resizable BAR), 3D, tuning e displays.
-/// Todos os acessos são serializados por um lock (o ADLX é chamado da UI e da thread de sensores).
-/// </summary>
 public sealed partial class AdlxSession : IDisposable
 {
-    // Slots da vtable (ver comentário em AdlxObject). IADLXSystem: sem Acquire/Release.
     private static class SysSlot
     {
         public const int GetGPUs = 1;
@@ -105,8 +100,6 @@ public sealed partial class AdlxSession : IDisposable
         return null;
     }
 
-    // ------------------------------------------------------------------ GPUs
-
     private bool EnumerateGpusInternal(System.Text.StringBuilder log)
     {
         if (_system == null) return false;
@@ -129,7 +122,6 @@ public sealed partial class AdlxSession : IDisposable
         log.AppendLine($"[ADLX] Itens lidos com At(): {listed.Count}");
         foreach (var item in listed)
         {
-            // Obtém o ponteiro tipado como IADLXGPU.
             AdlxObject gpuObj = item.Query("IADLXGPU") ?? item;
             if (!ReferenceEquals(gpuObj, item))
             {
@@ -142,7 +134,6 @@ public sealed partial class AdlxSession : IDisposable
 
         if (_gpus.Count == 0) return false;
 
-        // GPU padrão: a discreta com mais VRAM.
         int best = 0;
         for (int i = 1; i < _gpuInfos.Count; i++)
         {
@@ -172,7 +163,7 @@ public sealed partial class AdlxSession : IDisposable
         if (g.GetString(GpuSlot.VramType, out string vt).Succeeded()) info.VramType = vt;
         if (g.GetInt(GpuSlot.UniqueId, out int uid).Succeeded()) info.UniqueId = uid;
         if (g.GetUInt(GpuSlot.TotalVram, out uint vram).Succeeded()) info.VramMb = (int)vram;
-        if (g.GetInt(GpuSlot.Type, out int type).Succeeded()) info.IsDiscrete = type != 1; // 1 = GPUTYPE_INTEGRATED
+        if (g.GetInt(GpuSlot.Type, out int type).Succeeded()) info.IsDiscrete = type != 1;
         if (g.GetString3(GpuSlot.BiosInfo, out string part, out string ver, out _).Succeeded())
         {
             info.BiosPartNumber = part;
@@ -199,8 +190,6 @@ public sealed partial class AdlxSession : IDisposable
         _gpu = _gpus[index];
     }
 
-    // ------------------------------------------------------------------ Serviços
-
     private void AcquireServices(System.Text.StringBuilder? log = null)
     {
         if (_system == null) return;
@@ -219,9 +208,8 @@ public sealed partial class AdlxSession : IDisposable
 
         if (_perf != null)
         {
-            // O ADLX só mantém métricas "atuais" se o tracking estiver ligado.
-            _perf.SetInt(4, 500); // SetSamplingInterval(ms) - best effort
-            _perfTracking = _perf.Invoke(11).Succeeded(); // StartPerformanceMetricsTracking
+            _perf.SetInt(4, 500);
+            _perfTracking = _perf.Invoke(11).Succeeded();
         }
     }
 
@@ -239,7 +227,7 @@ public sealed partial class AdlxSession : IDisposable
     {
         if (_perf != null && _perfTracking)
         {
-            try { _perf.Invoke(12); } catch { } // StopPerformanceMetricsTracking
+            try { _perf.Invoke(12); } catch { }
         }
 
         _perfTracking = false;
@@ -259,13 +247,11 @@ public sealed partial class AdlxSession : IDisposable
             foreach (var g in _gpus) g.Dispose();
             _gpus.Clear();
             _gpu = null;
-            _system = null; // pertence à biblioteca (sem refcount)
+            _system = null;
             _lib?.Dispose();
             _lib = null;
         }
     }
-
-    // ------------------------------------------------------------------ Sensores
 
     public MetricsSnapshot ReadMetrics()
     {
@@ -280,7 +266,7 @@ public sealed partial class AdlxSession : IDisposable
 
             try
             {
-                if (!_perf.GetPtrWith(18, _gpu.Ptr, out IntPtr p).Succeeded() || p == IntPtr.Zero) // GetCurrentGPUMetrics
+                if (!_perf.GetPtrWith(18, _gpu.Ptr, out IntPtr p).Succeeded() || p == IntPtr.Zero)
                 {
                     snap.Error = "GetCurrentGPUMetrics falhou";
                     return snap;
@@ -324,8 +310,6 @@ public sealed partial class AdlxSession : IDisposable
         }
     }
 
-    // ------------------------------------------------------------------ SAM / Resizable BAR
-
     public (bool Supported, bool Enabled) ReadSam()
     {
         lock (_sync)
@@ -350,7 +334,6 @@ public sealed partial class AdlxSession : IDisposable
     private AdlxObject? GetSam()
     {
         if (_tuning1 == null || _gpu == null) return null;
-        // IADLXGPUTuningServices1::GetSmartAccessMemory (slot 18)
         return _tuning1.GetPtrWith(18, _gpu.Ptr, out IntPtr p).Succeeded() && p != IntPtr.Zero ? new AdlxObject(p) : null;
     }
 }

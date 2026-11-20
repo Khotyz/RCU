@@ -9,16 +9,10 @@ using Windows.UI;
 
 namespace RedControlUtility.Controls;
 
-/// <summary>
-/// Gráfico de curva leve (V/F, ventoinha). Os elementos visuais são criados uma única vez e apenas
-/// reposicionados; os redesenhos são agrupados (coalescidos) num timer de ~30 ms. Isso elimina o lag
-/// que existia no controle antigo (que recriava dezenas de shapes e re-ligava ItemsSource a cada passo do slider).
-/// </summary>
 public sealed class CurveChart : Canvas
 {
     private const double PadL = 44, PadR = 14, PadT = 12, PadB = 26;
 
-    /// <summary>Pincel do ResourceDictionary do app (App.xaml); cai na cor padrão se não existir.</summary>
     private static SolidColorBrush ThemeBrush(string key, Color fallback)
     {
         try
@@ -39,7 +33,6 @@ public sealed class CurveChart : Canvas
         StrokeLineJoin = PenLineJoin.Round
     };
 
-    // "Fantasma": curva de referência (último estado aplicado) para comparar com a edição atual.
     private readonly Polyline _ghost = new()
     {
         StrokeThickness = 2,
@@ -62,16 +55,12 @@ public sealed class CurveChart : Canvas
     private Point _mqStart;
     private double _lastY, _accum;
 
-    /// <summary>Modo estilo MSI Afterburner: seleção por retângulo/clique e deslocamento vertical (arrastar, scroll, setas).</summary>
     public bool Selectable { get; set; }
 
-    /// <summary>Passo do scroll e das setas, em unidades do eixo Y.</summary>
     public double Step { get; set; } = 5;
 
-    /// <summary>Pontos selecionados e quanto (em unidades de Y, positivo = para cima) deslocar.</summary>
     public event Action<IReadOnlyList<int>, double>? SelectionShifted;
 
-    /// <summary>Arrastar UM ponto sozinho move livremente (X e Y), de forma manual. Só vale para índices aceitos por <see cref="CanMoveFreely"/>.</summary>
     public event Action<int, double, double>? PointMoved;
     public Func<int, bool>? CanMoveFreely { get; set; }
     private int _freeIndex = -1;
@@ -86,7 +75,6 @@ public sealed class CurveChart : Canvas
     private DispatcherQueueTimer? _timer;
     private int _dragIndex = -1;
 
-    /// <summary>Permite arrastrar os pontos com o mouse. O evento informa o índice e a posição em unidades dos eixos.</summary>
     public bool Draggable { get; set; }
     public event Action<int, double, double>? PointDragged;
 
@@ -245,7 +233,6 @@ public sealed class CurveChart : Canvas
                 _moving = true;
                 _lastY = pos.Y;
                 _accum = 0;
-                // Um único ponto selecionado: edição manual livre. Vários pontos: deslocamento linear do grupo.
                 _freeIndex = _sel.Count == 1 && _sel.Contains(best) && (CanMoveFreely?.Invoke(best) ?? false) ? best : -1;
             }
             else

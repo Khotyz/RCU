@@ -2,7 +2,6 @@ using RedControlUtility.Models;
 
 namespace RedControlUtility.Services;
 
-/// <summary>Lê os sensores em segundo plano (fora da thread de UI) e publica o último snapshot.</summary>
 public sealed class SensorService : IDisposable
 {
     private readonly HardwareService _hardware;

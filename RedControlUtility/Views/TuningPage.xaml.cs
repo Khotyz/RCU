@@ -45,7 +45,6 @@ public sealed partial class TuningPage : Page
 
     private const int MmChartLastIndex = 8;
 
-    // Edição manual: um ponto sozinho vai exatamente para onde o mouse está (freq e tensão independentes).
     private void StateMovedFree(int i, double x, double y)
     {
         if (i < 0 || i >= _states.Count) return;
@@ -64,7 +63,6 @@ public sealed partial class TuningPage : Page
         MarkPending();
     }
 
-    // O ponto de topo da curva é o par (clock máximo, tensão máxima): cada um muda sozinho, sem proporção.
     private void MmMovedFree(int i, double x, double y)
     {
         if (!double.IsNaN(x)) GpuMaxBox.Value = Math.Clamp(Math.Round(x), GpuMaxBox.Minimum, GpuMaxBox.Maximum);
@@ -144,7 +142,6 @@ public sealed partial class TuningPage : Page
             var t = _caps;
             var s = _current;
 
-            // Preset
             PresetCard.Visibility = t.PresetSupported ? Visibility.Visible : Visibility.Collapsed;
             PresetCombo.Items.Clear();
             PresetCombo.Items.Add(Item(L("Tuning.PresetNone"), null));
@@ -153,7 +150,6 @@ public sealed partial class TuningPage : Page
             for (int i = 0; i < PresetCombo.Items.Count; i++)
                 if (PresetCombo.Items[i] is ComboBoxItem { Tag: string tag } && tag == s.Preset) PresetCombo.SelectedIndex = i;
 
-            // Núcleo
             bool minMax = t.GfxMode == GfxTuningMode.MinMaxVoltage;
             MinMaxPanel.Visibility = minMax ? Visibility.Visible : Visibility.Collapsed;
             VoltagePanel.Visibility = minMax && t.VoltageRange.IsValid ? Visibility.Visible : Visibility.Collapsed;
@@ -183,7 +179,6 @@ public sealed partial class TuningPage : Page
                 UpdatePowerLabel();
             }
 
-            // Estados V/F
             bool stateList = t.GfxMode == GfxTuningMode.StateList && s.VfStates is { Count: > 0 };
             StatesCard.Visibility = stateList ? Visibility.Visible : Visibility.Collapsed;
             if (stateList)
@@ -193,7 +188,6 @@ public sealed partial class TuningPage : Page
                 BuildStateRows();
             }
 
-            // VRAM
             VramCard.Visibility = t.VramSupported ? Visibility.Visible : Visibility.Collapsed;
             VramBox.Visibility = t.VramFreqSupported ? Visibility.Visible : Visibility.Collapsed;
             VramTimingCombo.Visibility = t.VramTimingSupported ? Visibility.Visible : Visibility.Collapsed;
@@ -204,7 +198,6 @@ public sealed partial class TuningPage : Page
             for (int i = 0; i < VramTimingCombo.Items.Count; i++)
                 if (VramTimingCombo.Items[i] is ComboBoxItem { Tag: int tg } && s.VramTiming != null && tg == (int)s.VramTiming) VramTimingCombo.SelectedIndex = i;
 
-            // Ventoinha
             FanCard.Visibility = Visibility.Visible;
             FanUnsupportedText.Visibility = t.FanSupported ? Visibility.Collapsed : Visibility.Visible;
             FanPresetCombo.IsEnabled = ZeroRpmToggle.IsEnabled = t.FanSupported;
@@ -258,8 +251,6 @@ public sealed partial class TuningPage : Page
         return list;
     }
 
-    // ------------------------------------------------------------------ linhas dinâmicas
-
     private void BuildStateRows()
     {
         StatesRows.Children.Clear();
@@ -297,7 +288,6 @@ public sealed partial class TuningPage : Page
         VfChart.SetGhost(_baseStates.Select(p => ((double)p.FrequencyMHz, (double)p.VoltageMv)));
     }
 
-    // Desloca os pontos selecionados (arrastar, scroll ou setas). A curva tracejada é a referência (último estado aplicado).
     private void StatesShifted(IReadOnlyList<int> indices, double dy)
     {
         double lo = _caps.StateVoltageRange.IsValid ? _caps.StateVoltageRange.Min : 0;
@@ -309,7 +299,6 @@ public sealed partial class TuningPage : Page
         foreach (int i in indices)
         {
             if (i < 0 || i >= _states.Count) continue;
-            // Como no Afterburner: mV e clock caem juntos, na mesma proporção.
             double oldV = _states[i].VoltageMv;
             int newV = (int)Math.Clamp(oldV + dy, lo, hi);
             double ratio = oldV > 0 ? newV / oldV : 1;
@@ -326,10 +315,8 @@ public sealed partial class TuningPage : Page
 
     private void MmShifted(IReadOnlyList<int> indices, double dy)
     {
-        // Sua GPU aceita uma tensão máxima única: deslocar a curva move todo o conjunto.
         double oldV = VoltageSlider.Value;
         double newV = Math.Clamp(oldV + dy, VoltageSlider.Minimum, VoltageSlider.Maximum);
-        // O clock máximo acompanha a tensão, na mesma proporção.
         if (oldV > 0 && !double.IsNaN(GpuMaxBox.Value))
             GpuMaxBox.Value = Math.Clamp(Math.Round(GpuMaxBox.Value * newV / oldV), GpuMaxBox.Minimum, GpuMaxBox.Maximum);
         VoltageSlider.Value = newV;
@@ -373,8 +360,6 @@ public sealed partial class TuningPage : Page
 
     private void RefreshFanChart() => FanChart.SetPoints(_fan.Select(p => ((double)p.TemperatureC, (double)p.FanSpeedPercent)));
 
-    // ------------------------------------------------------------------ eventos
-
     private void UpdateVoltageLabel()
     {
         int v = (int)VoltageSlider.Value;
@@ -384,8 +369,6 @@ public sealed partial class TuningPage : Page
 
     private void UpdatePowerLabel() => PowerValue.Text = $"{(int)PowerSlider.Value:+0;-0;0} %";
 
-    // O slider só atualiza o texto (barato). Nada é enviado ao driver enquanto arrasta; o envio
-    // acontece com debounce e somente se "aplicar undervolt ao vivo" estiver ligado.
     private void Voltage_Changed(object sender, RangeBaseValueChangedEventArgs e)
     {
         if (!IsLoaded) return;
@@ -409,7 +392,6 @@ public sealed partial class TuningPage : Page
         Changed(false);
     }
 
-    // Mantém o clock mínimo 100 MHz abaixo do máximo (GPU sempre "acordada", evita travamentos por queda de clock).
     private void SyncMin()
     {
         if (double.IsNaN(GpuMaxBox.Value)) return;
@@ -420,8 +402,6 @@ public sealed partial class TuningPage : Page
         _loading = was;
     }
 
-    // Curva ilustrativa (clock x tensão), como a curva de ventoinha: sobe da frequência mínima do range até o clock máximo.
-    // O driver da GPU aceita clock mín., clock máx. e uma tensão máxima; o formato entre os pontos é estimado.
     private static List<(double X, double Y)> CurvePoints(double fStart, double fmax, double vLo, double vlim)
     {
         var pts = new List<(double X, double Y)>();
@@ -475,7 +455,6 @@ public sealed partial class TuningPage : Page
         return true;
     }
 
-    // Common community curve: quiet at idle, steady ramp through the load range, full speed at 80 C.
     private static readonly (int Temp, int Speed)[] OptimizedAnchors = { (30, 0), (40, 30), (50, 40), (60, 55), (70, 75), (80, 100), (110, 100) };
 
     private static List<FanCurvePoint> OptimizedFan(TuningCapabilities t)
@@ -550,18 +529,12 @@ public sealed partial class TuningPage : Page
         MarkPending();
     }
 
-    /// <summary>
-    /// Mantém a curva coerente em torno do ponto movido: os pontos seguintes nunca ficam abaixo dele
-    /// (se um ponto vai a 100%, todos depois vão a 100%) e os anteriores nunca ficam acima.
-    /// Temperaturas ficam estritamente crescentes. Atualiza caixas e gráfico.
-    /// </summary>
     private void NormalizeFan(int pivot)
     {
         int n = _fan.Count;
         double tMin = _fanBoxes.Count > 0 ? _fanBoxes[0].Minimum : 0, tMax = _fanBoxes.Count > 0 ? _fanBoxes[0].Maximum : 110;
         double sMin = _fanBoxes.Count > 1 ? _fanBoxes[1].Minimum : 0, sMax = _fanBoxes.Count > 1 ? _fanBoxes[1].Maximum : 100;
 
-        // O ponto movido precisa deixar espaço para os vizinhos.
         _fan[pivot].TemperatureC = (int)Math.Clamp(_fan[pivot].TemperatureC, tMin + pivot, tMax - (n - 1 - pivot));
         _fan[pivot].FanSpeedPercent = (int)Math.Clamp(_fan[pivot].FanSpeedPercent, sMin, sMax);
 
@@ -600,7 +573,6 @@ public sealed partial class TuningPage : Page
         Changed(false);
     }
 
-    // Undervolt linear (como no Afterburner): todos os pontos/valor deslocados pelo mesmo offset, relativo ao valor de referência.
     private void Offset_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: string tag } || !int.TryParse(tag, out int delta)) return;
@@ -728,7 +700,6 @@ public sealed partial class TuningPage : Page
             ShowReport(StatusBar, report);
             if (!skipConfirm)
             {
-                // Recarrega do driver para mostrar o que ele realmente aceitou (ele pode ajustar valores).
                 LoadAll();
             }
             else

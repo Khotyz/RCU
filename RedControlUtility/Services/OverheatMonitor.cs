@@ -2,10 +2,6 @@ using RedControlUtility.Models;
 
 namespace RedControlUtility.Services;
 
-/// <summary>
-/// Avisa pela sobreposição quando a GPU passa da temperatura escolhida. Uma leitura a cada poucos segundos (só quando a
-/// opção está ligada), com histerese de 5 graus para não repetir o aviso enquanto a temperatura oscila no limite.
-/// </summary>
 public sealed class OverheatMonitor : IDisposable
 {
     private const int PeriodMs = 3000;

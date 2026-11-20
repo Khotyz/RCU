@@ -3,10 +3,6 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace RedControlUtility;
 
-/// <summary>
-/// Propriedades anexadas de localização: &lt;TextBlock rcu:Loc.Key="Dashboard.Title"/&gt;.
-/// Reaplicam o texto automaticamente quando o idioma muda.
-/// </summary>
 public static class Loc
 {
     private static readonly List<WeakReference<DependencyObject>> Live = new();
@@ -46,7 +42,6 @@ public static class Loc
         Apply(d);
     }
 
-    // Elementos que já tiveram o ciclo de vida inscrito (uma vez só por elemento, mesmo com Key+Header+Tip juntos).
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<DependencyObject, object> Hooked = new();
 
     private static bool InLive(DependencyObject d)
@@ -82,7 +77,7 @@ public static class Loc
         {
             var o = (DependencyObject)s;
             AddToLive(o);
-            Apply(o); // o idioma pode ter mudado enquanto o elemento estava fora da árvore
+            Apply(o);
         };
     }
 

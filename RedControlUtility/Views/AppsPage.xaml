@@ -43,8 +43,6 @@
                 <Border x:Name="EditorPanel" Grid.Column="1" Style="{StaticResource CardStyle}" VerticalAlignment="Top">
                     <StackPanel Spacing="14">
                         <TextBlock x:Name="EditorEmpty" TextWrapping="Wrap" Opacity="0.7" rcu:Loc.Key="Apps.SelectHint" />
-                        <!-- ContentControl (e não StackPanel) porque só Control tem IsEnabled:
-                             é o que desabilita o editor inteiro quando nenhum app está selecionado. -->
                         <ContentControl x:Name="EditorBody" HorizontalContentAlignment="Stretch"
                                         VerticalContentAlignment="Top">
                         <StackPanel Spacing="14">

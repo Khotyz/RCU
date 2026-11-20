@@ -57,8 +57,6 @@ public sealed class DisplayColorService
                 bGain = 1.03;
                 break;
             case "FakeOledIps":
-                // IPS: contraste nativo baixo e preto "acinzentado" (IPS glow). Aprofunda o preto, escurece um pouco os
-                // tons médios e tira o frio do azul nas sombras, que é onde o IPS mais denuncia o painel.
                 gamma = 1.07;
                 blackPoint = 0.028;
                 rGain = 1.00;
@@ -66,8 +64,6 @@ public sealed class DisplayColorService
                 bGain = 0.97;
                 break;
             case "FakeOledVa":
-                // VA: o preto já é fundo, mas as sombras esmagam e o painel tem leve tom esverdeado. Mantém o preto
-                // quase intacto, abre um pouco as sombras e esfria o verde para um branco mais limpo.
                 gamma = 0.96;
                 blackPoint = 0.006;
                 rGain = 1.00;

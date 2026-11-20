@@ -4,7 +4,6 @@ namespace RedControlUtility.Services.Adlx;
 
 public sealed partial class AdlxSession
 {
-    // IADLXGPUTuningServices (deriva de IADLXInterface)
     private static class TuneSlot
     {
         public const int IsAtFactory = 4, ResetToFactory = 5,
@@ -24,8 +23,6 @@ public sealed partial class AdlxSession
         return raw.Query(interfaceName);
     }
 
-    // ------------------------------------------------------------------ Capacidades
-
     public TuningCapabilities QueryTuningCapabilities()
     {
         var caps = new TuningCapabilities();
@@ -41,7 +38,6 @@ public sealed partial class AdlxSession
                     caps.IsAtFactory = factory;
                 }
 
-                // --- GFX: IADLXManualGraphicsTuning2 (min/máx/voltagem) ou 1 (lista de estados)
                 using (var g2 = TuningObject(TuneSlot.IsSupportedGfx, TuneSlot.GetGfx, "IADLXManualGraphicsTuning2"))
                 {
                     if (g2 != null)
@@ -75,7 +71,6 @@ public sealed partial class AdlxSession
                     }
                 }
 
-                // --- Potência
                 using (var pw = TuningObject(TuneSlot.IsSupportedPower, TuneSlot.GetPower, "IADLXManualPowerTuning"))
                 {
                     if (pw != null)
@@ -87,7 +82,6 @@ public sealed partial class AdlxSession
                     }
                 }
 
-                // --- Fans
                 {
                     var fr = _tuning.GetBoolWith(TuneSlot.IsSupportedFan, _gpu.Ptr, out bool fsup);
                     LogService.Info($"ADLX fan tuning: IsSupportedManualFanTuning result={fr} supported={fsup}");
@@ -114,7 +108,6 @@ public sealed partial class AdlxSession
                     }
                 }
 
-                // --- VRAM
                 using (var v2 = TuningObject(TuneSlot.IsSupportedVram, TuneSlot.GetVram, "IADLXManualVRAMTuning2"))
                 {
                     if (v2 != null)
@@ -146,7 +139,6 @@ public sealed partial class AdlxSession
                     }
                 }
 
-                // --- Presets
                 using (var pr = TuningObject(TuneSlot.IsSupportedPreset, TuneSlot.GetPreset, "IADLXGPUPresetTuning"))
                 {
                     if (pr != null)
@@ -174,7 +166,6 @@ public sealed partial class AdlxSession
 
     private static void ReadTimings(AdlxObject vram, TuningCapabilities caps)
     {
-        // IsSupportedMemoryTiming (3), GetSupportedMemoryTimingDescriptionList (4)
         if (!vram.GetBool(3, out bool sup).Succeeded() || !sup) return;
         caps.VramTimingSupported = true;
         if (vram.GetPtr(4, out IntPtr lp).Succeeded() && lp != IntPtr.Zero)
@@ -184,7 +175,6 @@ public sealed partial class AdlxSession
             {
                 using (item)
                 {
-                    // IADLXMemoryTimingDescription::GetDescription (slot 3)
                     if (item.GetInt(3, out int d).Succeeded())
                     {
                         caps.VramTimings.Add((AdlxMemoryTiming)d);
@@ -193,8 +183,6 @@ public sealed partial class AdlxSession
             }
         }
     }
-
-    // ------------------------------------------------------------------ Leitura
 
     public TuningSettings ReadTuning(TuningCapabilities caps)
     {
@@ -225,8 +213,8 @@ public sealed partial class AdlxSession
                         {
                             using (st)
                             {
-                                st.GetInt(3, out int f);   // GetFrequency
-                                st.GetInt(5, out int volt); // GetVoltage
+                                st.GetInt(3, out int f);
+                                st.GetInt(5, out int volt);
                                 s.VfStates.Add(new VfCurvePoint { Index = i++, FrequencyMHz = f, VoltageMv = volt });
                             }
                         }
@@ -252,8 +240,8 @@ public sealed partial class AdlxSession
                             {
                                 using (st)
                                 {
-                                    st.GetInt(3, out int speed);  // GetFanSpeed
-                                    st.GetInt(5, out int temp);   // GetTemperature
+                                    st.GetInt(3, out int speed);
+                                    st.GetInt(5, out int temp);
                                     s.FanCurve.Add(new FanCurvePoint { TemperatureC = temp, FanSpeedPercent = speed });
                                 }
                             }
@@ -298,8 +286,6 @@ public sealed partial class AdlxSession
         return s;
     }
 
-    // ------------------------------------------------------------------ Aplicação
-
     public ApplyReport ApplyTuning(TuningSettings t, TuningCapabilities caps)
     {
         var report = new ApplyReport();
@@ -307,7 +293,6 @@ public sealed partial class AdlxSession
         {
             try
             {
-                // Preset primeiro: ele redefine os valores manuais.
                 if (!string.IsNullOrEmpty(t.Preset))
                 {
                     report.Add($"Preset {t.Preset}", ApplyPreset(t.Preset));
@@ -378,7 +363,6 @@ public sealed partial class AdlxSession
         int? newMin = t.GpuMinMhz != null ? (caps.MinFreqRange.IsValid ? caps.MinFreqRange.Clamp(t.GpuMinMhz.Value) : t.GpuMinMhz) : null;
         int? newMax = t.GpuMaxMhz != null ? (caps.MaxFreqRange.IsValid ? caps.MaxFreqRange.Clamp(t.GpuMaxMhz.Value) : t.GpuMaxMhz) : null;
 
-        // Mantém min <= max durante as duas gravações.
         bool minFirst = newMax != null && newMax.Value < curMin;
         if (minFirst)
         {
@@ -413,8 +397,8 @@ public sealed partial class AdlxSession
         {
             for (int i = 0; i < items.Count && i < t.VfStates!.Count; i++)
             {
-                items[i].SetInt(4, t.VfStates[i].FrequencyMHz); // SetFrequency
-                items[i].SetInt(6, t.VfStates[i].VoltageMv);    // SetVoltage
+                items[i].SetInt(4, t.VfStates[i].FrequencyMHz);
+                items[i].SetInt(6, t.VfStates[i].VoltageMv);
             }
 
             var valid = g.ValidateStates(6, list.Ptr, out int errIdx);
@@ -473,7 +457,7 @@ public sealed partial class AdlxSession
                 if (items.Count > 0)
                 {
                     int f = caps.VramFreqRange.IsValid ? caps.VramFreqRange.Clamp(t.VramMaxMhz.Value) : t.VramMaxMhz.Value;
-                    items[^1].SetInt(4, f); // último estado = máximo
+                    items[^1].SetInt(4, f);
                     var valid = v1.ValidateStates(10, list.Ptr, out _);
                     report.Add(UiHelper.L("Report.VramClock"), valid.Succeeded() ? v1.SetPtr(11, list.Ptr) : valid);
                 }
@@ -494,7 +478,6 @@ public sealed partial class AdlxSession
             return;
         }
 
-        // Zero RPM
         if (t.ZeroRpm != null && fan.GetBool(8, out bool zsup).Succeeded() && zsup)
         {
             report.Add("Zero RPM", fan.SetBool(10, t.ZeroRpm.Value));
@@ -522,8 +505,8 @@ public sealed partial class AdlxSession
             {
                 int spd = speedRange.IsValid ? speedRange.Clamp(pts[i].FanSpeedPercent) : pts[i].FanSpeedPercent;
                 int tmp = tempRange.IsValid ? tempRange.Clamp(pts[i].TemperatureC) : pts[i].TemperatureC;
-                items[i].SetInt(4, spd); // SetFanSpeed
-                items[i].SetInt(6, tmp); // SetTemperature
+                items[i].SetInt(4, spd);
+                items[i].SetInt(6, tmp);
             }
 
             var valid = fan.ValidateStates(6, list.Ptr, out int errIdx);
@@ -541,7 +524,6 @@ public sealed partial class AdlxSession
         }
     }
 
-    /// <summary>Reamostra a curva do usuário para o nº de pontos que o driver espera (temperaturas estritamente crescentes).</summary>
     public static List<FanCurvePoint> ResampleFanCurve(List<FanCurvePoint> curve, int count)
     {
         var src = curve.OrderBy(p => p.TemperatureC).ToList();
@@ -568,7 +550,6 @@ public sealed partial class AdlxSession
             }
         }
 
-        // Garante temperaturas estritamente crescentes e velocidade não decrescente.
         for (int i = 1; i < result.Count; i++)
         {
             if (result[i].TemperatureC <= result[i - 1].TemperatureC) result[i].TemperatureC = result[i - 1].TemperatureC + 1;

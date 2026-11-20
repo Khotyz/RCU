@@ -25,7 +25,6 @@ public sealed class ProfileManager
         }
     }
 
-    /// <summary>Perfis antigos guardavam "Fake HDR" (com espaço) como nome do perfil de cor.</summary>
     private static UtilityProfile? Migrate(UtilityProfile? p)
     {
         if (p != null && p.ColorProfile == "Fake HDR") p.ColorProfile = "FakeHdr";

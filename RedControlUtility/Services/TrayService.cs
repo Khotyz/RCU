@@ -2,7 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace RedControlUtility.Services;
 
-/// <summary>Ícone na bandeja do sistema (Win32 puro, sem dependências): clique abre, botão direito mostra o menu.</summary>
 public sealed class TrayService : IDisposable
 {
     private const int WM_TRAY = 0x8001;
@@ -57,13 +56,12 @@ public sealed class TrayService : IDisposable
     private const int SIZE_MINIMIZED = 1;
     private uint _taskbarCreated;
 
-    /// <summary>Carrega o ícone (.ico) direto pelo Win32; se falhar, usa o ícone do próprio executável.</summary>
     public static IntPtr LoadIcon(string icoPath)
     {
         IntPtr h = IntPtr.Zero;
         if (System.IO.File.Exists(icoPath))
         {
-            h = LoadImageW(IntPtr.Zero, icoPath, 1, 32, 32, 0x10); // IMAGE_ICON, LR_LOADFROMFILE
+            h = LoadImageW(IntPtr.Zero, icoPath, 1, 32, 32, 0x10);
         }
 
         if (h == IntPtr.Zero && Environment.ProcessPath is { } exe)
@@ -75,7 +73,6 @@ public sealed class TrayService : IDisposable
         return h;
     }
 
-    /// <summary>Disparado quando a janela é minimizada (WM_SIZE / SIZE_MINIMIZED).</summary>
     public event Action? Minimized;
 
     private readonly SubclassProc _proc;
@@ -121,7 +118,6 @@ public sealed class TrayService : IDisposable
         _visible = Shell_NotifyIconW(NIM_ADD, ref d);
     }
 
-    /// <summary>Notificação do Windows (balão/toast) minimalista, sem janela própria e sem consumir memória extra.</summary>
     public void Notify(string title, string text)
     {
         if (!_visible) return;
@@ -129,7 +125,7 @@ public sealed class TrayService : IDisposable
         d.uFlags = NIF_INFO;
         d.szInfoTitle = title.Length > 63 ? title[..63] : title;
         d.szInfo = text.Length > 255 ? text[..255] : text;
-        d.dwInfoFlags = 1 | 0x10; // NIIF_INFO | NIIF_NOSOUND
+        d.dwInfoFlags = 1 | 0x10;
         Shell_NotifyIconW(NIM_MODIFY, ref d);
     }
 
@@ -164,7 +160,6 @@ public sealed class TrayService : IDisposable
         }
         else if (_taskbarCreated != 0 && msg == _taskbarCreated && _visible)
         {
-            // O Explorer reiniciou: recria o ícone.
             _visible = false;
             Show();
         }

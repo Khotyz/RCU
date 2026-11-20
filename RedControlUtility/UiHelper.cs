@@ -14,10 +14,6 @@ public static class UiHelper
 
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<InfoBar, DispatcherQueueTimer> BarTimers = new();
 
-    /// <summary>
-    /// Mostra a mensagem sem "pular": a barra fica sobreposta (nao empurra a pagina), mensagens repetidas nao reabrem a animacao
-    /// e as de sucesso/informacao somem sozinhas.
-    /// </summary>
     public static void Show(InfoBar bar, InfoBarSeverity severity, string title, string message = "")
     {
         bool same = bar.IsOpen && bar.Severity == severity && bar.Title == title && bar.Message == message;
@@ -49,7 +45,6 @@ public static class UiHelper
         }
         catch
         {
-            // sem fila de UI (pagina fechando): a barra simplesmente nao fecha sozinha
         }
     }
 
@@ -87,7 +82,6 @@ public static class UiHelper
         return await dlg.ShowAsync();
     }
 
-    /// <summary>Diálogo "manter alterações?" com contagem regressiva. Sem confirmação, retorna false (reverter).</summary>
     public static async Task<bool> ConfirmKeepAsync(XamlRoot root, int seconds)
     {
         var text = new TextBlock { TextWrapping = TextWrapping.Wrap };
@@ -116,10 +110,6 @@ public static class UiHelper
         return r == ContentDialogResult.Primary;
     }
 
-    /// <summary>
-    /// Aplica ajuste fino com rede de segurança: grava um marcador, aplica, e (se ativado) pede confirmação em 15 s;
-    /// sem confirmação, volta ao estado anterior. Se o PC travar, o marcador faz o app não reaplicar nada no próximo início.
-    /// </summary>
     public static async Task<(ApplyReport Report, bool Kept)> ApplyTuningSafeAsync(XamlRoot root, TuningSettings settings)
     {
         var hw = App.Hardware;
@@ -148,7 +138,6 @@ public static class UiHelper
     public static int BoolToTri(bool? v) => v switch { true => 1, false => 2, _ => 0 };
 }
 
-/// <summary>Agrupa chamadas rápidas (ex.: slider arrastado) numa única execução após <c>ms</c> de calmaria.</summary>
 public sealed class Debouncer
 {
     private readonly DispatcherQueueTimer _timer;

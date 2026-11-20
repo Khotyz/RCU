@@ -1,6 +1,5 @@
 namespace RedControlUtility.Models;
 
-/// <summary>Leitura instantânea dos sensores (null = sensor não suportado/indisponível).</summary>
 public sealed class MetricsSnapshot
 {
     public bool Valid { get; set; }

@@ -3,14 +3,6 @@ using System.Text;
 
 namespace RedControlUtility.Services.Adl;
 
-/// <summary>
-/// FSR Upscaling upgrade (FSR 4 / ML) direto no driver, sem AMD Software.
-/// O AMD Software apenas grava o valor de texto "FsrOverride" ("1" liga, "0" desliga) na chave UMD do driver
-/// da placa, usando ADL2_Adapter_RegValueString_Get/Set do atiadlxx.dll (que vem com o driver). O driver lê o valor
-/// quando o jogo abre, por isso o jogo precisa ser (re)iniciado depois de mudar. O suporte é consultado por
-/// ADL2_DriverMLSRSupport_Get e pela presença do amdxcffx64.dll na pasta do driver.
-/// Valor global por GPU: o motor de perfis liga ao abrir o jogo e restaura ao fechar, o que torna o efeito por jogo.
-/// </summary>
 public static unsafe partial class DriverFsrService
 {
     private const int AdapterInfoSize = 1572;
@@ -119,7 +111,7 @@ public static unsafe partial class DriverFsrService
 
     private static bool DriverHasFfxDll(Session s)
     {
-        if (s.PPath == IntPtr.Zero) return true; // não dá para checar: não bloqueia
+        if (s.PPath == IntPtr.Zero) return true;
         byte* buf = stackalloc byte[512];
         new Span<byte>(buf, 512).Clear();
         int rc = ((delegate* unmanaged[Cdecl]<IntPtr, int, int, byte*, int>)s.PPath)(s.Ctx, s.Adapter, 0x100, buf);
@@ -136,7 +128,6 @@ public static unsafe partial class DriverFsrService
         }
     }
 
-    /// <summary>O driver da GPU expõe o upgrade de FSR? (ADL2_DriverMLSRSupport_Get e amdxcffx64.dll).</summary>
     public static bool IsSupported(int gpuIndex = 0)
     {
         lock (Gate)
@@ -167,7 +158,6 @@ public static unsafe partial class DriverFsrService
         }
     }
 
-    /// <summary>Estado atual do FsrOverride: true ligado, false desligado/ausente, null se não foi possível ler.</summary>
     public static bool? Get(int gpuIndex = 0)
     {
         try
@@ -192,7 +182,7 @@ public static unsafe partial class DriverFsrService
         {
             int rc = ((delegate* unmanaged[Cdecl]<IntPtr, int, int, IntPtr, IntPtr, int, byte*, int>)s.PGet)(
                 s.Ctx, s.Adapter, DriverPathOption, sub, key, 0x400, val);
-            if (rc != 0) return false; // sem valor gravado = desligado
+            if (rc != 0) return false;
             string text = val[1] == 0 && val[0] != 0
                 ? Marshal.PtrToStringUni((IntPtr)val) ?? string.Empty
                 : Marshal.PtrToStringAnsi((IntPtr)val) ?? string.Empty;
@@ -205,7 +195,6 @@ public static unsafe partial class DriverFsrService
         }
     }
 
-    /// <summary>Liga ou desliga o upgrade de FSR no driver. Devolve (ok, mensagem para o log).</summary>
     public static (bool Ok, string Message) Set(bool enable, int gpuIndex = 0)
     {
         try
@@ -214,7 +203,6 @@ public static unsafe partial class DriverFsrService
             if (s == null) return (false, UiHelper.L("Err.AtiMissing"));
             string value = enable ? "1" : "0";
 
-            // Mesmo formato que o AMD Software usa: texto UTF-16, tamanho = caracteres * 2.
             byte[] data = Encoding.Unicode.GetBytes(value + "\0");
             IntPtr sub = Marshal.StringToHGlobalAnsi(SubKey), key = Marshal.StringToHGlobalAnsi(KeyName);
             IntPtr buf = Marshal.AllocHGlobal(data.Length + 16);

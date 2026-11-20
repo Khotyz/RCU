@@ -2,7 +2,6 @@ using RedControlUtility.Services.Adlx;
 
 namespace RedControlUtility.Models;
 
-/// <summary>Estado de tuning manual (null = não alterar).</summary>
 public sealed class TuningSettings
 {
     public int? GpuMinMhz { get; set; }
@@ -25,7 +24,6 @@ public sealed class TuningSettings
     }
 }
 
-/// <summary>Resultado detalhado de uma aplicação de configurações.</summary>
 public sealed class ApplyReport
 {
     public List<(string Feature, AdlxResult Result)> Items { get; } = new();
@@ -35,7 +33,6 @@ public sealed class ApplyReport
 
     public void Add(string feature, AdlxResult result) => Items.Add((feature, result));
 
-    /// <summary>Uma linha por ajuste, com o código devolvido pelo driver (útil para diagnosticar).</summary>
     public string Detail => string.Join("\n", Items.Select(i => $"{(i.Result.Succeeded() ? UiHelper.L("Common.Ok") : UiHelper.L("Common.Failed"))}  {i.Feature}: {i.Result.Describe()}"));
 
     public string Summary

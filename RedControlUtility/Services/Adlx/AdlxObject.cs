@@ -2,16 +2,6 @@ using System.Runtime.InteropServices;
 
 namespace RedControlUtility.Services.Adlx;
 
-/// <summary>
-/// Wrapper fino sobre um ponteiro de interface ADLX (objeto "COM-like" com vtable C++).
-/// ADLX NÃO usa IIDs (GUID): QueryInterface recebe o nome da interface em wchar_t*,
-/// por isso [ComImport]/Marshal.GetObjectForIUnknown nunca funcionaria. Chamamos os
-/// slots da vtable diretamente (layout conforme os headers oficiais do ADLX SDK).
-///
-/// Slots: interfaces derivadas de IADLXInterface => 0 Acquire, 1 Release, 2 QueryInterface,
-/// métodos próprios a partir de 3. IADLXSystem não deriva de IADLXInterface (slot 2 = QueryInterface,
-/// sem Acquire/Release).
-/// </summary>
 public sealed unsafe class AdlxObject : IDisposable
 {
     private IntPtr _ptr;
@@ -50,9 +40,6 @@ public sealed unsafe class AdlxObject : IDisposable
         }
     }
 
-    // ----- QueryInterface -----
-
-    /// <summary>QueryInterface(L"NomeDaInterface"); retorna um novo ponteiro (com referência própria).</summary>
     public AdlxObject? Query(string interfaceName, int slot = 2)
     {
         if (_ptr == IntPtr.Zero)
@@ -70,8 +57,6 @@ public sealed unsafe class AdlxObject : IDisposable
 
         return r.Succeeded() && outPtr != IntPtr.Zero ? new AdlxObject(outPtr) : null;
     }
-
-    // ----- Chamadas por slot -----
 
     public AdlxResult Invoke(int slot)
     {
@@ -113,7 +98,6 @@ public sealed unsafe class AdlxObject : IDisposable
         return r;
     }
 
-    /// <summary>adlx_bool é 1 byte (bool do C/C++).</summary>
     public AdlxResult GetBool(int slot, out bool value)
     {
         value = false;
@@ -217,8 +201,6 @@ public sealed unsafe class AdlxObject : IDisposable
         return (AdlxResult)fn(_ptr, value);
     }
 
-    // ----- Chamadas com ponteiro de entrada (ex.: serviços que recebem IADLXGPU*) -----
-
     public AdlxResult InvokeWith(int slot, IntPtr arg)
     {
         if (_ptr == IntPtr.Zero) return AdlxResult.InvalidObject;
@@ -248,7 +230,6 @@ public sealed unsafe class AdlxObject : IDisposable
         return r;
     }
 
-    /// <summary>f(IntPtr listaDeEstados, int* errorIndex) — usado em IsValid*TuningStates.</summary>
     public AdlxResult ValidateStates(int slot, IntPtr list, out int errorIndex)
     {
         errorIndex = -1;
@@ -259,8 +240,6 @@ public sealed unsafe class AdlxObject : IDisposable
         errorIndex = e;
         return r;
     }
-
-    // ----- Listas (IADLXList): 3 Size, 4 Empty, 5 Begin, 6 End, 7 At -----
 
     public uint ListSize()
     {
@@ -297,10 +276,6 @@ public sealed unsafe class AdlxObject : IDisposable
         return fn(_ptr);
     }
 
-    /// <summary>
-    /// Enumera os itens (o chamador deve fazer Dispose em cada um). No ADLX, "location" usa as mesmas posições de
-    /// Begin()/End() (não necessariamente 0..Size-1), então percorremos [Begin, End) e, se nada vier, 0..Size-1.
-    /// </summary>
     public List<AdlxObject> ListItems(System.Text.StringBuilder? log = null, int typedAtSlot = 11)
     {
         var items = new List<AdlxObject>();
@@ -326,7 +301,6 @@ public sealed unsafe class AdlxObject : IDisposable
             }
         }
 
-        // Listas tipadas (ex.: IADLXGPUList) declaram um At(location, IADLXGPU**) próprio, depois dos métodos da base.
         if (items.Count == 0 && typedAtSlot > 0)
         {
             for (uint loc = 0; loc < Math.Max(n, e) && loc < 256; loc++)
@@ -340,8 +314,5 @@ public sealed unsafe class AdlxObject : IDisposable
         return items;
     }
 
-    // ----- Utilidades de alto nível -----
-
-    /// <summary>Padrão IsSupported (slot s) + valor.</summary>
     public bool Supported(int slot = 3) => GetBool(slot, out bool v).Succeeded() && v;
 }

@@ -3,7 +3,6 @@ using static RedControlUtility.UiHelper;
 
 namespace RedControlUtility.Services;
 
-/// <summary>Resumo curto e minimalista das opções que um perfil de app aplica (mostrado no overlay ao abrir o jogo).</summary>
 public static class ProfileSummary
 {
     public static List<OverlayItem> Build(AppProfile p, GraphicsCapabilities c, bool fsrAvailable)

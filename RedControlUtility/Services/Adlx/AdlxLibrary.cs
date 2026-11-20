@@ -5,25 +5,13 @@ namespace RedControlUtility.Services.Adlx;
 
 public enum AdlxBackendKind
 {
-    /// <summary>Tenta a DLL da AMD (System32) e, se falhar, a DLL helper própria (RedAdlxHelper.dll).</summary>
     Auto = 0,
-    /// <summary>Somente amdadlx64.dll do driver da AMD (System32).</summary>
     AmdDll = 1,
-    /// <summary>Somente a DLL helper compilada pelo usuário (RedAdlxHelper.dll).</summary>
     HelperDll = 2
 }
 
-/// <summary>
-/// Carrega e inicializa o ADLX. Dois backends:
-///  1) AMD direto: amdadlx64.dll (System32) + ADLXInitialize2/ADLXInitialize (exatamente o que o ADLXHelper do SDK faz).
-///  2) Helper próprio: RedAdlxHelper.dll (exports ADLXHelper_Initialize / ADLXHelper_GetSystemServices / ADLXHelper_Terminate).
-///
-/// IMPORTANTE: a DLL helper NÃO pode se chamar "amdadlx64.dll": ela própria faz LoadLibrary("amdadlx64.dll")
-/// e acabaria carregando a si mesma (mesmo nome) em vez da DLL real do driver.
-/// </summary>
 public sealed unsafe class AdlxLibrary : IDisposable
 {
-    // ADLX_FULL_VERSION do SDK usado nos headers (2.0.0.125)
     private const ulong SdkFullVersion = (2UL << 48) | (0UL << 32) | (0UL << 16) | 125UL;
 
     private IntPtr _module;
@@ -35,7 +23,6 @@ public sealed unsafe class AdlxLibrary : IDisposable
     public string Version { get; private set; } = string.Empty;
     public ulong FullVersion { get; private set; }
 
-    /// <summary>IADLXSystem* (sem refcount: pertence à biblioteca).</summary>
     public IntPtr System { get; private set; }
 
     private AdlxLibrary()
@@ -61,9 +48,6 @@ public sealed unsafe class AdlxLibrary : IDisposable
         return lib;
     }
 
-    // ---------------------------------------------------------------- AMD (direto)
-
-    /// <summary>Uma tentativa específica: "amd" (versão do SDK), "amd-driver" (versão do próprio driver) ou "helper".</summary>
     public static AdlxLibrary? OpenAttempt(string which, StringBuilder log) => which switch
     {
         "amd" => TryOpenAmd(log, false),
@@ -76,13 +60,13 @@ public sealed unsafe class AdlxLibrary : IDisposable
         string path = Path.Combine(Environment.SystemDirectory, "amdadlx64.dll");
         if (!File.Exists(path))
         {
-            log.AppendLine($"[AMD] {path} não existe (driver AMD Adrenalin não instalado?).");
+            log.AppendLine(UiHelper.L("Diag.AmdMissing", path));
             return null;
         }
 
         if (!NativeLibrary.TryLoad(path, out IntPtr module))
         {
-            log.AppendLine($"[AMD] Não foi possível carregar {path}.");
+            log.AppendLine(UiHelper.L("Diag.AmdLoadFail", path));
             return null;
         }
 
@@ -100,7 +84,7 @@ public sealed unsafe class AdlxLibrary : IDisposable
 
             if (pTerm == IntPtr.Zero || (pInit2 == IntPtr.Zero && pInit == IntPtr.Zero))
             {
-                log.AppendLine("[AMD] A DLL não exporta as funções de inicialização do ADLX.");
+                log.AppendLine(UiHelper.L("Diag.AmdNoExports"));
                 lib.Dispose();
                 return null;
             }
@@ -128,9 +112,6 @@ public sealed unsafe class AdlxLibrary : IDisposable
 
             log.AppendLine($"[AMD] ADLX do driver: {FormatVersion(driverVersion)} (\"{lib.Version}\"); SDK do app: {FormatVersion(SdkFullVersion)}.");
 
-            // A versão pedida ao ADLX precisa ser a do driver instalado (é o que o ADLXHelper oficial
-            // usa: cada driver traz a sua). Pedir a versão do SDK num driver mais antigo funciona por
-            // sorte e pode devolver objetos com comportamento diferente do AMD Software.
             var versionsToTry = new List<ulong>();
             if (driverVersion > 0) versionsToTry.Add(driverVersion);
             if (!driverVersionOnly && !versionsToTry.Contains(SdkFullVersion)) versionsToTry.Add(SdkFullVersion);
@@ -159,7 +140,7 @@ public sealed unsafe class AdlxLibrary : IDisposable
                         continue;
                     }
 
-                    log.AppendLine($"[AMD] Init(versão {FormatVersion(version)}, incompatível={incompatible}) => {last} ({last.Describe()})");
+                    log.AppendLine(UiHelper.L("Diag.AmdInit", FormatVersion(version), incompatible, last, last.Describe()));
                     if (last.Succeeded() && system != IntPtr.Zero)
                     {
                         lib.System = system;
@@ -172,25 +153,23 @@ public sealed unsafe class AdlxLibrary : IDisposable
                 }
             }
 
-            log.AppendLine($"[AMD] Falha ao inicializar o ADLX (último resultado: {last}).");
+            log.AppendLine(UiHelper.L("Diag.AmdInitFail", last));
         }
         catch (Exception ex)
         {
-            log.AppendLine($"[AMD] Exceção: {ex.Message}");
+            log.AppendLine(UiHelper.L("Diag.AmdException", ex.Message));
         }
 
         lib.Dispose();
         return null;
     }
 
-    // ---------------------------------------------------------------- Helper próprio
-
     private static AdlxLibrary? TryOpenHelper(StringBuilder log)
     {
         string path = Path.Combine(AppContext.BaseDirectory, "RedAdlxHelper.dll");
         if (!File.Exists(path))
         {
-            log.AppendLine("[Helper] RedAdlxHelper.dll não encontrada ao lado do executável (opcional).");
+            log.AppendLine(UiHelper.L("Diag.HelperMissing"));
             return null;
         }
 
@@ -245,8 +224,6 @@ public sealed unsafe class AdlxLibrary : IDisposable
         lib.Dispose();
         return null;
     }
-
-    // ---------------------------------------------------------------- Encerramento
 
     public void Dispose()
     {

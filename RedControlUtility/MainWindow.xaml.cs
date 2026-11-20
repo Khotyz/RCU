@@ -36,8 +36,6 @@ public sealed partial class MainWindow : Window
         };
     }
 
-    // Tamanho mínimo em unidades de layout (DIP), não em pixels: em telas com escala 125%/150% o
-    // tamanho em pixels precisa ser multiplicado, senão a janela nasce "pequena".
     private const int MinWidthDip = 900;
     private const int MinHeightDip = 600;
     private int _minWidthPx;
@@ -79,7 +77,6 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    /// <summary>Sets the initial size (92% of the work area, centered). After that the window size belongs to the user.</summary>
     private void SizeToScreen()
     {
         try
@@ -136,7 +133,6 @@ public sealed partial class MainWindow : Window
         ClampMinSize();
     }
 
-    // Modo Simples esconde Vídeo e Perfis (o essencial fica em Painel, Gráficos, Apps, Tuning e Configurações).
     private void UpdateNavMode()
     {
         var vis = App.Settings.Current.AdvancedMode ? Visibility.Visible : Visibility.Collapsed;
@@ -176,10 +172,8 @@ public sealed partial class MainWindow : Window
                 OverlayService.Shared.Dispose();
             };
 
-            // O ícone fica sempre na bandeja enquanto o app estiver aberto.
             _tray.Show();
 
-            // Overlay minimalista com as tecnologias ativas quando um perfil de jogo entra em ação.
             App.Engine.ActiveChanged += OnEngineActiveChanged;
         }
         catch (Exception ex)
@@ -212,7 +206,6 @@ public sealed partial class MainWindow : Window
         if (ContentFrame.Content is DashboardPage && !App.Sensors.Running) App.Sensors.Start(App.Settings.Current.SensorIntervalMs);
     }
 
-    // Janela minimizada: some da barra de tarefas, para os sensores e devolve memória ao sistema.
     private void HideToTray()
     {
         if (_exiting) return;
@@ -220,7 +213,6 @@ public sealed partial class MainWindow : Window
         AppWindow.Hide();
         App.Sensors.Stop();
 
-        // Libera a página atual (árvore visual XAML) enquanto estiver na bandeja; ela é recriada ao restaurar.
         _lastPage = ContentFrame.CurrentSourcePageType ?? _lastPage;
         ContentFrame.Content = null;
         ContentFrame.BackStack.Clear();
@@ -244,7 +236,6 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    /// <summary>Barra sobreposta com a versão nova encontrada no GitHub.</summary>
     private void ShowUpdateAvailable(UpdateInfo info)
     {
         try

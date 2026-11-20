@@ -10,7 +10,6 @@
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Tema vermelho (Red Control Utility) -->
             <wui:Color x:Key="SystemAccentColor">#E5252A</wui:Color>
             <wui:Color x:Key="SystemAccentColorLight1">#FF5A5F</wui:Color>
             <wui:Color x:Key="SystemAccentColorLight2">#FF7A7E</wui:Color>
@@ -19,7 +18,6 @@
             <wui:Color x:Key="SystemAccentColorDark2">#9E1418</wui:Color>
             <wui:Color x:Key="SystemAccentColorDark3">#7A0F12</wui:Color>
 
-            <!-- Cores do gráfico de curvas (CurveChart) -->
             <SolidColorBrush x:Key="CurveLineBrush" Color="#FF5A5F" />
             <SolidColorBrush x:Key="CurveGhostBrush" Color="#96AFAFBE" />
             <SolidColorBrush x:Key="CurvePointStrokeBrush" Color="#E5252A" />

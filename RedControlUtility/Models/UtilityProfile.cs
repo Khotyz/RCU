@@ -1,6 +1,5 @@
 namespace RedControlUtility.Models;
 
-/// <summary>Perfil completo exportável (JSON).</summary>
 public sealed class UtilityProfile
 {
     public string ProfileName { get; set; } = "Default";

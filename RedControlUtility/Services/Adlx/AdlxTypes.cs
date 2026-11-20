@@ -1,6 +1,5 @@
 namespace RedControlUtility.Services.Adlx;
 
-/// <summary>ADLX_RESULT (ADLXDefines.h).</summary>
 public enum AdlxResult
 {
     Ok = 0,
@@ -23,13 +22,11 @@ public enum AdlxResult
     NotActive,
     ResetNeeded,
 
-    /// <summary>Valor interno: a interface/slot não está disponível neste driver.</summary>
     Unavailable = 1000
 }
 
 public static class AdlxResultExtensions
 {
-    /// <summary>Equivalente a ADLX_SUCCEEDED().</summary>
     public static bool Succeeded(this AdlxResult r) =>
         r == AdlxResult.Ok || r == AdlxResult.AlreadyEnabled || r == AdlxResult.AlreadyInitialized;
 
@@ -59,7 +56,6 @@ public static class AdlxResultExtensions
     };
 }
 
-/// <summary>ADLX_IntRange.</summary>
 public readonly record struct AdlxRange(int Min, int Max, int Step)
 {
     public bool IsValid => Max > Min;
@@ -67,7 +63,6 @@ public readonly record struct AdlxRange(int Min, int Max, int Step)
     public static AdlxRange Empty => new(0, 0, 1);
 }
 
-// Valores dos enums (ADLXDefines.h)
 public enum AdlxVSyncMode { AlwaysOff = 0, OffUnlessAppSpecifies = 1, OnUnlessAppSpecifies = 2, AlwaysOn = 3 }
 public enum AdlxScaleMode { PreserveAspectRatio = 0, FullPanel = 1, Centered = 2 }
 public enum AdlxTessellationMode { AmdOptimized = 0, UseAppSettings = 1, OverrideAppSettings = 2 }

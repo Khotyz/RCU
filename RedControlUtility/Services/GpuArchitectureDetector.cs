@@ -4,26 +4,19 @@ using RedControlUtility.Models;
 
 namespace RedControlUtility.Services;
 
-/// <summary>
-/// O ADLX não informa a arquitetura (ASICFamilyType é só "Radeon/FirePro/..."), então ela é deduzida
-/// pelo PCI Device ID (tabela) e, como reserva, pelo nome comercial da GPU.
-/// </summary>
 public static class GpuArchitectureDetector
 {
     private readonly record struct Entry(int Low, int High, GpuArchitecture Arch, string Chip);
 
     private static readonly Entry[] Table =
     {
-        // GCN antigas
         new(0x67A0, 0x67BF, GpuArchitecture.Gcn, "Hawaii"),
         new(0x6920, 0x693F, GpuArchitecture.Gcn, "Tonga"),
         new(0x7300, 0x730F, GpuArchitecture.Gcn, "Fiji"),
-        // Polaris
         new(0x67C0, 0x67DF, GpuArchitecture.Polaris, "Polaris 10"),
         new(0x67E0, 0x67FF, GpuArchitecture.Polaris, "Polaris 11"),
         new(0x6980, 0x699F, GpuArchitecture.Polaris, "Polaris 12"),
         new(0x6FDF, 0x6FDF, GpuArchitecture.Polaris, "Polaris 20"),
-        // Vega
         new(0x6860, 0x687F, GpuArchitecture.Vega, "Vega 10"),
         new(0x66A0, 0x66AF, GpuArchitecture.Vega, "Vega 20"),
         new(0x15D8, 0x15D8, GpuArchitecture.Vega, "Picasso (iGPU)"),
@@ -32,11 +25,9 @@ public static class GpuArchitectureDetector
         new(0x1636, 0x1636, GpuArchitecture.Vega, "Renoir (iGPU)"),
         new(0x1638, 0x1638, GpuArchitecture.Vega, "Cezanne (iGPU)"),
         new(0x164C, 0x164C, GpuArchitecture.Vega, "Lucienne (iGPU)"),
-        // RDNA 1
         new(0x7310, 0x731F, GpuArchitecture.Rdna1, "Navi 10"),
         new(0x7340, 0x734F, GpuArchitecture.Rdna1, "Navi 14"),
         new(0x7360, 0x736F, GpuArchitecture.Rdna1, "Navi 12"),
-        // RDNA 2
         new(0x73A0, 0x73BF, GpuArchitecture.Rdna2, "Navi 21"),
         new(0x73C0, 0x73DF, GpuArchitecture.Rdna2, "Navi 22"),
         new(0x73E0, 0x73FF, GpuArchitecture.Rdna2, "Navi 23"),
@@ -45,18 +36,15 @@ public static class GpuArchitectureDetector
         new(0x164D, 0x164D, GpuArchitecture.Rdna2, "Yellow Carp (iGPU)"),
         new(0x164E, 0x164E, GpuArchitecture.Rdna2, "Raphael (iGPU)"),
         new(0x1681, 0x1681, GpuArchitecture.Rdna2, "Rembrandt (iGPU)"),
-        // RDNA 3
         new(0x7440, 0x744F, GpuArchitecture.Rdna3, "Navi 31"),
         new(0x7460, 0x747F, GpuArchitecture.Rdna3, "Navi 32"),
         new(0x7480, 0x748F, GpuArchitecture.Rdna3, "Navi 33"),
         new(0x15BF, 0x15BF, GpuArchitecture.Rdna3, "Phoenix (iGPU)"),
         new(0x15C8, 0x15C8, GpuArchitecture.Rdna3, "Phoenix 2 (iGPU)"),
         new(0x1900, 0x1901, GpuArchitecture.Rdna3, "Hawk Point (iGPU)"),
-        // RDNA 3.5
         new(0x150E, 0x150E, GpuArchitecture.Rdna3_5, "Strix Point (iGPU)"),
         new(0x1586, 0x1586, GpuArchitecture.Rdna3_5, "Strix Halo (iGPU)"),
         new(0x1114, 0x1114, GpuArchitecture.Rdna3_5, "Krackan (iGPU)"),
-        // RDNA 4
         new(0x7550, 0x755F, GpuArchitecture.Rdna4, "Navi 48"),
         new(0x7590, 0x759F, GpuArchitecture.Rdna4, "Navi 44"),
     };

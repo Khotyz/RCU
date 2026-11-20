@@ -5,31 +5,21 @@ using System.Text.Json;
 
 namespace RedControlUtility.Services;
 
-/// <summary>Uma release do GitHub, já comparada com a versão instalada.</summary>
 public sealed record UpdateInfo(string Tag, Version Version, string PageUrl, string? AssetUrl, string AssetName, string Notes);
 
-/// <summary>
-/// Atualização pelo próprio GitHub: consulta <c>releases/latest</c> do repositório, compara a versão da tag com a
-/// versão do executável e, se houver uma maior, oferece o download. Não depende de loja, instalador ou Adrenalin.
-/// </summary>
 public static class UpdateService
 {
     public const string Owner = "Khotyz";
     public const string Repo = "RCU";
 
-    /// <summary>Versão do executável em execução (definida por &lt;Version&gt; no .csproj).</summary>
     public static Version Current { get; } = ReadCurrentVersion();
 
-    /// <summary>Só os três primeiros números: 0.1.0.</summary>
     public static string CurrentText => $"{Current.Major}.{Current.Minor}.{Math.Max(Current.Build, 0)}";
 
-    // Depois do Current: os inicializadores estáticos rodam na ordem do texto e CreateClient usa CurrentText.
     private static readonly HttpClient Http = CreateClient();
 
-    /// <summary>Última release encontrada que é mais nova que a instalada (null = nada novo).</summary>
     public static UpdateInfo? Available { get; private set; }
 
-    /// <summary>Disparado quando uma verificação encontra uma versão maior.</summary>
     public static event Action<UpdateInfo>? Found;
 
     private static HttpClient CreateClient()
@@ -63,7 +53,6 @@ public static class UpdateService
 
     private static Version Normalize(Version v) => new(v.Major, v.Minor, Math.Max(v.Build, 0));
 
-    /// <summary>Converte "v1.2.3", "1.2.3-beta" e "release-1.2" em versão comparável.</summary>
     public static Version? ParseVersion(string? tag)
     {
         if (string.IsNullOrWhiteSpace(tag)) return null;
@@ -76,10 +65,6 @@ public static class UpdateService
         return Version.TryParse(s[start..end].TrimEnd('.'), out var v) ? Normalize(v) : null;
     }
 
-    /// <summary>
-    /// Consulta a última release. Devolve (info, erro): info != null quando o GitHub respondeu; <see cref="Available"/>
-    /// só fica preenchido quando a versão da release é maior que a instalada.
-    /// </summary>
     public static async Task<(UpdateInfo? Info, string? Error)> CheckAsync(CancellationToken ct = default)
     {
         try
@@ -144,9 +129,6 @@ public static class UpdateService
         }
     }
 
-    /// <summary>
-    /// Baixa o executável/zip da release e abre. Sem anexo, abre a página da release no navegador.
-    /// </summary>
     public static async Task<(bool Ok, string Message)> InstallAsync(UpdateInfo info, CancellationToken ct = default)
     {
         try
@@ -180,7 +162,6 @@ public static class UpdateService
             });
             if (installer)
             {
-                // O instalador substitui os arquivos e reabre o app; sair daqui libera os arquivos em uso.
                 _ = Task.Run(async () =>
                 {
                     await Task.Delay(2500).ConfigureAwait(false);

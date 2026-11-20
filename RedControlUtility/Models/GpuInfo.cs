@@ -17,7 +17,6 @@ public enum GpuArchitecture
 
 public static class GpuArchitectureExtensions
 {
-    /// <summary>FSR 4 (upgrade) só existe a partir da RDNA 2 (RX 6000). Desconhecida passa: o driver decide.</summary>
     private static readonly HashSet<GpuArchitecture> Fsr4Architectures = new()
     {
         GpuArchitecture.Unknown,
@@ -43,7 +42,6 @@ public static class GpuArchitectureExtensions
     };
 }
 
-/// <summary>Identificação da GPU (via ADLX, com fallback para registro do Windows).</summary>
 public sealed class GpuInfo
 {
     public string Name { get; set; } = "AMD Radeon GPU";
@@ -66,7 +64,6 @@ public sealed class GpuInfo
     public string BiosPartNumber { get; set; } = string.Empty;
     public string PnpString { get; set; } = string.Empty;
 
-    /// <summary>true = lido pelo ADLX; false = detectado só por registro/nome.</summary>
     public bool FromAdlx { get; set; }
 
     public string ArchitectureText =>
@@ -76,9 +73,7 @@ public sealed class GpuInfo
 public enum GfxTuningMode
 {
     None = 0,
-    /// <summary>IADLXManualGraphicsTuning2: clock mín/máx + voltagem (RDNA, maioria das GPUs atuais).</summary>
     MinMaxVoltage = 1,
-    /// <summary>IADLXManualGraphicsTuning1: lista de estados (frequência/voltagem por estado DPM).</summary>
     StateList = 2
 }
 

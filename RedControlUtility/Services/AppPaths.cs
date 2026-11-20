@@ -9,7 +9,6 @@ public static class AppPaths
 
     public static string SettingsFile => Path.Combine(DataDir, "settings.json");
     public static string ProfileFile => Path.Combine(DataDir, "profile.json");
-    /// <summary>Existe enquanto um ajuste de risco ainda não foi confirmado. Se sobrar no início, o app travou/reiniciou.</summary>
     public static string PendingFlag => Path.Combine(DataDir, "tuning.pending");
 
     private static string Ensure(string path)

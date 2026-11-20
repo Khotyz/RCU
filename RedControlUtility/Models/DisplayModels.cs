@@ -5,6 +5,10 @@ namespace RedControlUtility.Models;
 public sealed class DisplayCapabilities
 {
     public bool FreeSync { get; set; }
+    public bool FreeSyncViaAdl { get; set; }
+    public bool FreeSyncColorAccuracy { get; set; }
+    public double FreeSyncMinHz { get; set; }
+    public double FreeSyncMaxHz { get; set; }
     public bool Vsr { get; set; }
     public bool GpuScaling { get; set; }
     public bool IntegerScaling { get; set; }
@@ -21,12 +25,13 @@ public sealed class DisplayCapabilities
     public AdlxRange TemperatureRange { get; set; } = AdlxRange.Empty;
 
     public bool AnyColor => Hue || Saturation || Brightness || Contrast || Temperature;
-    public bool Any => FreeSync || Vsr || GpuScaling || IntegerScaling || ScalingMode || AnyColor;
+    public bool Any => FreeSync || FreeSyncColorAccuracy || Vsr || GpuScaling || IntegerScaling || ScalingMode || AnyColor;
 }
 
 public sealed class DisplaySettings
 {
     public bool? FreeSync { get; set; }
+    public bool? FreeSyncColorAccuracy { get; set; }
     public bool? Vsr { get; set; }
     public bool? GpuScaling { get; set; }
     public bool? IntegerScaling { get; set; }

@@ -4,14 +4,6 @@ namespace RedControlUtility.Services.Adlx;
 
 public sealed partial class AdlxSession
 {
-    // IADLX3DSettingsServices (+1, +2, +3): slots dos getters.
-    // Conferido com os headers do ADLX SDK 1.4 (a versão que o driver usa) e do SDK 2.0:
-    //   GetAntiLag 3, GetChill 4, GetBoost 5, GetImageSharpening 6, GetEnhancedSync 7,
-    //   GetWaitForVerticalRefresh 8, GetFrameRateTargetControl 9, GetAntiAliasing 10,
-    //   GetMorphologicalAntiAliasing 11, GetAnisotropicFiltering 12, GetTessellation 13,
-    //   GetRadeonSuperResolution 14 (sem GPU), GetResetShaderCache 15, Get3DSettingsChangedHandling 16,
-    //   Services1: GetAMDFluidMotionFrames 17 (sem GPU), Services2: GetImageSharpenDesktop 18,
-    //   Services3: GetFidelityFXSuperResolution 19, GetFidelityFXFrameGenUpgrade 20 (só existe no ADLX 2.0).
     private static class S3D
     {
         public const int AntiLag = 3, Chill = 4, Boost = 5, ImageSharpening = 6, EnhancedSync = 7, WaitForVerticalRefresh = 8,
@@ -22,7 +14,6 @@ public sealed partial class AdlxSession
             FidelityFxSuperResolution = 19,
             FidelityFxFrameGen = 20;
 
-        // Slots internos de cada objeto de recurso (IsSupported 3 / IsEnabled 4 / setter de "ligado")
         public const int SetAntiLag = 5, SetAfmf = 5, SetFsr = 5, SetEnhancedSync = 5, SetRsr = 5;
         public const int SetChill = 8, SetMinFps = 9, SetMaxFps = 10;
         public const int SetFrtc = 7, SetFps = 8;
@@ -44,11 +35,6 @@ public sealed partial class AdlxSession
     private const string NEnhSync = "Enhanced Sync";
     private const string NFsr = "FidelityFX Super Resolution";
 
-    /// <summary>
-    /// Recursos que disputam o mesmo estágio do driver (ninguém consegue ficar ligado junto).
-    /// Quando um pedido não "pega", o app desliga o conflitante e tenta de novo — é o que o AMD Software faz
-    /// ao deixar as opções cinzas, só que aqui a escolha é feita na hora e registrada no log.
-    /// </summary>
     private static readonly Dictionary<string, string[]> Conflicts = new()
     {
         [NFrtc] = new[] { NChill, NAfmf },
@@ -66,7 +52,6 @@ public sealed partial class AdlxSession
         return r.Succeeded() && p != IntPtr.Zero ? new AdlxObject(p) : null;
     }
 
-    /// <summary>Interface devolvida pelo driver para o recurso (null = este driver não tem o recurso).</summary>
     private AdlxObject? Feature3D(string name) => name switch
     {
         NAntiLag => Feature(_3d, S3D.AntiLag, true),
@@ -90,19 +75,11 @@ public sealed partial class AdlxSession
         NRsr => S3D.SetRsr,
         NAfmf => S3D.SetAfmf,
         NFsr => S3D.SetFsr,
-        _ => S3D.SetEnhancedSync // Anti-Lag e Enhanced Sync
+        _ => S3D.SetEnhancedSync
     };
 
-    /// <summary>
-    /// O objeto serve para controlar o recurso? O driver às vezes responde IsSupported=false mas o
-    /// getter/setter funcionam (é o caso de FRTC e Image Sharpening em vários drivers RDNA).
-    /// Nesse caso liberamos a opção: tentar e mostrar o resultado real é melhor do que esconder.
-    /// </summary>
     private static bool Usable(AdlxObject f) => f.IsValid;
 
-    // ------------------------------------------------------------------ Leitura
-
-    /// <summary>Lê capacidades e valores atuais das opções 3D do driver.</summary>
     public GraphicsSettings ReadGraphics(out GraphicsCapabilities caps)
     {
         caps = new GraphicsCapabilities();
@@ -237,10 +214,6 @@ public sealed partial class AdlxSession
 
     public GraphicsSettings ReadGraphics() => ReadGraphics(out _);
 
-    /// <summary>
-    /// Este driver expõe o controle de FRTC pelo ADLX? Quando não expõe, o HardwareService usa o
-    /// caminho antigo do ADL (e só nesse caso, para não aplicar o limite duas vezes).
-    /// </summary>
     public bool HasFrtc()
     {
         lock (_sync)
@@ -250,7 +223,6 @@ public sealed partial class AdlxSession
         }
     }
 
-    /// <summary>Estado atual de um recurso: (existe no driver, suportado, ligado).</summary>
     private (bool Exists, bool Enabled) ReadState(string name)
     {
         using var f = Feature3D(name);
@@ -259,11 +231,8 @@ public sealed partial class AdlxSession
         return (true, on);
     }
 
-    // ------------------------------------------------------------------ Aplicação
-
     private sealed record Op(string Name, bool Enable, Func<AdlxResult> Run, Func<AdlxResult>? Verify = null);
 
-    /// <summary>Executa em sequência e para na primeira falha.</summary>
     private static AdlxResult Seq(params Func<AdlxResult>[] steps)
     {
         foreach (var step in steps)
@@ -275,7 +244,6 @@ public sealed partial class AdlxSession
         return AdlxResult.Ok;
     }
 
-    /// <summary>liga/desliga um recurso simples (IsSupported 3 / IsEnabled 4 / SetEnabled no slot indicado).</summary>
     private AdlxResult SetToggle(string name, bool on, bool force)
     {
         using var f = Feature3D(name);
@@ -309,14 +277,11 @@ public sealed partial class AdlxSession
         return now == want ? AdlxResult.Ok : AdlxResult.Fail;
     }
 
-    /// <summary>
-    /// Desliga um recurso conflitante (com nova leitura para confirmar). Usado só quando um pedido não "pega".
-    /// </summary>
     private bool TurnOff(string name)
     {
         using var f = Feature3D(name);
         if (f == null) return false;
-        if (!f.GetBool(4, out bool on).Succeeded() || !on) return true; // já está desligado
+        if (!f.GetBool(4, out bool on).Succeeded() || !on) return true;
 
         f.SetBool(SetEnabledSlot(name), false);
         bool off = f.GetBool(4, out bool now).Succeeded() && !now;
@@ -330,7 +295,6 @@ public sealed partial class AdlxSession
         bool any = false;
         foreach (var other in others)
         {
-            // Só mexe no outro se ele estiver realmente ligado no driver.
             if (ReadState(other) is { Exists: true, Enabled: true })
             {
                 any |= TurnOff(other);
@@ -340,17 +304,8 @@ public sealed partial class AdlxSession
         return any;
     }
 
-    /// <summary>
-    /// Aplica somente os campos não nulos, na ordem que o driver aceita:
-    /// desligar primeiro, depois valores, depois ligar (dependências por último).
-    /// Se um "ligar" não pega, desliga o recurso conflitante e tenta de novo uma vez.
-    /// </summary>
     public ApplyReport ApplyGraphics(GraphicsSettings s) => ApplyGraphics(s, true);
 
-    /// <summary>
-    /// <paramref name="includeFrtc"/> = false quando o HardwareService vai aplicar o limite de FPS pelo ADL
-    /// (caminho que este driver aceita de verdade) — evitar duas gravações do mesmo limite.
-    /// </summary>
     public ApplyReport ApplyGraphics(GraphicsSettings s, bool includeFrtc)
     {
         var report = new ApplyReport();
@@ -397,14 +352,11 @@ public sealed partial class AdlxSession
             return AdlxResult.Fail;
         }
 
-        // Desligar nunca gera briga; ligar sim. Um "ligar" que voltou NotSuported significa que este
-        // driver não tem o recurso (não adianta tirar conflito do caminho).
         if (!op.Enable || r == AdlxResult.NotSupported) return r;
 
         bool confirmed = r.Succeeded() && (op.Verify == null || op.Verify().Succeeded());
         if (confirmed) return r;
 
-        // O driver não manteve o estado. Tenta tirar o conflitante do caminho e repete uma vez.
         if (op.Name == NEnhSync && EnsureFreeSync())
         {
             LogService.Info($"{NEnhSync}: FreeSync ligado (é pré-requisito), tentando de novo");
@@ -431,10 +383,6 @@ public sealed partial class AdlxSession
         return ok ? r : AdlxResult.Fail;
     }
 
-    /// <summary>
-    /// Conflitos que dá para decidir antes de falar com o driver. Se o pedido liga o AFMF, os recursos que
-    /// não convivem com ele são desligados no próprio pedido (o AMD Software faz igual, deixando-os cinzas).
-    /// </summary>
     private static void ResolveExplicitConflicts(GraphicsSettings req, ApplyReport report)
     {
         if (req.Afmf == true)
@@ -462,7 +410,6 @@ public sealed partial class AdlxSession
             req.BoostResolution = null;
         }
 
-        // Chill e FRTC são mutuamente exclusivos no driver. A tela já impede os dois, mas um perfil antigo pode ter.
         if (req.Chill == true && req.Frtc == true)
         {
             LogService.Info("Chill e FRTC são exclusivos: mantendo o Chill");
@@ -471,10 +418,6 @@ public sealed partial class AdlxSession
         }
     }
 
-    /// <summary>
-    /// Monta a fila na ordem que o driver espera: desligar, ajustar valores e só então ligar
-    /// (o valor precisa existir antes de a opção ser ligada, senão o driver ignora).
-    /// </summary>
     private List<Op> BuildOps(GraphicsSettings s)
     {
         var offs = new List<Op>();
@@ -493,15 +436,12 @@ public sealed partial class AdlxSession
         Toggle(NAntiLag, s.AntiLag, false);
         Toggle(NEnhSync, s.EnhancedSync, true);
         Toggle(NChill, s.Chill, false);
-        // O nível de nitidez entra em "valores" (antes de ligar) e o ligar logo depois: o driver ignora
-        // o estado quando o valor é gravado por último.
         Toggle(NRis, s.ImageSharpening, false);
         Toggle(NRsr, s.Rsr, false);
         Toggle(NBoost, s.Boost, false);
         Toggle(NAfmf, s.Afmf, true);
         Toggle(NFsr, s.Fsr, true);
 
-        // ---------- valores (antes de ligar) ----------
         if (s.Chill == true && (s.ChillMinFps != null || s.ChillMaxFps != null))
         {
             sets.Add(new Op($"{NChill} (faixa de FPS)", true, () =>
@@ -519,7 +459,6 @@ public sealed partial class AdlxSession
 
                 if (mx < mn) mx = mn;
 
-                // Aumenta o máximo antes do mínimo para não violar min<=max durante a troca.
                 f.GetInt(7, out int curMax);
                 return Seq(
                     () => mx >= curMax ? f.SetInt(S3D.SetMaxFps, mx) : AdlxResult.Ok,
@@ -552,14 +491,12 @@ public sealed partial class AdlxSession
                 if (fps <= 0) fps = 60;
                 applied = fps;
 
-                // Ordem do exemplo oficial do SDK: ligar e só então ajustar o limite.
                 var r = f.SetBool(S3D.SetFrtc, true);
                 if (!r.Succeeded()) return r;
 
                 var setFps = f.SetInt(S3D.SetFps, fps);
                 if (!setFps.Succeeded())
                 {
-                    // Alguns drivers só guardam o limite depois que o FRTC já está ligado.
                     setFps = f.SetInt(S3D.SetFps, fps);
                 }
 
@@ -579,7 +516,6 @@ public sealed partial class AdlxSession
             }));
         }
 
-        // Valores que o driver so aceita com o recurso ligado: tentados antes (sem falhar) e de novo depois de ligar.
         void ValueOp(string label, string feature, bool enabled, int? value, int rangeSlot, int setSlot)
         {
             if (!enabled || value == null) return;
@@ -653,7 +589,6 @@ public sealed partial class AdlxSession
                 int mode = s.TessellationMode ?? (f.GetInt(4, out int cm).Succeeded() ? cm : 0);
                 if (mode == (int)AdlxTessellationMode.OverrideAppSettings && s.TessellationLevel != null)
                 {
-                    // GetLevelRange não existe nesta interface: o SDK documenta 1..64 (nível 64 = sem limite).
                     int lvl = Math.Clamp(s.TessellationLevel.Value, 1, 64);
                     return Seq(() => f.SetInt(S3D.SetTessellationMode, mode), () => f.SetInt(S3D.SetTessellationLevel, lvl));
                 }
@@ -695,7 +630,6 @@ public sealed partial class AdlxSession
         return all;
     }
 
-    /// <summary>Liga o FreeSync em todos os monitores que suportam (o Enhanced Sync depende dele).</summary>
     private bool EnsureFreeSync()
     {
         bool any = false;
@@ -722,7 +656,6 @@ public sealed partial class AdlxSession
         return any;
     }
 
-    /// <summary>Relatório do que o driver responde para AFMF e FSR (para diagnóstico).</summary>
     public string ProbeUpscalers()
     {
         var sb = new System.Text.StringBuilder();

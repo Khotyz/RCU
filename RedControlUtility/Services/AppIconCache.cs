@@ -1,6 +1,5 @@
 namespace RedControlUtility.Services;
 
-/// <summary>Guarda o ícone de cada app como PNG em disco (carregado pequeno, sem manter bitmaps na memória).</summary>
 public static class AppIconCache
 {
     private static string Dir => Path.Combine(AppPaths.DataDir, "icons");

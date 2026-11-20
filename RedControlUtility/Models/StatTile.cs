@@ -12,7 +12,6 @@ public sealed class StatTile : INotifyPropertyChanged
     public string Unit { get; init; } = string.Empty;
     public string TipKey { get; init; } = string.Empty;
 
-    /// <summary>Opcional: some da tela quando o sensor não existe nesta GPU (em vez de mostrar um traço).</summary>
     public bool Optional { get; init; }
     public bool HasValue { get; set; } = true;
 
@@ -24,7 +23,6 @@ public sealed class StatTile : INotifyPropertyChanged
     public string Title { get => _title; set => Set(ref _title, value); }
     public string Value { get => _value; set => Set(ref _value, value); }
 
-    /// <summary>0..100 para a barra de progresso.</summary>
     public double Fraction { get => _fraction; set => Set(ref _fraction, value); }
 
     public event PropertyChangedEventHandler? PropertyChanged;

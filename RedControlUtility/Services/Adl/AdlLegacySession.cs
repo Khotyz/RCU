@@ -5,11 +5,6 @@ using RedControlUtility.Models;
 
 namespace RedControlUtility.Services.Adl;
 
-/// <summary>
-/// Fallback SOMENTE LEITURA para sensores via ADL (atiadlxx.dll), a API antiga da AMD usada por GPUs como Polaris
-/// quando o ADLX não expõe métricas. Nenhuma escrita é feita por aqui (sem undervolt/OC via ADL).
-/// Todos os buffers de saída são superdimensionados para evitar corrupção de memória se um layout divergir.
-/// </summary>
 public sealed unsafe class AdlLegacySession : IDisposable
 {
     private const int AdapterInfoSize = 1572;
@@ -33,7 +28,6 @@ public sealed unsafe class AdlLegacySession : IDisposable
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
     private static IntPtr Alloc(int size) => Marshal.AllocHGlobal(Math.Max(1, size));
 
-    /// <summary>Endereço PCI (bus, device, function) dos adaptadores AMD, como o AMD Software grava em "GPUBDF".</summary>
     public static List<(string Name, int Bdf)> ReadPciLocations()
     {
         var list = new List<(string Name, int Bdf)>();
@@ -81,7 +75,6 @@ public sealed unsafe class AdlLegacySession : IDisposable
         }
         catch
         {
-            // sem ADL: devolve o que tiver
         }
 
         return list;
@@ -212,7 +205,7 @@ public sealed unsafe class AdlLegacySession : IDisposable
     private static int? Clock(int v)
     {
         if (v <= 0) return null;
-        int mhz = v > 20000 ? v / 100 : v; // ADL informa em unidades de 10 kHz
+        int mhz = v > 20000 ? v / 100 : v;
         return mhz is >= 50 and <= 4500 ? mhz : null;
     }
 
@@ -251,7 +244,7 @@ public sealed unsafe class AdlLegacySession : IDisposable
 
             if (_fan5 != null)
             {
-                foreach (int type in new[] { 2, 1 }) // 2 = RPM, 1 = %
+                foreach (int type in new[] { 2, 1 })
                 {
                     new Span<byte>((void*)buf, BufSize).Clear();
                     int* f = (int*)buf;

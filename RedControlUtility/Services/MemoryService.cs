@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 
 namespace RedControlUtility.Services;
 
-/// <summary>Reduz o uso de RAM quando a janela está minimizada (coleta de lixo + trim do working set).</summary>
 public static class MemoryService
 {
     [DllImport("psapi.dll")]

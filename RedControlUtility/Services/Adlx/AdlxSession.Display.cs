@@ -4,26 +4,23 @@ namespace RedControlUtility.Services.Adlx;
 
 public sealed partial class AdlxSession
 {
-    // IADLXDisplayServices (deriva de IADLXInterface)
     private static class DispSvc
     {
-        public const int GetDisplays = 4, FreeSync = 9, Vsr = 10, GpuScaling = 11, ScalingMode = 12, IntegerScaling = 13, CustomColor = 16;
+        public const int GetDisplays = 4, FreeSync = 9, Vsr = 10, GpuScaling = 11, ScalingMode = 12, IntegerScaling = 13, CustomColor = 16, FreeSyncColorAccuracy = 23;
     }
 
-    // IADLXDisplay
     private static class DispSlot
     {
         public const int Name = 6, NativeResolution = 8, RefreshRate = 9, UniqueId = 13;
     }
 
-    // IADLXDisplayCustomColor: (supported, range, get, set) por propriedade
     private static readonly (int sup, int range, int get, int set)[] ColorSlots =
     {
-        (3, 4, 5, 6),       // Hue
-        (7, 8, 9, 10),      // Saturation
-        (11, 12, 13, 14),   // Brightness
-        (15, 16, 17, 18),   // Contrast
-        (19, 20, 21, 22)    // Temperature
+        (3, 4, 5, 6),
+        (7, 8, 9, 10),
+        (11, 12, 13, 14),
+        (15, 16, 17, 18),
+        (19, 20, 21, 22)
     };
 
     private List<AdlxObject> DisplayHandles()
@@ -34,7 +31,6 @@ public sealed partial class AdlxSession
             using var list = new AdlxObject(lp);
             foreach (var item in list.ListItems())
             {
-                // Tipa o ponteiro como IADLXDisplay
                 var typed = item.Query("IADLXDisplay");
                 if (typed != null)
                 {
@@ -55,6 +51,14 @@ public sealed partial class AdlxSession
     {
         if (_displays == null) return null;
         return _displays.GetPtrWith(slot, display.Ptr, out IntPtr p).Succeeded() && p != IntPtr.Zero ? new AdlxObject(p) : null;
+    }
+
+    private AdlxObject? FreeSyncColorFeature(AdlxObject display)
+    {
+        using var s3 = _displays?.Query("IADLXDisplayServices3");
+        if (s3 == null) return null;
+        if (!s3.GetPtrWith(DispSvc.FreeSyncColorAccuracy, display.Ptr, out IntPtr p).Succeeded() || p == IntPtr.Zero) return null;
+        return new AdlxObject(p);
     }
 
     public List<DisplayInfo> ReadDisplays()
@@ -107,9 +111,12 @@ public sealed partial class AdlxSession
             if (c.FreeSync && f!.GetBool(4, out bool e).Succeeded()) s.FreeSync = e;
         }
 
-        // Escala da GPU, VSR, escala inteira e modo de escala: o driver costuma responder IsSupported=false enquanto a escala
-        // da GPU esta desligada (o AMD Software tambem deixa essas opcoes cinzas). Se o driver entrega o objeto, a opcao fica
-        // disponivel (mesmo bypass do AFMF): o resultado real aparece no relatorio de aplicacao.
+        using (var f = FreeSyncColorFeature(d))
+        {
+            c.FreeSyncColorAccuracy = f != null && f.Supported();
+            if (c.FreeSyncColorAccuracy && f!.GetBool(4, out bool e).Succeeded()) s.FreeSyncColorAccuracy = e;
+        }
+
         using (var f = DisplayFeature(d, DispSvc.GpuScaling))
         {
             c.GpuScaling = f != null;
@@ -192,9 +199,6 @@ public sealed partial class AdlxSession
                     if (requested != null) report.Add(name, result);
                 }
 
-                // force=true: o driver devolve IsSupported=false em vários monitores enquanto a escala da GPU
-                // está desligada. Tentamos e mostramos o resultado real (o AMD Software também libera depois
-                // que a escala é ligada).
                 AdlxResult Toggle(string name, int svcSlot, bool? value, bool force = true)
                 {
                     if (value == null) return AdlxResult.Ok;
@@ -209,7 +213,6 @@ public sealed partial class AdlxSession
                         LogService.Info($"Display: {name} pedido {value.Value}, driver respondeu {now}");
                         if (now != value.Value)
                         {
-                            // Uma segunda tentativa depois de o driver terminar de refazer o modo.
                             Thread.Sleep(150);
                             f.SetBool(5, value.Value);
                             if (f.GetBool(4, out bool again).Succeeded()) now = again;
@@ -227,8 +230,6 @@ public sealed partial class AdlxSession
                     return f != null && f.GetBool(4, out on).Succeeded();
                 }
 
-                // VSR e escala inteira só existem com a escala da GPU ligada: ela vai primeiro ao ligar e
-                // por último ao desligar (mesma ordem do painel da AMD).
                 bool scalingWillBeOn = s.GpuScaling ?? (ReadBool(DispSvc.GpuScaling, out bool gs) && gs);
 
                 if (s.GpuScaling == false)
@@ -241,14 +242,12 @@ public sealed partial class AdlxSession
                 {
                     Add(UiHelper.L("Report.GpuScaling"), s.GpuScaling, Toggle(UiHelper.L("Report.GpuScaling"), DispSvc.GpuScaling, s.GpuScaling));
 
-                    // O VSR só funciona com a escala da GPU ligada: liga sozinho, como o AMD Software faz.
                     if (s.Vsr == true && !(ReadBool(DispSvc.GpuScaling, out bool gsNow) && gsNow))
                     {
                         LogService.Info("VSR pedido: ligando a escala da GPU (pré-requisito)");
                         report.Add(UiHelper.L("Report.GpuScalingForVsr"), Toggle(UiHelper.L("Report.GpuScaling"), DispSvc.GpuScaling, true));
                     }
 
-                    // O driver refaz a lista de modos depois de mexer na escala: espera ele responder.
                     if (s.GpuScaling == true)
                     {
                         for (int i = 0; i < 10 && !(ReadBool(DispSvc.GpuScaling, out bool now) && now); i++) Thread.Sleep(100);
@@ -264,7 +263,13 @@ public sealed partial class AdlxSession
                     report.Add(UiHelper.L("Report.ScalingMode"), f == null ? AdlxResult.NotSupported : f.SetInt(5, s.ScalingMode.Value));
                 }
 
-                Add("FreeSync", s.FreeSync, Toggle("FreeSync", DispSvc.FreeSync, s.FreeSync, force: false));
+                Add(UiHelper.L("Report.AdaptiveSync"), s.FreeSync, Toggle(UiHelper.L("Report.AdaptiveSync"), DispSvc.FreeSync, s.FreeSync, force: false));
+
+                if (s.FreeSyncColorAccuracy != null)
+                {
+                    using var f = FreeSyncColorFeature(d);
+                    report.Add(UiHelper.L("Report.FreeSyncColor"), f == null || !f.Supported() ? AdlxResult.NotSupported : f.SetBool(5, s.FreeSyncColorAccuracy.Value));
+                }
 
                 if (!scalingWillBeOn && s.Vsr == true)
                 {

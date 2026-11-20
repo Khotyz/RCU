@@ -80,7 +80,6 @@ public sealed partial class DisplayPage : Page
                 Show(StatusBar, InfoBarSeverity.Informational, L("Display.NoneFound"));
             }
 
-            // Gamma (software)
             var p = App.CurrentProfile;
             SelectProfile(p.ColorProfile);
             SetGammaSliders(p);
@@ -99,15 +98,19 @@ public sealed partial class DisplayPage : Page
         _loading = false;
     }
 
-    // ------------------------------------------------------------------ Driver (ADLX)
-
     private void FillDisplay(DisplayInfo? d)
     {
         _display = d;
         var c = d?.Caps ?? new DisplayCapabilities();
         var s = d?.Current ?? new DisplaySettings();
 
-        FreeSyncToggle.IsEnabled = c.FreeSync; FreeSyncToggle.IsOn = s.FreeSync == true;
+        FreeSyncToggle.Visibility = c.FreeSync ? Visibility.Visible : Visibility.Collapsed;
+        FreeSyncToggle.IsOn = s.FreeSync == true;
+        FreeSyncColorToggle.Visibility = c.FreeSyncColorAccuracy ? Visibility.Visible : Visibility.Collapsed;
+        FreeSyncColorToggle.IsOn = s.FreeSyncColorAccuracy == true;
+        bool hasRange = c.FreeSync && c.FreeSyncMaxHz > 0;
+        FreeSyncRangeText.Visibility = hasRange ? Visibility.Visible : Visibility.Collapsed;
+        FreeSyncRangeText.Text = hasRange ? L("Display.FreeSyncRange", (int)Math.Round(c.FreeSyncMinHz), (int)Math.Round(c.FreeSyncMaxHz)) : string.Empty;
         VsrToggle.IsEnabled = c.Vsr; VsrToggle.IsOn = s.Vsr == true;
         GpuScalingToggle.IsEnabled = c.GpuScaling; GpuScalingToggle.IsOn = s.GpuScaling == true;
         IntegerScalingToggle.IsEnabled = c.IntegerScaling; IntegerScalingToggle.IsOn = s.IntegerScaling == true;
@@ -146,6 +149,7 @@ public sealed partial class DisplayPage : Page
         var c = _display?.Caps ?? new DisplayCapabilities();
         var s = new DisplaySettings();
         if (c.FreeSync) s.FreeSync = FreeSyncToggle.IsOn;
+        if (c.FreeSyncColorAccuracy) s.FreeSyncColorAccuracy = FreeSyncColorToggle.IsOn;
         if (c.Vsr) s.Vsr = VsrToggle.IsOn;
         if (c.GpuScaling) s.GpuScaling = GpuScalingToggle.IsOn;
         if (c.IntegerScaling) s.IntegerScaling = IntegerScalingToggle.IsOn;
@@ -164,6 +168,7 @@ public sealed partial class DisplayPage : Page
     {
         var r = new DisplaySettings();
         if (Ne(c.FreeSync, d.FreeSync)) r.FreeSync = d.FreeSync;
+        if (Ne(c.FreeSyncColorAccuracy, d.FreeSyncColorAccuracy)) r.FreeSyncColorAccuracy = d.FreeSyncColorAccuracy;
         if (Ne(c.Vsr, d.Vsr)) r.Vsr = d.Vsr;
         if (Ne(c.GpuScaling, d.GpuScaling)) r.GpuScaling = d.GpuScaling;
         if (Ne(c.IntegerScaling, d.IntegerScaling)) r.IntegerScaling = d.IntegerScaling;
@@ -177,7 +182,7 @@ public sealed partial class DisplayPage : Page
     }
 
     private static bool IsEmpty(DisplaySettings s) =>
-        s.FreeSync == null && s.Vsr == null && s.GpuScaling == null && s.IntegerScaling == null && s.ScalingMode == null &&
+        s.FreeSync == null && s.FreeSyncColorAccuracy == null && s.Vsr == null && s.GpuScaling == null && s.IntegerScaling == null && s.ScalingMode == null &&
         s.Hue == null && s.Saturation == null && s.Brightness == null && s.Contrast == null && s.Temperature == null;
 
     private void DriverChanged()
@@ -190,7 +195,6 @@ public sealed partial class DisplayPage : Page
     private void Driver_Changed(object sender, RoutedEventArgs e) => DriverChanged();
     private void Driver_SelectionChanged(object sender, SelectionChangedEventArgs e) => DriverChanged();
 
-    // Hue, saturation, brightness, contrast, temperature (K). Values are clamped to the ranges the driver reports.
     private static readonly Dictionary<string, (int Hue, int Sat, int Bri, int Con, int Temp)> DriverPresets = new()
     {
         ["Default"] = (0, 100, 0, 100, 6500),
@@ -224,7 +228,6 @@ public sealed partial class DisplayPage : Page
         DriverChanged();
     }
 
-    /// <summary>Relê só o estado do monitor atual (sem recriar as listas), para a tela não "piscar" depois de aplicar.</summary>
     private void RefreshDisplayState()
     {
         int keep = _display?.Index ?? 0;
@@ -274,8 +277,6 @@ public sealed partial class DisplayPage : Page
             _busy = false;
         }
     }
-
-    // ------------------------------------------------------------------ Gamma (software, GDI)
 
     private void SelectProfile(string name)
     {

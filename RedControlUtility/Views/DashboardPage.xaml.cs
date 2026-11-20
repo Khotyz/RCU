@@ -134,7 +134,6 @@ public sealed partial class DashboardPage : Page
         int? PosI(int? v) => v.HasValue && v.Value > 0 ? v : null;
         double? mem = Pos(s.TempMemoryC), hot = Pos(s.TempHotspotC), edge = Pos(s.TempEdgeC);
         double? pw = Pos(s.BoardPowerW ?? s.PowerW);
-        // A tensão é informação vital: nunca some. Leituras vazias ou zeradas mantêm o último valor válido.
         int? voltNow = PosI(s.VoltageMv);
         if (voltNow.HasValue) _lastVolt = voltNow;
         int? fan = s.FanRpm, vclk = PosI(s.VramClockMhz), volt = voltNow ?? _lastVolt, vused = s.VramUsedMb;
@@ -150,13 +149,11 @@ public sealed partial class DashboardPage : Page
         Set(8, I(vused), F(vused, Math.Max(1, App.Hardware.CurrentGpu.VramMb)));
         Set(9, I(volt), F(volt, 1300));
 
-        // Sensores que esta GPU não tem somem do painel (só depois da primeira leitura real).
         bool real = s.GpuUsage.HasValue || s.GpuClockMhz.HasValue || s.TempEdgeC.HasValue;
         if (!real) return;
         bool[] has = { true, true, vclk.HasValue, edge.HasValue, hot.HasValue, mem.HasValue, pw.HasValue, fan.HasValue, vused.HasValue, volt.HasValue };
         for (int i = 0; i < _all.Count; i++)
         {
-            // Sensor que já apareceu uma vez não volta a sumir por uma leitura vazia isolada.
             _seen[i] |= has[i];
             _all[i].HasValue = _seen[i];
         }

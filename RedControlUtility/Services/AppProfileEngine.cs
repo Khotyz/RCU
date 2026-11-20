@@ -4,12 +4,6 @@ using RedControlUtility.Services.Adl;
 
 namespace RedControlUtility.Services;
 
-/// <summary>
-/// Perfis por aplicativo. O ADLX só expõe configurações 3D globais do driver (não há API pública para
-/// editar os perfis por jogo do Adrenalin), então este motor monitora os processos: quando um executável
-/// cadastrado abre, aplica as opções daquele app; quando fecha, restaura o que estava antes.
-/// Requer que o Red Control Utility esteja aberto (pode ficar minimizado).
-/// </summary>
 public sealed class AppProfileEngine : IDisposable
 {
     private readonly HardwareService _hardware;
@@ -26,7 +20,6 @@ public sealed class AppProfileEngine : IDisposable
 
     public AppProfile? Active => _active;
 
-    /// <summary>Resultado da última aplicação (o que o driver devolveu, item por item).</summary>
     public ApplyReport LastReport { get; private set; } = new();
 
     public event Action<AppProfile?>? ActiveChanged;
@@ -85,7 +78,6 @@ public sealed class AppProfileEngine : IDisposable
         }
     }
 
-    /// <summary>Verifica só os nomes dos perfis ativos (barato), para pegar o jogo logo no início, antes do driver criar o dispositivo gráfico.</summary>
     private static HashSet<string> RunningProcessNames(IEnumerable<string> wanted)
     {
         var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -105,8 +97,6 @@ public sealed class AppProfileEngine : IDisposable
 
         var gfx = profile.Graphics;
 
-        // FSR upgrade (RDNA 2 em diante): pelo ADLX quando o driver expõe; senão direto no driver (valor UMD\FsrOverride
-        // via atiadlxx.dll, o mesmo que o AMD Software grava). Nenhum dos dois depende do AMD Software.
         _restoreFsr = null;
         if (gfx.Fsr != null)
         {
@@ -194,10 +184,6 @@ public sealed class AppProfileEngine : IDisposable
         ActiveChanged?.Invoke(null);
     }
 
-    /// <summary>
-    /// Aplica o perfil agora e devolve o que o driver respondeu. Serve para conferir as opções sem
-    /// precisar abrir o jogo (o resultado é o mesmo caminho usado na ativação automática).
-    /// </summary>
     public ApplyReport ApplyNow(AppProfile profile)
     {
         lock (_lock)
@@ -216,7 +202,6 @@ public sealed class AppProfileEngine : IDisposable
         }
     }
 
-    /// <summary>Usado pelo modo --launch: aplica o perfil sem o observador de processos.</summary>
     public void ActivateNow(AppProfile profile)
     {
         lock (_lock)

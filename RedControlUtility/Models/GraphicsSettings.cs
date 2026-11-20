@@ -2,10 +2,6 @@ using RedControlUtility.Services.Adlx;
 
 namespace RedControlUtility.Models;
 
-/// <summary>
-/// Configurações 3D do driver. Cada campo é "anulável": null = não mexer / usar o valor global.
-/// Usado tanto para o estado global (lido do driver) quanto para overrides por aplicativo.
-/// </summary>
 public sealed class GraphicsSettings
 {
     public bool? AntiLag { get; set; }
@@ -44,10 +40,6 @@ public sealed class GraphicsSettings
         AnisotropicFiltering == null && AnisotropicLevel == null && TessellationMode == null && TessellationLevel == null &&
         AaMode == null && AaMethod == null && AaLevel == null && Mlaa == null && TripleBuffer == null && SurfaceFormatOpt == null;
 
-    /// <summary>
-    /// Retorna os valores de <c>this</c> (estado atual do driver) apenas para os grupos de recursos que
-    /// <paramref name="mask"/> altera. Serve para guardar o que deve ser restaurado quando o app fecha.
-    /// </summary>
     public GraphicsSettings Mask(GraphicsSettings mask)
     {
         var r = new GraphicsSettings();
@@ -94,7 +86,6 @@ public sealed class GraphicsSettings
         return r;
     }
 
-    /// <summary>Copia para cá apenas os campos definidos (não nulos) de <paramref name="o"/>.</summary>
     public void Overlay(GraphicsSettings o)
     {
         AntiLag = o.AntiLag ?? AntiLag;

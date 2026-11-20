@@ -4,7 +4,6 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace RedControlUtility.Controls;
 
-/// <summary>Slider com valor ao lado e botões de valores comuns (ex.: 30, 60, 120 fps). Substitui as caixas numéricas.</summary>
 public sealed class ValueEditor : UserControl
 {
     private readonly Slider _slider = new() { Width = 220, VerticalAlignment = VerticalAlignment.Center };
@@ -15,7 +14,6 @@ public sealed class ValueEditor : UserControl
 
     public event Action? ValueChanged;
 
-    /// <summary>Formato do texto (ex.: sinal + para potência). Se null usa "valor unidade".</summary>
     public Func<int, string>? Format { get; set; }
 
     public ValueEditor()
@@ -66,7 +64,6 @@ public sealed class ValueEditor : UserControl
         UpdateLabel();
     }
 
-    /// <summary>Define o valor sem disparar <see cref="ValueChanged"/> (usado ao carregar o perfil).</summary>
     public void SetValue(int value)
     {
         _suppressDepth++;

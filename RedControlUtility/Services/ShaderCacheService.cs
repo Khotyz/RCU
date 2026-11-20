@@ -2,7 +2,6 @@ namespace RedControlUtility.Services;
 
 public static class ShaderCacheService
 {
-    /// <summary>Apaga os caches de shader em disco (AMD DxCache/GLCache e D3DSCache). Retorna a quantidade de arquivos removidos.</summary>
     public static int ClearShaderCaches()
     {
         int deleted = 0;
@@ -38,7 +37,6 @@ public static class ShaderCacheService
                 }
                 catch
                 {
-                    // arquivo em uso
                 }
             }
         }

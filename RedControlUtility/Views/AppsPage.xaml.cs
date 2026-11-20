@@ -61,8 +61,6 @@ public sealed partial class AppsPage : Page
         _loading = true;
         try
         {
-            // Relê o que o driver oferece agora: as opções estavam sendo liberadas com o resultado
-            // de uma leitura antiga (feita antes do jogo abrir), e várias ficavam cinzas.
             App.Hardware.ReadGraphics();
             BuildCombos();
             RefreshList(_app);
@@ -147,10 +145,6 @@ public sealed partial class AppsPage : Page
         }
     }
 
-    /// <summary>
-    /// O editor fica sempre no layout (só muda de habilitado para desabilitado). Assim a tela já nasce
-    /// "expandida" e nenhuma opção faz o cartão crescer ou encolher ao ser ligada.
-    /// </summary>
     private void ShowEditor(bool hasApp)
     {
         EditorEmpty.Visibility = hasApp ? Visibility.Collapsed : Visibility.Visible;
@@ -174,7 +168,6 @@ public sealed partial class AppsPage : Page
         }
     }
 
-    // Valores sugeridos quando a pessoa só liga a opção (o mais comum entre os jogadores).
     private const int DefFrtc = 60, DefRis = 80, DefRsr = 80, DefBoost = 50, DefChillMin = 70, DefChillMax = 144;
 
     private void ConfigureEditors()
@@ -195,10 +188,6 @@ public sealed partial class AppsPage : Page
 
     private static int Def(int? v, int fallback) => v ?? fallback;
 
-    /// <summary>
-    /// Mostra o controle de valor só quando a opção está ligada. O espaço fica reservado (opacidade, não Collapsed),
-    /// senão cada troca de Global/Ligado/Desligado redimensiona o cartão inteiro e a tela parece "pulando".
-    /// </summary>
     private void UpdateEditorVisibility()
     {
         static void Reserve(FrameworkElement el, ComboBox cb)
@@ -280,7 +269,6 @@ public sealed partial class AppsPage : Page
             var c = App.Hardware.Caps.Graphics;
             AntiLagCombo.IsEnabled = c.AntiLag; AfmfCombo.IsEnabled = c.Afmf;
 
-            // FSR: RDNA 2 em diante. Por ADLX quando o driver expõe; senão pelo perfil do AMD Software, se ele existir (opcional).
             bool fsrGpu = App.Hardware.CurrentGpu.Architecture.SupportsFsr4();
             bool fsrDb = !c.Fsr && fsrGpu && Services.Adl.DriverFsrService.IsSupported();
             FsrCombo.IsEnabled = fsrGpu && (c.Fsr || fsrDb);
@@ -320,7 +308,6 @@ public sealed partial class AppsPage : Page
         Changed();
     }
 
-    /// <summary>Predefinições de um clique. Só mexe no que a GPU/driver suportam; o resto fica como está.</summary>
     private void Quick_Click(object sender, RoutedEventArgs e)
     {
         if (_app == null || sender is not Button { Tag: string key }) return;
@@ -340,7 +327,7 @@ public sealed partial class AppsPage : Page
             case "clear":
                 Reset();
                 break;
-            case "competitive": // menor latência possível, sem limite de FPS
+            case "competitive":
                 Reset();
                 if (c.AntiLag) g.AntiLag = true;
                 if (c.EnhancedSync) g.EnhancedSync = false;
@@ -348,17 +335,17 @@ public sealed partial class AppsPage : Page
                 if (c.Chill) g.Chill = false;
                 if (c.Afmf) g.Afmf = false;
                 break;
-            case "fps60": // limitador em 60 FPS, o uso mais comum
+            case "fps60":
                 Reset();
                 if (c.Chill) { g.Chill = true; g.ChillMinFps = 60; g.ChillMaxFps = 60; }
                 if (c.AntiLag) g.AntiLag = true;
                 break;
-            case "saver": // menos consumo e calor
+            case "saver":
                 Reset();
                 if (c.Chill) { g.Chill = true; g.ChillMinFps = 60; g.ChillMaxFps = 90; }
                 if (c.AntiLag) g.AntiLag = false;
                 break;
-            case "quality": // imagem mais nítida
+            case "quality":
                 Reset();
                 if (c.ImageSharpening) { g.ImageSharpening = true; g.ImageSharpeningLevel = DefRis; }
                 if (fsrOk) g.Fsr = true;
@@ -396,7 +383,7 @@ public sealed partial class AppsPage : Page
         int cmin = ChillMinEditor.Value, cmax = Math.Max(cmin, ChillMaxEditor.Value);
         g.ChillMinFps = chillOn ? cmin : null;
         g.ChillMaxFps = chillOn ? cmax : null;
-        g.Frtc = null; // FRTC e global (aba Tuning)
+        g.Frtc = null;
         g.FrtcFps = null;
         g.ImageSharpening = TriToBool(RisCombo.SelectedIndex);
         g.ImageSharpeningLevel = risOn ? RisEditor.Value : null;
@@ -418,7 +405,6 @@ public sealed partial class AppsPage : Page
         a.PowerLimitPercent = PowerCombo.SelectedIndex == 1 ? PowerEditor.Value : null;
         a.TuningPreset = PresetCombo.SelectedItem is ComboBoxItem { Tag: string s } ? s : null;
 
-        // Chill e FRTC são mutuamente exclusivos no driver.
         if (g.Chill == true && g.Frtc == true)
         {
             g.Frtc = null;
@@ -479,7 +465,6 @@ public sealed partial class AppsPage : Page
         row.Children.Add(texts);
         if (ReferenceEquals(App.Engine.Active, a))
         {
-            // Indicador de "em execução com perfil ativo".
             var dot = new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 9, Height = 9, Fill = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x6C, 0xCB, 0x5F)), VerticalAlignment = VerticalAlignment.Center };
             ToolTipService.SetToolTip(dot, L("Apps.ActiveDot"));
             Grid.SetColumn(dot, 2);
@@ -536,7 +521,6 @@ public sealed partial class AppsPage : Page
         Fill(app);
     }
 
-    /// <summary>Adiciona um .exe ou atalho .lnk. Retorna o perfil (novo ou existente) ou null se inválido.</summary>
     private AppProfile? AddFromPath(string file)
     {
         string ext = Path.GetExtension(file);
@@ -571,7 +555,6 @@ public sealed partial class AppsPage : Page
         return app;
     }
 
-    /// <summary>Aplica o perfil no mesmo caminho da ativação automática e mostra o que o driver respondeu.</summary>
     private void Test_Click(object sender, RoutedEventArgs e)
     {
         if (_app == null) return;

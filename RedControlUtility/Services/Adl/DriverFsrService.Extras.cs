@@ -2,20 +2,10 @@ using System.Runtime.InteropServices;
 
 namespace RedControlUtility.Services.Adl;
 
-/// <summary>
-/// Caminhos diretos pelo atiadlxx.dll, os mesmos que o AMD Software usa, para FRTC (ADL2_FPS_Settings_Set)
-/// e escala da GPU (ADL2_DFP_GPUScalingEnable_Set). Servem de reforço ao ADLX, que em alguns drivers
-/// devolve OK sem o driver realmente guardar o valor.
-/// </summary>
 public static unsafe partial class DriverFsrService
 {
     private static IntPtr Export(Session s, string name) => NativeLibrary.TryGetExport(s.Module, name, out IntPtr p) ? p : IntPtr.Zero;
 
-    /// <summary>
-    /// FRTC pelo caminho antigo do ADL. Layout de <c>ADLFPSSettingsInput</c> (adl_structures.h):
-    /// <c>int ulSize; int bGlobalSettings; int ulACFPSCurrent; int ulDCFPSCurrent; int ulReserved[6];</c> = 40 bytes.
-    /// fps 0 desliga. Este caminho só é usado quando o driver não expõe FRTC pelo ADLX.
-    /// </summary>
     public static (bool Ok, string Message) SetFrtc(bool enable, int fps, int gpuIndex = 0)
     {
         try
@@ -38,30 +28,24 @@ public static unsafe partial class DriverFsrService
 
             int value = enable ? Math.Max(1, fps) : 0;
 
-            // Estrutura completa (40 bytes), com os 6 campos reservados zerados: passar um tamanho
-            // menor faz o driver ler lixo e o limite sai errado (era o "cai para 5 fps").
             int* inp = stackalloc int[10];
             for (int i = 0; i < 10; i++) inp[i] = 0;
             inp[0] = 40;
-            inp[1] = 1;      // bGlobalSettings
-            inp[2] = value;  // AC
-            inp[3] = value;  // DC
+            inp[1] = 1;
+            inp[2] = value;
+            inp[3] = value;
             int rc = ((delegate* unmanaged[Cdecl]<IntPtr, int, int*, int>)pSet)(s.Ctx, s.Adapter, inp);
             if (rc != 0) return (false, $"ADL2_FPS_Settings_Set => {rc}");
 
             string back = "";
             if (pGet != IntPtr.Zero)
             {
-                // ADLFPSSettingsOutput: ulSize, bACFPSEnabled, bDCFPSEnabled, ulACFPSCurrent,
-                // ulDCFPSCurrent, ulACFPSMaximum, ulACFPSMinimum, ulDCFPSMaximum, ulDCFPSMinimum = 36 bytes.
                 int* o = stackalloc int[10];
                 for (int i = 0; i < 10; i++) o[i] = 0;
                 o[0] = 36;
                 int g = ((delegate* unmanaged[Cdecl]<IntPtr, int, int*, int>)pGet)(s.Ctx, s.Adapter, o);
                 if (g == 0)
                 {
-                    // A ordem dos campos desta estrutura varia entre drivers; o registro bruto abaixo
-                    // é o que permite (no log) conferir o que o driver guardou sem chutar índice.
                     back = $" | lido: [{string.Join(", ", Enumerable.Range(0, 9).Select(i => o[i]))}]";
                 }
                 else
@@ -78,14 +62,12 @@ public static unsafe partial class DriverFsrService
         }
     }
 
-    // ADLDisplayInfo (adl_structures.h): displayID(16) + controllerIndex(4) + 2 x char[256] + 5 x int = 552 bytes.
     private const int DisplayInfoSize = 552;
     private const int DisplayInfoMaskOffset = 544, DisplayInfoValueOffset = 548;
-    private const int ConnectedAndMapped = 0x3; // ADL_DISPLAY_DISPLAYINFO_DISPLAYCONNECTED | DISPLAYMAPPED
+    private const int ConnectedAndMapped = 0x3;
 
     private readonly record struct AdlDisplay(int Logical, int LogicalAdapter);
 
-    /// <summary>Lista os monitores ligados e mapeados da placa (ADL2_Display_DisplayInfo_Get).</summary>
     private static List<AdlDisplay> ConnectedDisplays(Session s, out int rc)
     {
         var result = new List<AdlDisplay>();
@@ -115,10 +97,6 @@ public static unsafe partial class DriverFsrService
         return result;
     }
 
-    /// <summary>
-    /// Estado da escala da GPU pelo ADL: (alguma tela suporta, todas as telas suportadas estao ligadas, quantidade de telas, mensagem).
-    /// Serve de reforco quando o ADLX diz "nao suportado" para a escala.
-    /// </summary>
     public static (bool Supported, bool Enabled, int Count, string Message) GetGpuScaling(int gpuIndex = 0)
     {
         try
@@ -153,10 +131,6 @@ public static unsafe partial class DriverFsrService
         }
     }
 
-    /// <summary>
-    /// Escala da GPU em todos os monitores ligados e mapeados da placa. Mesmo caminho do AMD Software:
-    /// grava o valor persistente do driver (GPUScaling{adaptador}{tela}) e chama ADL2_DFP_GPUScalingEnable_Set.
-    /// </summary>
     public static (bool Ok, string Message) SetGpuScaling(bool enable, int gpuIndex = 0)
     {
         try
@@ -179,7 +153,6 @@ public static unsafe partial class DriverFsrService
                     IntPtr key = Marshal.StringToHGlobalAnsi($"GPUScaling{d.LogicalAdapter}{d.Logical}");
                     try
                     {
-                        // ADL_REG_DEVICE_FUNCTION_1 = 1, sem subchave.
                         ((delegate* unmanaged[Cdecl]<IntPtr, int, int, IntPtr, IntPtr, int, int>)pRegSet)(s.Ctx, d.LogicalAdapter, 1, IntPtr.Zero, key, enable ? 1 : 0);
                     }
                     finally
@@ -195,7 +168,7 @@ public static unsafe partial class DriverFsrService
                     int sup = 0, cur = 0, def = 0;
                     int g = ((delegate* unmanaged[Cdecl]<IntPtr, int, int, int*, int*, int*, int>)pGet)(s.Ctx, d.LogicalAdapter, d.Logical, &sup, &cur, &def);
                     now = g == 0 ? $" (suporte={sup}, atual={cur})" : $" (leitura {g})";
-                    if (r == 0 && g == 0 && (cur != 0) != enable) r = -1; // o driver aceitou mas nao guardou
+                    if (r == 0 && g == 0 && (cur != 0) != enable) r = -1;
                 }
 
                 log.Add($"tela {d.Logical}: {(r == 0 ? "ok" : r.ToString())}{now}");
@@ -209,8 +182,6 @@ public static unsafe partial class DriverFsrService
             return (false, ex.Message);
         }
     }
-
-    // ------------------------------------------------------------------ Enhanced Sync
 
     private static string? ReadReg(Session s, string key)
     {
@@ -234,10 +205,6 @@ public static unsafe partial class DriverFsrService
         }
     }
 
-    /// <summary>
-    /// Enhanced Sync pelo driver. Mesmo caminho do ADLX: suporte por ADL2_TurboSyncSupport_Get (e a chave UMD\TurboSync_NA),
-    /// estado na chave de texto UMD\TurboSync ("1"/"0").
-    /// </summary>
     public static (bool Supported, bool Enabled, string Message) GetEnhancedSync(int gpuIndex = 0)
     {
         try
@@ -265,7 +232,6 @@ public static unsafe partial class DriverFsrService
             using var s = Open(gpuIndex);
             if (s == null) return (false, UiHelper.L("Err.AtiMissing"));
 
-            // O ADLX grava o texto em ASCII com o tamanho de 1 caractere; o driver relê no inicio do jogo.
             IntPtr sub = Marshal.StringToHGlobalAnsi(SubKey), key = Marshal.StringToHGlobalAnsi("TurboSync");
             IntPtr buf = Marshal.AllocHGlobal(16);
             try
@@ -301,11 +267,75 @@ public static unsafe partial class DriverFsrService
         }
     }
 
-    // ------------------------------------------------------------------ Monitores via ADL
+    public sealed record AdlFreeSync(bool Supported, bool Enabled, double MinHz, double MaxHz);
+
+    public static List<AdlFreeSync> ReadFreeSync(int gpuIndex = 0)
+    {
+        var result = new List<AdlFreeSync>();
+        try
+        {
+            using var s = Open(gpuIndex);
+            if (s == null) return result;
+            IntPtr pCap = Export(s, "ADL2_Display_FreeSync_Cap"), pGet = Export(s, "ADL2_Display_FreeSyncState_Get");
+            if (pCap == IntPtr.Zero) return result;
+
+            foreach (var d in ConnectedDisplays(s, out _))
+            {
+                int* cap = stackalloc int[8];
+                for (int i = 0; i < 8; i++) cap[i] = 0;
+                int crc = ((delegate* unmanaged[Cdecl]<IntPtr, int, int, int*, int>)pCap)(s.Ctx, d.LogicalAdapter, d.Logical, cap);
+                double min = crc == 0 ? cap[1] / 1_000_000.0 : 0, max = crc == 0 ? cap[2] / 1_000_000.0 : 0;
+                bool sup = false, on = false;
+                int cur = 0, def = 0, mn = 0, mx = 0, grc = -1;
+                if (pGet != IntPtr.Zero)
+                {
+                    grc = ((delegate* unmanaged[Cdecl]<IntPtr, int, int, int*, int*, int*, int*, int>)pGet)(s.Ctx, d.LogicalAdapter, d.Logical, &cur, &def, &mn, &mx);
+                    sup = grc == 0;
+                    on = sup && cur != 0;
+                    if (sup && mn > 0 && mx > 0) { min = mn / 1_000_000.0; max = mx / 1_000_000.0; }
+                }
+
+                LogService.Info($"ADL FreeSync display {d.Logical}: cap rc={crc} caps=0x{cap[0]:X} state rc={grc} cur={cur} def={def} min={min:0.#} max={max:0.#}");
+                result.Add(new AdlFreeSync(sup, on, min, max));
+            }
+        }
+        catch (Exception ex)
+        {
+            LogService.Error($"DriverFsrService.ReadFreeSync: {ex.Message}");
+        }
+
+        return result;
+    }
+
+    public static (bool Ok, string Message) SetFreeSync(int ordinal, bool enable, int gpuIndex = 0)
+    {
+        try
+        {
+            using var s = Open(gpuIndex);
+            if (s == null) return (false, UiHelper.L("Err.AtiMissing"));
+            IntPtr pSet = Export(s, "ADL2_Display_FreeSyncState_Set"), pGet = Export(s, "ADL2_Display_FreeSyncState_Get");
+            if (pSet == IntPtr.Zero || pGet == IntPtr.Zero) return (false, UiHelper.L("Err.ExportMissing", "ADL2_Display_FreeSyncState_Set"));
+
+            var displays = ConnectedDisplays(s, out int rc);
+            if (ordinal < 0 || ordinal >= displays.Count) return (false, UiHelper.L("Err.NoDisplay", rc));
+            var d = displays[ordinal];
+
+            int cur = 0, def = 0, mn = 0, mx = 0;
+            ((delegate* unmanaged[Cdecl]<IntPtr, int, int, int*, int*, int*, int*, int>)pGet)(s.Ctx, d.LogicalAdapter, d.Logical, &cur, &def, &mn, &mx);
+            int setting = enable ? 7 : 0;
+            int r = ((delegate* unmanaged[Cdecl]<IntPtr, int, int, int, int, int>)pSet)(s.Ctx, d.LogicalAdapter, d.Logical, setting, 0);
+            int g = ((delegate* unmanaged[Cdecl]<IntPtr, int, int, int*, int*, int*, int*, int>)pGet)(s.Ctx, d.LogicalAdapter, d.Logical, &cur, &def, &mn, &mx);
+            if (r == 0 && g == 0 && (cur != 0) != enable) r = -1;
+            return (r == 0, $"rc={r} state={cur}");
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
 
     public sealed record AdlDisplayEntry(int Logical, string Name, bool ScalingSupported, bool ScalingOn);
 
-    /// <summary>Monitores ligados e mapeados, com o estado da escala da GPU. Usado quando o ADLX nao lista monitores.</summary>
     public static List<AdlDisplayEntry> ListDisplays(int gpuIndex = 0)
     {
         var result = new List<AdlDisplayEntry>();
@@ -347,9 +377,6 @@ public static unsafe partial class DriverFsrService
         return result;
     }
 
-    // ------------------------------------------------------------------ Opcoes de texto do driver (UMD)
-
-    /// <summary>Opcao liga/desliga guardada em UMD\\{key}; a chave {key}_NA = "1" marca como indisponivel.</summary>
     public static (bool Available, bool Enabled) GetUmdFlag(string key, int gpuIndex = 0)
     {
         try

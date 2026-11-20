@@ -50,7 +50,6 @@ public partial class App : Application
     {
         string[] cmd = Environment.GetCommandLineArgs();
 
-        // Marcador de ajuste não confirmado: o último ajuste de risco pode ter travado o PC. Não reaplica nada automaticamente.
         RecoveredFromCrash = File.Exists(AppPaths.PendingFlag);
         if (RecoveredFromCrash) LogService.Warn("Marcador de ajuste pendente encontrado: pulando aplicação automática.");
 
@@ -115,7 +114,6 @@ public partial class App : Application
         Stability.Start();
         Overheat.Start();
 
-        // Atualização pelo próprio GitHub: só avisa, nada é baixado sem o usuário confirmar.
         if (Settings.Current.CheckForUpdates)
         {
             _ = Task.Run(async () => await UpdateService.CheckAsync());
@@ -134,7 +132,6 @@ public partial class App : Application
         t.VramMaxMhz != null || t.VramTiming != null || t.FanCurve is { Count: > 0 } || t.VfStates is { Count: > 0 } ||
         !string.IsNullOrEmpty(t.Preset);
 
-    /// <summary>O driver de vídeo travou e se recuperou: se havia tuning ativo, volta ao padrão de fábrica.</summary>
     private static void OnGpuUnstable(string what)
     {
         try
@@ -144,7 +141,6 @@ public partial class App : Application
             bool hadTuning = HasTuning(CurrentProfile.Tuning);
             if (!hadTuning) return;
 
-            // O ADLX pode ter perdido a sessão no reset do driver: reabre antes de resetar.
             Hardware.Initialize(Settings.Current.Backend, Settings.Current.GpuIndex);
             var r = Hardware.ResetTuningToFactory();
             bool ok = r.Succeeded();
@@ -179,7 +175,6 @@ public partial class App : Application
         else if (!want && Engine.IsRunning) Engine.Stop();
     }
 
-    /// <summary>Aplica um perfil completo (gráficos 3D + tuning + cor).</summary>
     public static ApplyReport ApplyProfile(UtilityProfile p)
     {
         var all = new ApplyReport();
@@ -212,7 +207,6 @@ public partial class App : Application
         return all;
     }
 
-    /// <summary>Captura o estado atual do driver para dentro do perfil atual.</summary>
     public static UtilityProfile CaptureProfile()
     {
         var p = CurrentProfile;
@@ -239,10 +233,6 @@ public partial class App : Application
         }
     }
 
-    /// <summary>
-    /// --launch "game.exe" [args]: aplica o perfil do app, abre o jogo, espera ele fechar, restaura e encerra.
-    /// Sem janela e sem ficar em segundo plano depois do jogo.
-    /// </summary>
     private static void RunLaunchMode(string exePath, string[] gameArgs)
     {
         try
@@ -265,7 +255,6 @@ public partial class App : Application
             using var proc = System.Diagnostics.Process.Start(psi);
             proc?.WaitForExit();
 
-            // Launchers podem encerrar logo e deixar o jogo rodando: espera o processo com o mesmo nome sumir.
             Thread.Sleep(5000);
             int misses = 0;
             while (misses < 5)

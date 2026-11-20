@@ -3,12 +3,6 @@ using System.Text.RegularExpressions;
 
 namespace RedControlUtility.Services;
 
-/// <summary>
-/// Vigia, por evento (sem polling, praticamente zero de CPU/RAM), o log do sistema do Windows por sinais de
-/// instabilidade da GPU: driver de vídeo que parou de responder e foi recuperado (Display 4101) ou erro
-/// crítico do driver AMD. Quando acontece, avisa o app para devolver o padrão de fábrica.
-/// Usa a API nativa wevtapi (EvtSubscribe), então não precisa de nenhum pacote NuGet.
-/// </summary>
 public sealed class StabilityWatchdog : IDisposable
 {
     private const string Query =
@@ -35,10 +29,9 @@ public sealed class StabilityWatchdog : IDisposable
     private static readonly Regex IdRegex = new("<EventID[^>]*>(\\d+)</EventID>", RegexOptions.Compiled);
 
     private IntPtr _handle;
-    private EvtSubscribeCallback? _callback; // mantém o delegate vivo enquanto a inscrição existe
+    private EvtSubscribeCallback? _callback;
     private DateTime _lastRaised = DateTime.MinValue;
 
-    /// <summary>Disparado em thread de fundo com uma descrição curta do evento.</summary>
     public event Action<string>? Unstable;
 
     public bool Running => _handle != IntPtr.Zero;
@@ -48,7 +41,6 @@ public sealed class StabilityWatchdog : IDisposable
         if (_handle != IntPtr.Zero) return;
         try
         {
-            // Só eventos novos, depois do início: um TDR antigo não deve derrubar o ajuste de agora.
             _callback = OnEvent;
             _handle = EvtSubscribe(IntPtr.Zero, IntPtr.Zero, "System", Query, IntPtr.Zero, IntPtr.Zero, _callback, EvtSubscribeToFutureEvents);
             if (_handle == IntPtr.Zero)
@@ -73,7 +65,7 @@ public sealed class StabilityWatchdog : IDisposable
         try
         {
             var now = DateTime.UtcNow;
-            if ((now - _lastRaised).TotalSeconds < 30) return 0; // um TDR gera vários eventos seguidos
+            if ((now - _lastRaised).TotalSeconds < 30) return 0;
             _lastRaised = now;
             Unstable?.Invoke(Describe(hEvent));
         }

@@ -13,7 +13,6 @@ public sealed class LocalizationService
 
     public static string[] Supported { get; } = { "pt-BR", "en-US" };
 
-    /// <summary>Idioma padrão: o do Windows (pt-* => pt-BR; caso contrário en-US).</summary>
     public static string DetectSystemLanguage() =>
         CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("pt", StringComparison.OrdinalIgnoreCase) ? "pt-BR" : "en-US";
 

@@ -17,6 +17,8 @@
                 <StackPanel Spacing="6">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Display.GroupDriver" />
                     <ToggleSwitch x:Name="FreeSyncToggle" rcu:Loc.Header="Display.FreeSync" rcu:Loc.Tip="Display.FreeSyncTip" Toggled="Driver_Changed" />
+                    <TextBlock x:Name="FreeSyncRangeText" Visibility="Collapsed" Opacity="0.7" Margin="0,-4,0,4" />
+                    <ToggleSwitch x:Name="FreeSyncColorToggle" rcu:Loc.Header="Display.FreeSyncColor" rcu:Loc.Tip="Display.FreeSyncColorTip" Toggled="Driver_Changed" />
                     <ToggleSwitch x:Name="VsrToggle" rcu:Loc.Header="Display.Vsr" rcu:Loc.Tip="Display.VsrTip" Toggled="Driver_Changed" />
                     <ToggleSwitch x:Name="GpuScalingToggle" rcu:Loc.Header="Display.GpuScaling" rcu:Loc.Tip="Display.GpuScalingTip" Toggled="Driver_Changed" />
                     <ToggleSwitch x:Name="IntegerScalingToggle" rcu:Loc.Header="Display.IntegerScaling" rcu:Loc.Tip="Display.IntegerScalingTip" Toggled="Driver_Changed" />
