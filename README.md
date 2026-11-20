@@ -309,4 +309,4 @@ Publishing a release is automatic:
 2. The workflow in `.github/workflows/release.yml` publishes a self-contained build (no .NET or Windows App Runtime needed on the PC), builds `RCU-Setup-0.2.0.exe` and a portable zip, and attaches both to the GitHub release.
 3. The app checks `releases/latest` on `Khotyz/RCU`, compares the tag with its own version, and the update button downloads the `RCU-Setup` file and runs it silently, then the app reopens.
 
-To build the installer locally, publish with `dotnet publish -c Release -r win-x64 -p:Platform=x64 -p:SelfContained=true -p:WindowsAppSDKSelfContained=true -o publish` and run `iscc /DAppVersion=0.2.0 installer\RCU.iss` (Inno Setup 6 required). The result goes to `dist\`.
+To build the installer locally, publish with `dotnet publish -c Release -r win-x64 -p:Platform=x64 -p:SelfContained=true -p:WindowsAppSDKSelfContained=true -o publish` and run `iscc /DAppVersion=0.2.2 installer\RCU.iss` (Inno Setup 6 required). The result goes to `dist\`.

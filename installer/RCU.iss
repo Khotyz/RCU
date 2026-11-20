@@ -1,4 +1,20 @@
-
+#ifndef AppName
+  #define AppName "Red Control Utility"
+#endif
+#ifndef AppExe
+  #define AppExe "RedControlUtility.exe"
+#endif
+#ifndef AppVersion
+  #define AppVersion "0.2.2"
+#endif
+#ifndef SourceDir
+  #if DirExists(SourcePath + "..\publish")
+    #define SourceDir "..\publish"
+  #else
+    ; Visual Studio publish folder
+    #define SourceDir "..\RedControlUtility\bin\x64\Release\net8.0-windows10.0.19041.0\publish"
+  #endif
+#endif
 
 [Setup]
 AppId={{7D3C2B61-5E0A-4F7B-9B1D-2A6C4E8F1A93}
