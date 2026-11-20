@@ -69,7 +69,6 @@ jobs:
           Invoke-WebRequest 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_4/innosetup-6.7.4.exe' -OutFile $inno
           $install = Start-Process $inno -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-' -Wait -PassThru
           if ($install.ExitCode -ne 0) { exit $install.ExitCode }
-          & "$env:GITHUB_WORKSPACE\installer\get-redist.ps1"
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DSourceDir=..\publish" installer\RCU.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (!(Test-Path 'dist/RCU-Setup-${{ steps.ver.outputs.version }}.exe')) { throw 'Expected installer not found.' }

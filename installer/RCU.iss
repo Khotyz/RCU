@@ -7,8 +7,6 @@
 #else
   #define PublishPath AddBackslash(AddBackslash(SourcePath) + SourceDir)
 #endif
-#define RedistFile "vc_redist.x64.exe"
-#define RedistPath AddBackslash(SourcePath) + "redist\" + RedistFile
 #define PublishedExe PublishPath + AppExe
 #if !FileExists(PublishedExe)
   #error Publish the Release x64 application before compiling this installer.
@@ -72,11 +70,6 @@ Source: "{#PublishPath}locales\en-US.json"; DestDir: "{app}\locales"; Flags: ign
 Source: "{#PublishPath}locales\pt-BR.json"; DestDir: "{app}\locales"; Flags: ignoreversion
 Source: "{#PublishPath}locales\es-ES.json"; DestDir: "{app}\locales"; Flags: ignoreversion
 Source: "{#PublishPath}locales\zh-CN.json"; DestDir: "{app}\locales"; Flags: ignoreversion
-#if FileExists(RedistPath)
-Source: "{#RedistPath}"; DestDir: "{tmp}"; Flags: deleteafterinstall; Check: NeedsVcRedist
-#else
-  #pragma warning "installer\redist\vc_redist.x64.exe not found: the installer will not include the Visual C++ runtime. Run installer\get-redist.ps1."
-#endif
 #define FindHandle
 #define FindResult
 #sub IncludePublishedFolder
@@ -105,9 +98,6 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
     ValueData: """{app}\{#AppExe}"" --minimized"; Flags: uninsdeletevalue; Tasks: startup
 
 [Run]
-#if FileExists(RedistPath)
-Filename: "{tmp}\{#RedistFile}"; Parameters: "/install /quiet /norestart"; StatusMsg: "Visual C++ Runtime..."; Flags: waituntilterminated; Check: NeedsVcRedist
-#endif
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 Filename: "{app}\{#AppExe}"; Flags: nowait; Check: WizardSilent
 
@@ -123,4 +113,17 @@ var
   Installed: Cardinal;
 begin
   Result := not (RegQueryDWordValue(HKLM64, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64', 'Installed', Installed) and (Installed = 1));
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode: Integer;
+begin
+  Result := '';
+  if not NeedsVcRedist then Exit;
+  try
+    DownloadTemporaryFile('https://aka.ms/vs/17/release/vc_redist.x64.exe', 'vc_redist.x64.exe', '', nil);
+    Exec(ExpandConstant('{tmp}\vc_redist.x64.exe'), '/install /quiet /norestart', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  except
+  end;
 end;
