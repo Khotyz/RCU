@@ -36,8 +36,8 @@ public sealed partial class MainWindow : Window
         };
     }
 
-    private const int MinWidthDip = 900;
-    private const int MinHeightDip = 600;
+    private const int MinWidthDip = 760;
+    private const int MinHeightDip = 500;
     private int _minWidthPx;
     private int _minHeightPx;
 
@@ -84,8 +84,9 @@ public sealed partial class MainWindow : Window
             uint dpi = CurrentDpi();
             ComputeMinSize(dpi);
             var work = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
-            int w = Math.Min(work.Width, Math.Max(_minWidthPx, (int)Math.Round(work.Width * 0.92)));
-            int h = Math.Min(work.Height, Math.Max(_minHeightPx, (int)Math.Round(work.Height * 0.92)));
+            double scale = dpi / 96.0;
+            int w = Math.Min(work.Width, Math.Max(_minWidthPx, (int)Math.Round(1040 * scale)));
+            int h = Math.Min(work.Height, Math.Max(_minHeightPx, (int)Math.Round(700 * scale)));
             _applyingSize = true;
             try
             {

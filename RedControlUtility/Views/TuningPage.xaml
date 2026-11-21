@@ -9,19 +9,19 @@
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <Grid>
         <Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="1000" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-        <StackPanel Spacing="14" HorizontalAlignment="Stretch">
-            <TextBlock Style="{StaticResource TitleTextBlockStyle}" rcu:Loc.Key="Tuning.Title" />
+        <StackPanel Spacing="8" HorizontalAlignment="Stretch">
+            <TextBlock Style="{StaticResource PageTitleStyle}" rcu:Loc.Key="Tuning.Title" />
             <TextBlock x:Name="UnsupportedText" TextWrapping="Wrap" Visibility="Collapsed" rcu:Loc.Key="Tuning.Unsupported" />
 
 
             <Border x:Name="CoreCard" Style="{StaticResource CardStyle}">
-                <StackPanel Spacing="8">
+                <StackPanel Spacing="4">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupCore" />
                     <StackPanel x:Name="MinMaxPanel" Orientation="Horizontal" Spacing="12">
                         <NumberBox x:Name="GpuMinBox" Width="170" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.GpuMin" rcu:Loc.Tip="Tuning.GpuMinTip" ValueChanged="Field_NumberChanged" />
                         <NumberBox x:Name="GpuMaxBox" Width="170" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.GpuMax" rcu:Loc.Tip="Tuning.GpuMaxTip" ValueChanged="Field_NumberChanged" />
                     </StackPanel>
-                    <Grid x:Name="VoltagePanel" ColumnSpacing="16">
+                    <Grid x:Name="VoltagePanel" ColumnSpacing="10">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Tuning.Voltage" rcu:Loc.Tip="Tuning.VoltageTip" />
                         <Slider x:Name="VoltageSlider" rcu:Loc.Tip="Tuning.VoltageTip" Grid.Column="1" ValueChanged="Voltage_Changed" />
@@ -35,7 +35,7 @@
                         <Button Tag="0" Click="Offset_Click" rcu:Loc.Key="Tuning.OffsetReset" />
                     </StackPanel>
                     <ToggleSwitch x:Name="KeepMinToggle" rcu:Loc.Header="Tuning.KeepMin" rcu:Loc.Tip="Tuning.KeepMinTip" Toggled="KeepMin_Toggled" />
-                    <Grid x:Name="PowerPanel" ColumnSpacing="16">
+                    <Grid x:Name="PowerPanel" ColumnSpacing="10">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Tuning.PowerLimit" rcu:Loc.Tip="Tuning.PowerLimitTip" />
                         <Slider x:Name="PowerSlider" rcu:Loc.Tip="Tuning.PowerLimitTip" Grid.Column="1" ValueChanged="Power_Changed" />
@@ -48,7 +48,7 @@
             </Border>
 
             <Border x:Name="StatesCard" Style="{StaticResource CardStyle}" Visibility="Collapsed">
-                <StackPanel Spacing="8">
+                <StackPanel Spacing="4">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupStates" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Tuning.UniformOffset" rcu:Loc.Tip="Tuning.UniformOffsetTip" />
@@ -63,7 +63,7 @@
             </Border>
 
             <Border x:Name="VramCard" Style="{StaticResource CardStyle}">
-                <StackPanel Spacing="8">
+                <StackPanel Spacing="4">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupVram" />
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <NumberBox x:Name="VramBox" Width="190" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.VramClock" rcu:Loc.Tip="Tuning.VramClockTip" ValueChanged="Field_NumberChanged" />
@@ -73,7 +73,7 @@
             </Border>
 
             <Border x:Name="FanCard" Style="{StaticResource CardStyle}">
-                <StackPanel Spacing="8">
+                <StackPanel Spacing="4">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupFan" />
                     <TextBlock x:Name="FanUnsupportedText" Visibility="Collapsed" TextWrapping="Wrap" Opacity="0.7" rcu:Loc.Key="Tuning.FanUnsupported" />
                     <ComboBox x:Name="FanPresetCombo" Width="300" rcu:Loc.Header="Tuning.FanPreset" rcu:Loc.Tip="Tuning.FanPresetTip" SelectionChanged="FanPreset_Changed" />

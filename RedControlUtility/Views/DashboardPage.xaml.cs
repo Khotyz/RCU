@@ -174,7 +174,11 @@ public sealed partial class DashboardPage : Page
             if (key == "Balanced")
             {
                 var r = await Task.Run(() => hw.ResetTuningToFactory());
-                if (r.Succeeded()) Show(StatusBar, InfoBarSeverity.Success, L("Tuning.FactoryDone"));
+                if (r.Succeeded())
+                {
+                    TuningPersistenceService.Forget();
+                    Show(StatusBar, InfoBarSeverity.Success, L("Tuning.FactoryDone"));
+                }
                 else Show(StatusBar, InfoBarSeverity.Error, L("Msg.ApplyFailed"), r.Describe());
                 return;
             }

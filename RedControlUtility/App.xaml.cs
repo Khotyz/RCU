@@ -17,6 +17,7 @@ public partial class App : Application
     public static AppProfileEngine Engine { get; private set; } = null!;
     public static StabilityWatchdog Stability { get; } = new();
     public static DisplayPersistenceService DisplayPersistence { get; } = new();
+    public static TuningPersistenceService TuningPersistence { get; } = new();
     public static OverheatMonitor Overheat { get; } = new();
     public static UtilityProfile CurrentProfile { get; set; } = new();
     public static Window? MainWindowInstance { get; private set; }
@@ -86,6 +87,7 @@ public partial class App : Application
             {
                 Stability.Stop();
                 DisplayPersistence.Stop();
+                TuningPersistence.Stop();
                 Overheat.Stop();
                 Engine.Stop();
                 Sensors.Stop();
@@ -112,7 +114,6 @@ public partial class App : Application
         }
 
         RestartEngine();
-        if (Settings.Current.GlobalFrtc && Hardware.AdlxAvailable) Hardware.ApplyGlobalFrtc(true, Settings.Current.GlobalFrtcFps);
         Stability.Unstable += OnGpuUnstable;
         Stability.Start();
         Overheat.Start();
@@ -122,15 +123,17 @@ public partial class App : Application
             _ = Task.Run(async () => await UpdateService.CheckAsync());
         }
 
-        if (Settings.Current.ApplyProfileOnStartup && !RecoveredFromCrash)
+        if (!RecoveredFromCrash)
         {
             var profile = CurrentProfile;
+            await Task.Run(() => { if (Hardware.Caps.Tuning.AnyTuning) Hardware.ReadTuning(); });
             var report = await Task.Run(() => ApplyProfile(profile));
             LogService.Info($"Aplicar ao iniciar: {report.Summary}");
         }
 
         _ = Task.Run(() => DisplayPersistence.Reapply(true));
         DisplayPersistence.Start();
+        TuningPersistence.Start();
     }
 
     private static void OnGpuUnstable(string what)

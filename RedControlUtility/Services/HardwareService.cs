@@ -328,13 +328,6 @@ public sealed class HardwareService : IDisposable
         report.Add(name, r.Ok ? AdlxResult.Ok : AdlxResult.Fail);
     }
 
-    public (bool Ok, string Message) ApplyGlobalFrtc(bool enable, int fps)
-    {
-        var r = Adl.DriverFsrService.SetFrtc(enable, fps, CurrentGpu.Index);
-        LogService.Info($"FRTC global: {(r.Ok ? "ok" : "falhou")} - {r.Message}");
-        return r;
-    }
-
     public AdlxResult ResetDriverShaderCache() => _session?.ResetShaderCache() ?? AdlxResult.Unavailable;
 
     public AdlxResult SetSam(bool enabled)

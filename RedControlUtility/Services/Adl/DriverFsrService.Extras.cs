@@ -6,62 +6,6 @@ public static unsafe partial class DriverFsrService
 {
     private static IntPtr Export(Session s, string name) => NativeLibrary.TryGetExport(s.Module, name, out IntPtr p) ? p : IntPtr.Zero;
 
-    public static (bool Ok, string Message) SetFrtc(bool enable, int fps, int gpuIndex = 0)
-    {
-        try
-        {
-            using var s = Open(gpuIndex);
-            if (s == null) return (false, UiHelper.L("Err.AtiMissing"));
-            IntPtr pSet = Export(s, "ADL2_FPS_Settings_Set"), pGet = Export(s, "ADL2_FPS_Settings_Get"),
-                   pCaps = Export(s, "ADL2_FPS_Caps");
-            if (pSet == IntPtr.Zero) return (false, UiHelper.L("Err.ExportMissing", "ADL2_FPS_Settings_Set"));
-
-            if (pCaps != IntPtr.Zero)
-            {
-                int supported = 0, version = 0;
-                int crc = ((delegate* unmanaged[Cdecl]<IntPtr, int, int*, int*, int>)pCaps)(s.Ctx, s.Adapter, &supported, &version);
-                if (crc != 0 || supported == 0)
-                {
-                    return (false, UiHelper.L("Err.NoGlobalFps", crc, supported));
-                }
-            }
-
-            int value = enable ? Math.Max(1, fps) : 0;
-
-            int* inp = stackalloc int[10];
-            for (int i = 0; i < 10; i++) inp[i] = 0;
-            inp[0] = 40;
-            inp[1] = 1;
-            inp[2] = value;
-            inp[3] = value;
-            int rc = ((delegate* unmanaged[Cdecl]<IntPtr, int, int*, int>)pSet)(s.Ctx, s.Adapter, inp);
-            if (rc != 0) return (false, $"ADL2_FPS_Settings_Set => {rc}");
-
-            string back = "";
-            if (pGet != IntPtr.Zero)
-            {
-                int* o = stackalloc int[10];
-                for (int i = 0; i < 10; i++) o[i] = 0;
-                o[0] = 36;
-                int g = ((delegate* unmanaged[Cdecl]<IntPtr, int, int*, int>)pGet)(s.Ctx, s.Adapter, o);
-                if (g == 0)
-                {
-                    back = $" | lido: [{string.Join(", ", Enumerable.Range(0, 9).Select(i => o[i]))}]";
-                }
-                else
-                {
-                    back = $" | leitura => {g}";
-                }
-            }
-
-            return (true, $"FRTC {(enable ? fps + " fps" : UiHelper.L("Common.Off"))} ({s.Name}){back}");
-        }
-        catch (Exception ex)
-        {
-            return (false, ex.Message);
-        }
-    }
-
     private const int DisplayInfoSize = 552;
     private const int DisplayInfoMaskOffset = 544, DisplayInfoValueOffset = 548;
     private const int ConnectedAndMapped = 0x3;

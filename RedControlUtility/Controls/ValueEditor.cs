@@ -6,9 +6,10 @@ namespace RedControlUtility.Controls;
 
 public sealed class ValueEditor : UserControl
 {
-    private readonly Slider _slider = new() { MinWidth = 140, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Center };
-    private readonly TextBlock _label = new() { MinWidth = 78, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeights.SemiBold };
-    private readonly VariableSizedWrapGrid _chips = new() { Orientation = Orientation.Horizontal, ItemWidth = 62, ItemHeight = 34, HorizontalAlignment = HorizontalAlignment.Left };
+    private readonly Slider _slider = new() { MinWidth = 120, MaxWidth = 240, Width = 200, VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock _label = new() { MinWidth = 64, VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeights.SemiBold };
+    private readonly Button _presets = new() { Width = 28, Height = 28, Padding = new Thickness(0), VerticalAlignment = VerticalAlignment.Center, Visibility = Visibility.Collapsed, Content = new FontIcon { Glyph = "\uE70D", FontSize = 10 } };
+    private readonly MenuFlyout _menu = new();
     private string _unit = "";
     private int _suppressDepth;
 
@@ -18,19 +19,11 @@ public sealed class ValueEditor : UserControl
 
     public ValueEditor()
     {
-        var row = new Grid { ColumnSpacing = 12, RowSpacing = 4, HorizontalAlignment = HorizontalAlignment.Stretch };
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MaxWidth = 260 });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         row.Children.Add(_slider);
-        Grid.SetColumn(_label, 1);
         row.Children.Add(_label);
-        Grid.SetRow(_chips, 1);
-        Grid.SetColumnSpan(_chips, 3);
-        row.Children.Add(_chips);
-        HorizontalContentAlignment = HorizontalAlignment.Stretch;
+        row.Children.Add(_presets);
+        _presets.Flyout = _menu;
         Content = row;
         _slider.ValueChanged += (_, _) =>
         {
@@ -59,16 +52,19 @@ public sealed class ValueEditor : UserControl
             _suppressDepth--;
         }
 
-        _chips.Children.Clear();
+        _menu.Items.Clear();
         if (presets != null)
         {
             foreach (int p in presets.Where(p => p >= min && p <= max))
             {
-                var b = new Button { Content = Format?.Invoke(p) ?? p.ToString(), Padding = new Thickness(8, 3, 8, 3), MinWidth = 0, FontSize = 12, Tag = p, Margin = new Thickness(0, 0, 4, 0) };
-                b.Click += (_, _) => _slider.Value = p;
-                _chips.Children.Add(b);
+                var item = new MenuFlyoutItem { Text = Format?.Invoke(p) ?? $"{p} {_unit}".Trim() };
+                int value = p;
+                item.Click += (_, _) => _slider.Value = value;
+                _menu.Items.Add(item);
             }
         }
+
+        _presets.Visibility = _menu.Items.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         UpdateLabel();
     }

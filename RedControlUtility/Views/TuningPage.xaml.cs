@@ -636,6 +636,7 @@ public sealed partial class TuningPage : Page
             if (skipConfirm)
             {
                 report = await Task.Run(() => App.Hardware.ApplyTuning(settings));
+                if (report.AnyOk) TuningPersistenceService.Remember(settings);
             }
             else
             {
@@ -676,7 +677,11 @@ public sealed partial class TuningPage : Page
         if (r != ContentDialogResult.Primary) return;
 
         var res = await Task.Run(() => App.Hardware.ResetTuningToFactory());
-        if (res.Succeeded()) Show(StatusBar, InfoBarSeverity.Success, L("Tuning.FactoryDone"));
+        if (res.Succeeded())
+        {
+            TuningPersistenceService.Forget();
+            Show(StatusBar, InfoBarSeverity.Success, L("Tuning.FactoryDone"));
+        }
         else Show(StatusBar, InfoBarSeverity.Error, L("Msg.ApplyFailed"), res.Describe());
         LoadAll();
     }

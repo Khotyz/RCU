@@ -9,7 +9,7 @@
     </Window.SystemBackdrop>
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="32" />
+            <RowDefinition Height="30" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <Grid x:Name="AppTitleBar" Grid.Row="0" Padding="16,0" Background="Transparent">
@@ -27,6 +27,8 @@
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="False"
             PaneDisplayMode="Left"
+            OpenPaneLength="190"
+            CompactPaneLength="44"
             SelectionChanged="NavView_SelectionChanged">
             <NavigationView.MenuItems>
                 <NavigationViewItem x:Name="NavDashboardItem" Icon="Home" Tag="Dashboard" rcu:Loc.Key="Nav.Dashboard" />
@@ -40,7 +42,7 @@
                 <NavigationViewItem x:Name="NavProfilesItem" Icon="Save" Tag="Profiles" rcu:Loc.Key="Nav.Profiles" />
                 <NavigationViewItem Icon="Setting" Tag="Settings" rcu:Loc.Key="Nav.Settings" />
             </NavigationView.MenuItems>
-            <Frame x:Name="ContentFrame" Padding="24,32,24,24" />
+            <Frame x:Name="ContentFrame" Padding="16,8,12,10" />
         </NavigationView>
         <InfoBar x:Name="UpdateBar" Grid.Row="1" IsOpen="False" IsClosable="True" Severity="Informational"
                  VerticalAlignment="Bottom" HorizontalAlignment="Center" MaxWidth="720" Margin="16,0,16,12">

@@ -8,13 +8,13 @@
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <Grid>
         <Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="1100" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-        <StackPanel Spacing="16" HorizontalAlignment="Stretch">
-            <TextBlock Style="{StaticResource TitleTextBlockStyle}" rcu:Loc.Key="Dashboard.Title" />
+        <StackPanel Spacing="8" HorizontalAlignment="Stretch">
+            <TextBlock Style="{StaticResource PageTitleStyle}" rcu:Loc.Key="Dashboard.Title" />
 
 
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="10">
-                    <TextBlock x:Name="GpuNameText" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock x:Name="GpuNameText" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
                     <TextBlock x:Name="GpuArchText" Foreground="{ThemeResource SystemAccentColorLight1}" FontSize="15" />
                     <Grid x:Name="InfoGrid" ColumnSpacing="24" RowSpacing="4">
                         <Grid.ColumnDefinitions>
@@ -26,7 +26,7 @@
             </Border>
 
             <Border x:Name="PresetCard" Style="{StaticResource CardStyle}">
-                <StackPanel Spacing="8">
+                <StackPanel Spacing="4">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Presets.Title" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Button Tag="SafeUndervolt" Click="Preset_Click" rcu:Loc.Key="Presets.SafeUndervolt" />
@@ -41,11 +41,11 @@
             <GridView x:Name="TilesView" SelectionMode="None" IsItemClickEnabled="False">
                 <GridView.ItemTemplate>
                     <DataTemplate x:DataType="models:StatTile">
-                        <Border Style="{StaticResource CardStyle}" Width="200" Padding="12" ToolTipService.ToolTip="{x:Bind Tip, Mode=OneWay}">
+                        <Border Style="{StaticResource CardStyle}" Width="168" Padding="10,8" ToolTipService.ToolTip="{x:Bind Tip, Mode=OneWay}">
                             <StackPanel Spacing="4">
                                 <TextBlock Text="{x:Bind Title, Mode=OneWay}" Opacity="0.7" FontSize="12" />
                                 <StackPanel Orientation="Horizontal" Spacing="4">
-                                    <TextBlock Text="{x:Bind Value, Mode=OneWay}" FontSize="26" FontWeight="SemiBold" />
+                                    <TextBlock Text="{x:Bind Value, Mode=OneWay}" FontSize="22" FontWeight="SemiBold" />
                                     <TextBlock Text="{x:Bind Unit}" VerticalAlignment="Bottom" Opacity="0.7" Margin="0,0,0,4" />
                                 </StackPanel>
                                 <ProgressBar Value="{x:Bind Fraction, Mode=OneWay}" Maximum="100" />

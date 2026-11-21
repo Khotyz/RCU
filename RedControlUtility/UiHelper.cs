@@ -129,6 +129,7 @@ public static class UiHelper
         }
 
         try { File.Delete(AppPaths.PendingFlag); } catch { }
+        if (kept && report.AnyOk) TuningPersistenceService.Remember(settings);
         return (report, kept);
     }
 

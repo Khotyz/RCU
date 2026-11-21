@@ -78,7 +78,7 @@ public sealed class DisplayPersistenceService : IDisposable
         Reapply(true);
         try
         {
-            if (App.Settings.Current.ApplyProfileOnStartup && !App.RecoveredFromCrash)
+            if (!App.RecoveredFromCrash)
             {
                 var r = App.ApplyProfile(App.CurrentProfile);
                 LogService.Info($"Resume profile: {r.Summary}");

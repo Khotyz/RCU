@@ -13,7 +13,6 @@ public sealed partial class AppsPage : Page
     private bool _loading = true;
     private AppProfile? _app;
     private Debouncer? _saveDebounce;
-    private Debouncer? _frtcDebounce;
 
     private static List<AppProfile> Apps => App.CurrentProfile.Apps;
     private static AppProfile GlobalApp => App.CurrentProfile.GlobalGame;
@@ -22,7 +21,7 @@ public sealed partial class AppsPage : Page
     public AppsPage()
     {
         InitializeComponent();
-        foreach (var ed in new[] { FrtcEditor, GlobalFrtcEditor, ChillMinEditor, ChillMaxEditor, RisEditor, RsrEditor, BoostEditor, PowerEditor })
+        foreach (var ed in new[] { FrtcEditor, ChillMinEditor, ChillMaxEditor, RisEditor, RsrEditor, BoostEditor, PowerEditor })
             ed.ValueChanged += Changed;
     }
 
@@ -30,7 +29,6 @@ public sealed partial class AppsPage : Page
     {
         base.OnNavigatedTo(e);
         _saveDebounce = new Debouncer(DispatcherQueue, 400, SaveNow);
-        _frtcDebounce = new Debouncer(DispatcherQueue, 500, ApplyGlobalFrtc);
         App.Localization.LanguageChanged += Rebuild;
         App.Engine.ActiveChanged += OnActiveChanged;
         Rebuild();
@@ -40,7 +38,6 @@ public sealed partial class AppsPage : Page
     {
         base.OnNavigatedFrom(e);
         _saveDebounce?.Cancel();
-        _frtcDebounce?.Cancel();
         SaveNow();
         App.Localization.LanguageChanged -= Rebuild;
         App.Engine.ActiveChanged -= OnActiveChanged;
@@ -178,7 +175,6 @@ public sealed partial class AppsPage : Page
     {
         var c = App.Hardware.Caps.Graphics;
         var t = App.Hardware.Caps.Tuning;
-        GlobalFrtcEditor.Configure(c.FrtcRange.IsValid ? c.FrtcRange.Min : 30, c.FrtcRange.IsValid ? c.FrtcRange.Max : 360, 1, "fps", new[] { 30, 60, 75, 90, 120, 144, 165, 240 });
         FrtcEditor.Format = null;
         FrtcEditor.Configure(c.FrtcRange.IsValid ? c.FrtcRange.Min : 30, c.FrtcRange.IsValid ? c.FrtcRange.Max : 300, 1, "fps", new[] { 30, 60, 75, 90, 120, 144, 165, 240 });
         int cMin = c.ChillRange.IsValid ? c.ChillRange.Min : 30, cMax = c.ChillRange.IsValid ? c.ChillRange.Max : 300;
@@ -240,10 +236,6 @@ public sealed partial class AppsPage : Page
             GlobalHeader.Visibility = isGlobal ? Visibility.Visible : Visibility.Collapsed;
             UseGlobalCheck.Visibility = isGlobal ? Visibility.Collapsed : Visibility.Visible;
             UseGlobalCheck.IsChecked = a.UseGlobal;
-            GlobalFrtcPanel.Visibility = isGlobal && App.Hardware.AdlxAvailable ? Visibility.Visible : Visibility.Collapsed;
-            GlobalFrtcToggle.IsOn = App.Settings.Current.GlobalFrtc;
-            GlobalFrtcEditor.SetValue(App.Settings.Current.GlobalFrtcFps);
-            GlobalFrtcEditor.IsEnabled = GlobalFrtcToggle.IsOn;
             RemoveButton.IsEnabled = !isGlobal && Apps.Count > 0;
             SettingsHost.IsEnabled = isGlobal || !a.UseGlobal;
             SettingsHost.Opacity = SettingsHost.IsEnabled ? 1 : 0.45;
@@ -371,24 +363,6 @@ public sealed partial class AppsPage : Page
     }
 
     private void Field_Toggled(object sender, RoutedEventArgs e) => Changed();
-
-    private void GlobalFrtc_Changed(object sender, RoutedEventArgs e)
-    {
-        if (_loading) return;
-        GlobalFrtcEditor.IsEnabled = GlobalFrtcToggle.IsOn;
-        App.Settings.Current.GlobalFrtc = GlobalFrtcToggle.IsOn;
-        App.Settings.Current.GlobalFrtcFps = GlobalFrtcEditor.Value;
-        _frtcDebounce?.Trigger();
-    }
-
-    private void ApplyGlobalFrtc()
-    {
-        bool on = App.Settings.Current.GlobalFrtc;
-        int fps = App.Settings.Current.GlobalFrtcFps;
-        App.Settings.Save();
-        var r = App.Hardware.ApplyGlobalFrtc(on, fps);
-        Show(StatusBar, r.Ok ? InfoBarSeverity.Success : InfoBarSeverity.Warning, L(r.Ok ? (on ? "Tuning.FrtcOn" : "Tuning.FrtcOff") : "Tuning.FrtcFailed", fps), r.Ok ? "" : r.Message);
-    }
 
     private void UseGlobal_Changed(object sender, RoutedEventArgs e)
     {

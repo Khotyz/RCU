@@ -18,17 +18,14 @@ public sealed class AppSettings
     public bool AdvancedMode { get; set; }
     public bool AutoRevertTuning { get; set; } = true;
 
-    public bool GlobalFrtc { get; set; }
     public bool MinimizeToTray { get; set; }
 
     public bool OverheatWarn { get; set; }
     public int OverheatTempC { get; set; } = 80;
     public bool OverheatAlwaysOn { get; set; }
     public int OverheatSeconds { get; set; } = 10;
-    public int GlobalFrtcFps { get; set; } = 60;
 
     public bool AutoResetOnInstability { get; set; } = true;
-    public bool ApplyProfileOnStartup { get; set; } = true;
     public bool PerAppProfilesEnabled { get; set; } = true;
     public bool NotifyOnProfile { get; set; } = true;
 

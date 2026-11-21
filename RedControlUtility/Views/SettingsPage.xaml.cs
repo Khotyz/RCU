@@ -58,7 +58,6 @@ public sealed partial class SettingsPage : Page
             AdvancedToggle.IsOn = S.AdvancedMode;
             AutoRevertToggle.IsOn = S.AutoRevertTuning;
             LiveUndervoltToggle.IsOn = S.LiveApplyUndervolt;
-            ApplyOnStartupToggle.IsOn = S.ApplyProfileOnStartup;
             MinimizeToTrayToggle.IsOn = S.MinimizeToTray;
             PerAppToggle.IsOn = S.PerAppProfilesEnabled;
             AutoResetToggle.IsOn = S.AutoResetOnInstability;
@@ -176,7 +175,6 @@ public sealed partial class SettingsPage : Page
         S.AdvancedMode = AdvancedToggle.IsOn;
         S.AutoRevertTuning = AutoRevertToggle.IsOn;
         S.LiveApplyUndervolt = LiveUndervoltToggle.IsOn;
-        S.ApplyProfileOnStartup = ApplyOnStartupToggle.IsOn;
         S.MinimizeToTray = MinimizeToTrayToggle.IsOn;
         S.PerAppProfilesEnabled = PerAppToggle.IsOn;
         S.AutoResetOnInstability = AutoResetToggle.IsOn;

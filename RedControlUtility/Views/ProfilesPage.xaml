@@ -7,8 +7,8 @@
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <Grid>
         <Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="900" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-        <StackPanel Spacing="14" HorizontalAlignment="Stretch">
-            <TextBlock Style="{StaticResource TitleTextBlockStyle}" rcu:Loc.Key="Profiles.Title" />
+        <StackPanel Spacing="8" HorizontalAlignment="Stretch">
+            <TextBlock Style="{StaticResource PageTitleStyle}" rcu:Loc.Key="Profiles.Title" />
 
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="10">

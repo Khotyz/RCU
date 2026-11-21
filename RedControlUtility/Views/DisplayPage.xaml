@@ -8,8 +8,8 @@
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <Grid>
         <Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="1000" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-        <StackPanel Spacing="14" HorizontalAlignment="Stretch">
-            <TextBlock Style="{StaticResource TitleTextBlockStyle}" rcu:Loc.Key="Display.Title" />
+        <StackPanel Spacing="8" HorizontalAlignment="Stretch">
+            <TextBlock Style="{StaticResource PageTitleStyle}" rcu:Loc.Key="Display.Title" />
 
             <ComboBox x:Name="DisplayCombo" Width="460" rcu:Loc.Header="Display.Select" rcu:Loc.Tip="Display.SelectTip" SelectionChanged="DisplayCombo_SelectionChanged" />
 
@@ -30,32 +30,32 @@
                 <StackPanel Spacing="6">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Display.GroupColor" />
                     <ComboBox x:Name="DriverPresetCombo" Width="300" rcu:Loc.Header="Display.DriverPreset" rcu:Loc.Tip="Display.DriverPresetTip" SelectionChanged="DriverPreset_Changed" />
-                    <Grid ColumnSpacing="16">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Display.Hue" rcu:Loc.Tip="Display.HueTip" />
                         <Slider x:Name="HueSlider" Grid.Column="1" ValueChanged="Driver_Slider" />
                         <TextBlock x:Name="HueValue" Grid.Column="2" VerticalAlignment="Center" />
                     </Grid>
-                    <Grid ColumnSpacing="16">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Display.Saturation" rcu:Loc.Tip="Display.SaturationTip" />
                         <Slider x:Name="SatSlider" Grid.Column="1" ValueChanged="Driver_Slider" />
                         <TextBlock x:Name="SatValue" Grid.Column="2" VerticalAlignment="Center" />
                     </Grid>
-                    <Grid ColumnSpacing="16">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Display.Brightness" rcu:Loc.Tip="Display.BrightnessTip" />
                         <Slider x:Name="BriSlider" Grid.Column="1" ValueChanged="Driver_Slider" />
                         <TextBlock x:Name="BriValue" Grid.Column="2" VerticalAlignment="Center" />
                     </Grid>
-                    <Grid ColumnSpacing="16">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Display.Contrast" rcu:Loc.Tip="Display.ContrastTip" />
                         <Slider x:Name="ConSlider" Grid.Column="1" ValueChanged="Driver_Slider" />
                         <TextBlock x:Name="ConValue" Grid.Column="2" VerticalAlignment="Center" />
                     </Grid>
-                    <Grid ColumnSpacing="16">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Display.Temperature" rcu:Loc.Tip="Display.TemperatureTip" />
                         <Slider x:Name="TempSlider" Grid.Column="1" ValueChanged="Driver_Slider" />
                         <TextBlock x:Name="TempValue" Grid.Column="2" VerticalAlignment="Center" />
@@ -68,26 +68,26 @@
                 <StackPanel Spacing="6">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Display.GroupGamma" />
                     <ComboBox x:Name="ColorProfileCombo" Width="300" rcu:Loc.Header="Display.ColorProfile" rcu:Loc.Tip="Display.ColorProfileTip" SelectionChanged="ColorProfile_SelectionChanged" />
-                    <Grid ColumnSpacing="16">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Display.Gamma" rcu:Loc.Tip="Display.GammaTip" />
                         <Slider x:Name="GammaSlider" Grid.Column="1" ValueChanged="Gamma_Slider" />
                         <TextBlock x:Name="GammaValue" Grid.Column="2" VerticalAlignment="Center" />
                     </Grid>
-                    <Grid ColumnSpacing="16">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Display.Red" rcu:Loc.Tip="Display.RedTip" />
                         <Slider x:Name="RedSlider" Grid.Column="1" ValueChanged="Gamma_Slider" />
                         <TextBlock x:Name="RedValue" Grid.Column="2" VerticalAlignment="Center" />
                     </Grid>
-                    <Grid ColumnSpacing="16">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Display.Green" rcu:Loc.Tip="Display.GreenTip" />
                         <Slider x:Name="GreenSlider" Grid.Column="1" ValueChanged="Gamma_Slider" />
                         <TextBlock x:Name="GreenValue" Grid.Column="2" VerticalAlignment="Center" />
                     </Grid>
-                    <Grid ColumnSpacing="16">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /><ColumnDefinition Width="70" /></Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center" rcu:Loc.Key="Display.Blue" rcu:Loc.Tip="Display.BlueTip" />
                         <Slider x:Name="BlueSlider" Grid.Column="1" ValueChanged="Gamma_Slider" />
                         <TextBlock x:Name="BlueValue" Grid.Column="2" VerticalAlignment="Center" />
