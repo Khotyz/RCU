@@ -59,8 +59,8 @@ public sealed partial class SettingsPage : Page
             AutoRevertToggle.IsOn = S.AutoRevertTuning;
             LiveUndervoltToggle.IsOn = S.LiveApplyUndervolt;
             ApplyOnStartupToggle.IsOn = S.ApplyProfileOnStartup;
+            MinimizeToTrayToggle.IsOn = S.MinimizeToTray;
             PerAppToggle.IsOn = S.PerAppProfilesEnabled;
-            RestoreToggle.IsOn = S.RestoreOnAppExit;
             AutoResetToggle.IsOn = S.AutoResetOnInstability;
             OverheatToggle.IsOn = S.OverheatWarn;
             OverheatSlider.Value = Math.Clamp(S.OverheatTempC, 50, 110);
@@ -177,8 +177,8 @@ public sealed partial class SettingsPage : Page
         S.AutoRevertTuning = AutoRevertToggle.IsOn;
         S.LiveApplyUndervolt = LiveUndervoltToggle.IsOn;
         S.ApplyProfileOnStartup = ApplyOnStartupToggle.IsOn;
+        S.MinimizeToTray = MinimizeToTrayToggle.IsOn;
         S.PerAppProfilesEnabled = PerAppToggle.IsOn;
-        S.RestoreOnAppExit = RestoreToggle.IsOn;
         S.AutoResetOnInstability = AutoResetToggle.IsOn;
         S.OverheatWarn = OverheatToggle.IsOn;
         S.OverheatAlwaysOn = OverheatAlwaysToggle.IsOn;

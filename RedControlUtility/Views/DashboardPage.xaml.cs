@@ -103,7 +103,6 @@ public sealed partial class DashboardPage : Page
 
         PresetCard.Visibility = hw.Caps.Tuning.AnyTuning ? Visibility.Visible : Visibility.Collapsed;
         foreach (var t in _all) { t.Title = L(t.TitleKey); t.Tip = L(t.TipKey); }
-        DiagBox.Text = hw.BuildDiagnostics();
         UpdateActive();
     }
 
@@ -199,23 +198,4 @@ public sealed partial class DashboardPage : Page
         }
     }
 
-    private void CopyDiag_Click(object sender, RoutedEventArgs e)
-    {
-        var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
-        dp.SetText(App.Hardware.BuildDiagnostics());
-        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
-        Show(StatusBar, InfoBarSeverity.Success, L("Dashboard.DiagCopied"));
-    }
-
-    private void OpenLogs_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo { FileName = AppPaths.LogDir, UseShellExecute = true });
-        }
-        catch (Exception ex)
-        {
-            LogService.Error($"Abrir logs: {ex.Message}");
-        }
-    }
 }

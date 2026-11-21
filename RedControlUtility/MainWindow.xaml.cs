@@ -158,7 +158,13 @@ public sealed partial class MainWindow : Window
             IntPtr hIcon = TrayService.LoadIcon(iconPath);
             _tray.Initialize(hwnd, hIcon, "Red Control Utility");
             _tray.OpenRequested += RestoreFromTray;
-            _tray.Minimized += () => DispatcherQueue.TryEnqueue(HideToTray);
+            _tray.Minimized += () => DispatcherQueue.TryEnqueue(() => { if (App.Settings.Current.MinimizeToTray) HideToTray(); });
+            AppWindow.Closing += (_, e) =>
+            {
+                if (_exiting || !App.Settings.Current.MinimizeToTray) return;
+                e.Cancel = true;
+                HideToTray();
+            };
             _tray.ExitRequested += () =>
             {
                 _exiting = true;
@@ -205,6 +211,8 @@ public sealed partial class MainWindow : Window
         Activate();
         if (ContentFrame.Content is DashboardPage && !App.Sensors.Running) App.Sensors.Start(App.Settings.Current.SensorIntervalMs);
     }
+
+    public void HideAtStartup() => DispatcherQueue.TryEnqueue(HideToTray);
 
     private void HideToTray()
     {

@@ -8,7 +8,7 @@ public sealed class AppProfileEngine : IDisposable
 {
     private readonly HardwareService _hardware;
     private readonly Func<IEnumerable<AppProfile>> _profiles;
-    private readonly Func<bool> _restoreOnExit;
+    private readonly Func<AppProfile>? _global;
     private Timer? _timer;
     private readonly object _lock = new();
     private bool _busy;
@@ -24,11 +24,11 @@ public sealed class AppProfileEngine : IDisposable
 
     public event Action<AppProfile?>? ActiveChanged;
 
-    public AppProfileEngine(HardwareService hardware, Func<IEnumerable<AppProfile>> profiles, Func<bool> restoreOnExit)
+    public AppProfileEngine(HardwareService hardware, Func<IEnumerable<AppProfile>> profiles, Func<AppProfile>? global = null)
     {
+        _global = global;
         _hardware = hardware;
         _profiles = profiles;
-        _restoreOnExit = restoreOnExit;
     }
 
     public bool IsRunning => _timer != null;
@@ -95,7 +95,8 @@ public sealed class AppProfileEngine : IDisposable
     {
         LogService.Info($"Perfil por app: ativando '{profile.Name}' ({profile.ExeName})");
 
-        var gfx = profile.Graphics;
+        var src = profile.UseGlobal && _global != null ? _global() : profile;
+        var gfx = src.Graphics;
 
         _restoreFsr = null;
         if (gfx.Fsr != null)
@@ -132,15 +133,11 @@ public sealed class AppProfileEngine : IDisposable
             LogService.Info($"Perfil '{profile.Name}': nenhuma opção de gráficos configurada.");
         }
 
-        if ((profile.PowerLimitPercent != null || !string.IsNullOrEmpty(profile.TuningPreset)) && _hardware.Caps.Tuning.AnyTuning)
+        if (src.PowerLimitPercent != null && _hardware.Caps.Tuning.AnyTuning)
         {
             var cur = _hardware.ReadTuning();
-            _restoreTuning = new TuningSettings
-            {
-                PowerLimitPercent = profile.PowerLimitPercent != null ? cur.PowerLimitPercent : null,
-                Preset = !string.IsNullOrEmpty(profile.TuningPreset) ? cur.Preset : null
-            };
-            var t = new TuningSettings { PowerLimitPercent = profile.PowerLimitPercent, Preset = profile.TuningPreset };
+            _restoreTuning = new TuningSettings { PowerLimitPercent = cur.PowerLimitPercent };
+            var t = new TuningSettings { PowerLimitPercent = src.PowerLimitPercent };
             var rt = _hardware.ApplyTuning(t);
             LogService.Info($"Perfil '{profile.Name}' (tuning): {rt.Summary}");
             foreach (var item in rt.Items) report.Add(item.Feature, item.Result);
@@ -156,7 +153,6 @@ public sealed class AppProfileEngine : IDisposable
         var profile = _active;
         LogService.Info($"Perfil por app: encerrando '{profile?.Name}'");
 
-        if (_restoreOnExit() && profile?.KeepAfterExit != true)
         {
             if (_restoreGraphics != null && !_restoreGraphics.IsEmpty)
             {

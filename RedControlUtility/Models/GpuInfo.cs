@@ -108,15 +108,12 @@ public sealed class TuningCapabilities
     public bool VramTimingSupported { get; set; }
     public List<AdlxMemoryTiming> VramTimings { get; set; } = new();
 
-    public bool PresetSupported { get; set; }
-    public List<string> Presets { get; set; } = new();
-
     public bool AtFactoryKnown { get; set; }
     public bool IsAtFactory { get; set; }
 
     internal TuningCapabilities Copy() => (TuningCapabilities)MemberwiseClone();
 
-    public bool AnyTuning => GfxMode != GfxTuningMode.None || PowerSupported || FanSupported || VramSupported || PresetSupported;
+    public bool AnyTuning => GfxMode != GfxTuningMode.None || PowerSupported || FanSupported || VramSupported;
 }
 
 public sealed class GpuCapabilities

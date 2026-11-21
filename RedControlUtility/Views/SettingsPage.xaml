@@ -47,7 +47,6 @@
                 <StackPanel Spacing="8">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Settings.GroupApps" />
                     <ToggleSwitch x:Name="PerAppToggle" rcu:Loc.Header="Settings.PerApp" rcu:Loc.Tip="Settings.PerAppTip" Toggled="Toggle_Changed" />
-                    <ToggleSwitch x:Name="RestoreToggle" rcu:Loc.Header="Settings.RestoreOnExit" rcu:Loc.Tip="Settings.RestoreOnExitTip" Toggled="Toggle_Changed" />
                     <ToggleSwitch x:Name="NotifyToggle" rcu:Loc.Header="Settings.NotifyOnProfile" rcu:Loc.Tip="Settings.NotifyOnProfileTip" Toggled="Toggle_Changed" />
                     <ComboBox x:Name="OverlayCornerCombo" Width="220" rcu:Loc.Header="Settings.OverlayCorner" rcu:Loc.Tip="Settings.OverlayCornerTip" SelectionChanged="OverlayCorner_Changed" />
                     <StackPanel Orientation="Horizontal" Spacing="12">
@@ -62,6 +61,7 @@
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Settings.GroupStartup" />
                     <ToggleSwitch x:Name="StartWithWindowsToggle" rcu:Loc.Header="Settings.StartWithWindows" rcu:Loc.Tip="Settings.StartWithWindowsTip" Toggled="Toggle_Changed" />
                     <ToggleSwitch x:Name="StartMinimizedToggle" rcu:Loc.Header="Settings.StartMinimized" rcu:Loc.Tip="Settings.StartMinimizedTip" Toggled="Toggle_Changed" />
+                    <ToggleSwitch x:Name="MinimizeToTrayToggle" rcu:Loc.Header="Settings.MinimizeToTray" rcu:Loc.Tip="Settings.MinimizeToTrayTip" Toggled="Toggle_Changed" />
                 </StackPanel>
             </Border>
 

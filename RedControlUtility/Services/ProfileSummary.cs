@@ -28,7 +28,6 @@ public static class ProfileSummary
         if (c.Chill) Val("Radeon Chill", g.Chill, g.ChillMinFps != null && g.ChillMaxFps != null ? $"{g.ChillMinFps}-{g.ChillMaxFps} fps" : L("Common.On"));
         if (c.Frtc) Val("FRTC", g.Frtc, g.FrtcFps != null ? $"{g.FrtcFps} fps" : L("Common.On"));
         if (p.PowerLimitPercent != null) items.Add(new OverlayItem(L("Notify.Power"), $"{p.PowerLimitPercent:+0;-0;0}%", true));
-        if (!string.IsNullOrEmpty(p.TuningPreset)) items.Add(new OverlayItem("Preset", p.TuningPreset, true));
         return items;
     }
 }

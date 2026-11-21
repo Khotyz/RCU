@@ -14,21 +14,6 @@
             <TextBlock x:Name="UnsupportedText" TextWrapping="Wrap" Visibility="Collapsed" rcu:Loc.Key="Tuning.Unsupported" />
 
 
-            <Border x:Name="FrtcCard" Style="{StaticResource CardStyle}">
-                <StackPanel Spacing="8">
-                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupFrtc" />
-                    <ToggleSwitch x:Name="FrtcToggle" rcu:Loc.Header="Tuning.FrtcToggle" rcu:Loc.Tip="Tip.FrtcGlobal" Toggled="Frtc_Changed" />
-                    <NumberBox x:Name="FrtcBox" Width="190" Minimum="30" Maximum="360" Value="60" SmallChange="1" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Feature.FrtcFps" rcu:Loc.Tip="Tip.FrtcFps" ValueChanged="Frtc_ValueChanged" />
-                </StackPanel>
-            </Border>
-
-            <Border x:Name="PresetCard" Style="{StaticResource CardStyle}">
-                <StackPanel Spacing="6">
-                    <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupPreset" />
-                    <ComboBox x:Name="PresetCombo" Width="300" rcu:Loc.Header="Tuning.Preset" rcu:Loc.Tip="Tuning.PresetTip" SelectionChanged="Field_SelectionChanged" />
-                </StackPanel>
-            </Border>
-
             <Border x:Name="CoreCard" Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="8">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupCore" />

@@ -391,16 +391,16 @@ public sealed class HardwareService : IDisposable
 
     private List<DisplayInfo> _displayCache = new();
 
-    public List<DisplayInfo> ReadDisplays()
+    public List<DisplayInfo> ReadDisplays(bool log = true)
     {
         var list = _session?.ReadDisplays() ?? new List<DisplayInfo>();
         MergeAdlFreeSync(list);
         _displayCache = list;
-        LogService.Info($"Monitores pelo ADLX: {list.Count}" + string.Concat(list.Select(d =>
+        if (log) LogService.Info($"Monitores pelo ADLX: {list.Count}" + string.Concat(list.Select(d =>
             $" | [{d.Index}] {d.Name}: FreeSync={d.Caps.FreeSync} VSR={d.Caps.Vsr} Escala={d.Caps.GpuScaling}")));
 
         var adl = Adl.DriverFsrService.ListDisplays(CurrentGpu.Index);
-        LogService.Info($"Monitores pelo ADL: {adl.Count}" + string.Concat(adl.Select(d =>
+        if (log) LogService.Info($"Monitores pelo ADL: {adl.Count}" + string.Concat(adl.Select(d =>
             $" | {d.Logical} '{d.Name}': escala suporte={d.ScalingSupported} ligada={d.ScalingOn}")));
 
         if (list.Count == 0)
@@ -566,7 +566,7 @@ public sealed class HardwareService : IDisposable
 
         var t = c.Tuning;
         sb.AppendLine($"AMD Display Library Overdrive N: {_overdrive != null}");
-        sb.AppendLine($"Tuning: GFX={t.GfxMode} Power={t.PowerSupported} Fan={t.FanSupported}({t.FanPointCount} pts, zeroRPM={t.ZeroRpmSupported}) VRAM={t.VramSupported}(freq={t.VramFreqSupported}, timing={t.VramTimingSupported}) Preset={t.PresetSupported}");
+        sb.AppendLine($"Tuning: GFX={t.GfxMode} Power={t.PowerSupported} Fan={t.FanSupported}({t.FanPointCount} pts, zeroRPM={t.ZeroRpmSupported}) VRAM={t.VramSupported}(freq={t.VramFreqSupported}, timing={t.VramTimingSupported})");
         sb.AppendLine($"  {UiHelper.L("Diag.Ranges")}: minFreq={t.MinFreqRange} maxFreq={t.MaxFreqRange} volt={t.VoltageRange} power={t.PowerRange} vram={t.VramFreqRange}");
         return sb.ToString();
     }

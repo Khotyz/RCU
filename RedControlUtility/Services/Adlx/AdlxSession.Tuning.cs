@@ -11,7 +11,6 @@ public sealed partial class AdlxSession
             GetAuto = 12, GetPreset = 13, GetGfx = 14, GetVram = 15, GetFan = 16, GetPower = 17;
     }
 
-    private static readonly string[] PresetNames = { "PowerSaver", "Quiet", "Balanced", "Turbo", "Rage" };
 
     private AdlxObject? TuningObject(int supportedSlot, int getSlot, string interfaceName)
     {
@@ -138,22 +137,6 @@ public sealed partial class AdlxSession
                         ReadTimings(v1, caps);
                     }
                 }
-
-                using (var pr = TuningObject(TuneSlot.IsSupportedPreset, TuneSlot.GetPreset, "IADLXGPUPresetTuning"))
-                {
-                    if (pr != null)
-                    {
-                        for (int i = 0; i < PresetNames.Length; i++)
-                        {
-                            if (pr.GetBool(3 + i, out bool ok).Succeeded() && ok)
-                            {
-                                caps.Presets.Add(PresetNames[i]);
-                            }
-                        }
-
-                        caps.PresetSupported = caps.Presets.Count > 0;
-                    }
-                }
             }
             catch (Exception ex)
             {
@@ -277,22 +260,6 @@ public sealed partial class AdlxSession
                         if (caps.VramTimingSupported && v2.GetInt(5, out int vt).Succeeded()) s.VramTiming = (AdlxMemoryTiming)vt;
                     }
                 }
-
-                if (caps.PresetSupported)
-                {
-                    using var pr = TuningObject(TuneSlot.IsSupportedPreset, TuneSlot.GetPreset, "IADLXGPUPresetTuning");
-                    if (pr != null)
-                    {
-                        for (int i = 0; i < PresetNames.Length; i++)
-                        {
-                            if (pr.GetBool(8 + i, out bool cur).Succeeded() && cur)
-                            {
-                                s.Preset = PresetNames[i];
-                                break;
-                            }
-                        }
-                    }
-                }
             }
             catch (Exception ex)
             {
@@ -310,12 +277,6 @@ public sealed partial class AdlxSession
         {
             try
             {
-                if (!string.IsNullOrEmpty(t.Preset))
-                {
-                    report.Add($"{UiHelper.L("Tuning.Preset")}: {UiHelper.L($"Tuning.PresetName.{t.Preset}")}", ApplyPreset(t.Preset));
-                    Thread.Sleep(400);
-                }
-
                 if (caps.GfxMode == GfxTuningMode.MinMaxVoltage &&
                     (t.GpuMinMhz != null || t.GpuMaxMhz != null || t.VoltageMv != null))
                 {
@@ -358,14 +319,6 @@ public sealed partial class AdlxSession
         }
 
         return report;
-    }
-
-    private AdlxResult ApplyPreset(string preset)
-    {
-        int idx = Array.IndexOf(PresetNames, preset);
-        if (idx < 0) return AdlxResult.InvalidArgs;
-        using var pr = TuningObject(TuneSlot.IsSupportedPreset, TuneSlot.GetPreset, "IADLXGPUPresetTuning");
-        return pr == null ? AdlxResult.NotSupported : pr.Invoke(13 + idx);
     }
 
     private void ApplyGfxMinMax(TuningSettings t, TuningCapabilities caps, ApplyReport report)

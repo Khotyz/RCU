@@ -15,4 +15,6 @@ public sealed class UtilityProfile
     public double CustomBlue { get; set; } = 1.0;
 
     public List<AppProfile> Apps { get; set; } = new();
+    public AppProfile GlobalGame { get; set; } = new() { Name = "Global" };
+    public Dictionary<string, DisplaySettings> Displays { get; set; } = new();
 }

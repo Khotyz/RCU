@@ -270,6 +270,7 @@ public sealed partial class DisplayPage : Page
             int idx = _display.Index;
             var report = await Task.Run(() => App.Hardware.ApplyDisplay(idx, diff));
             ShowReport(StatusBar, report);
+            if (report.AnyOk) App.DisplayPersistence.Remember(_display, diff);
             RefreshDisplayState();
         }
         finally

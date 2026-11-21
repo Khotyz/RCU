@@ -13,13 +13,16 @@ public sealed partial class AppsPage : Page
     private bool _loading = true;
     private AppProfile? _app;
     private Debouncer? _saveDebounce;
+    private Debouncer? _frtcDebounce;
 
     private static List<AppProfile> Apps => App.CurrentProfile.Apps;
+    private static AppProfile GlobalApp => App.CurrentProfile.GlobalGame;
+    private bool IsGlobal(AppProfile? a) => a != null && ReferenceEquals(a, GlobalApp);
 
     public AppsPage()
     {
         InitializeComponent();
-        foreach (var ed in new[] { FrtcEditor, ChillMinEditor, ChillMaxEditor, RisEditor, RsrEditor, BoostEditor, PowerEditor })
+        foreach (var ed in new[] { FrtcEditor, GlobalFrtcEditor, ChillMinEditor, ChillMaxEditor, RisEditor, RsrEditor, BoostEditor, PowerEditor })
             ed.ValueChanged += Changed;
     }
 
@@ -27,6 +30,7 @@ public sealed partial class AppsPage : Page
     {
         base.OnNavigatedTo(e);
         _saveDebounce = new Debouncer(DispatcherQueue, 400, SaveNow);
+        _frtcDebounce = new Debouncer(DispatcherQueue, 500, ApplyGlobalFrtc);
         App.Localization.LanguageChanged += Rebuild;
         App.Engine.ActiveChanged += OnActiveChanged;
         Rebuild();
@@ -36,6 +40,7 @@ public sealed partial class AppsPage : Page
     {
         base.OnNavigatedFrom(e);
         _saveDebounce?.Cancel();
+        _frtcDebounce?.Cancel();
         SaveNow();
         App.Localization.LanguageChanged -= Rebuild;
         App.Engine.ActiveChanged -= OnActiveChanged;
@@ -63,6 +68,7 @@ public sealed partial class AppsPage : Page
         {
             App.Hardware.ReadGraphics();
             BuildCombos();
+            _app ??= GlobalApp;
             RefreshList(_app);
             UpdateActiveText();
         }
@@ -72,6 +78,7 @@ public sealed partial class AppsPage : Page
         }
 
         if (_app != null) Fill(_app);
+        DispatcherQueue.TryEnqueue(() => PageScroll.ChangeView(null, 0, null, true));
     }
 
     private static void FillTri(ComboBox cb)
@@ -101,10 +108,6 @@ public sealed partial class AppsPage : Page
         PowerCombo.Items.Add(Item(L("Apps.PowerCustom")));
 
         ConfigureEditors();
-
-        PresetCombo.Items.Clear();
-        PresetCombo.Items.Add(Item(L("Common.Global"), null));
-        foreach (var p in App.Hardware.Caps.Tuning.Presets) PresetCombo.Items.Add(Item(p, p));
     }
 
     private void BuildAdvancedCombos()
@@ -129,14 +132,16 @@ public sealed partial class AppsPage : Page
     private void RefreshList(AppProfile? select)
     {
         AppsList.Items.Clear();
+        AppsList.Items.Add(new ListViewItem { Content = BuildListEntry(GlobalApp), Tag = GlobalApp });
         foreach (var a in Apps)
         {
             AppsList.Items.Add(new ListViewItem { Content = BuildListEntry(a), Tag = a });
         }
 
         EmptyText.Visibility = Apps.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        RemoveButton.IsEnabled = Apps.Count > 0;
-        int idx = select == null ? -1 : Apps.IndexOf(select);
+        RemoveButton.IsEnabled = Apps.Count > 0 && select != null && !IsGlobal(select);
+        int idx = select == null ? -1 : IsGlobal(select) ? 0 : Apps.IndexOf(select) + 1;
+        if (idx == 0 && !IsGlobal(select)) idx = -1;
         AppsList.SelectedIndex = idx;
         if (idx < 0)
         {
@@ -148,8 +153,7 @@ public sealed partial class AppsPage : Page
     private void ShowEditor(bool hasApp)
     {
         EditorEmpty.Visibility = hasApp ? Visibility.Collapsed : Visibility.Visible;
-        EditorBody.IsEnabled = hasApp;
-        EditorBody.Opacity = hasApp ? 1 : 0.45;
+        EditorBody.Visibility = hasApp ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void AppsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -174,6 +178,7 @@ public sealed partial class AppsPage : Page
     {
         var c = App.Hardware.Caps.Graphics;
         var t = App.Hardware.Caps.Tuning;
+        GlobalFrtcEditor.Configure(c.FrtcRange.IsValid ? c.FrtcRange.Min : 30, c.FrtcRange.IsValid ? c.FrtcRange.Max : 360, 1, "fps", new[] { 30, 60, 75, 90, 120, 144, 165, 240 });
         FrtcEditor.Format = null;
         FrtcEditor.Configure(c.FrtcRange.IsValid ? c.FrtcRange.Min : 30, c.FrtcRange.IsValid ? c.FrtcRange.Max : 300, 1, "fps", new[] { 30, 60, 75, 90, 120, 144, 165, 240 });
         int cMin = c.ChillRange.IsValid ? c.ChillRange.Min : 30, cMax = c.ChillRange.IsValid ? c.ChillRange.Max : 300;
@@ -230,11 +235,22 @@ public sealed partial class AppsPage : Page
         try
         {
             ShowEditor(true);
+            bool isGlobal = IsGlobal(a);
+            HeaderRow.Visibility = isGlobal ? Visibility.Collapsed : Visibility.Visible;
+            GlobalHeader.Visibility = isGlobal ? Visibility.Visible : Visibility.Collapsed;
+            UseGlobalCheck.Visibility = isGlobal ? Visibility.Collapsed : Visibility.Visible;
+            UseGlobalCheck.IsChecked = a.UseGlobal;
+            GlobalFrtcPanel.Visibility = isGlobal && App.Hardware.AdlxAvailable ? Visibility.Visible : Visibility.Collapsed;
+            GlobalFrtcToggle.IsOn = App.Settings.Current.GlobalFrtc;
+            GlobalFrtcEditor.SetValue(App.Settings.Current.GlobalFrtcFps);
+            GlobalFrtcEditor.IsEnabled = GlobalFrtcToggle.IsOn;
+            RemoveButton.IsEnabled = !isGlobal && Apps.Count > 0;
+            SettingsHost.IsEnabled = isGlobal || !a.UseGlobal;
+            SettingsHost.Opacity = SettingsHost.IsEnabled ? 1 : 0.45;
             NameBox.Text = a.Name;
             PathText.Text = a.ExecutablePath;
             SetIcon(AppIconImage, a, 40);
             EnabledToggle.IsOn = a.Enabled;
-            KeepCheck.IsChecked = a.KeepAfterExit;
             var g = a.Graphics;
             AntiLagCombo.SelectedIndex = BoolToTri(g.AntiLag);
             AfmfCombo.SelectedIndex = BoolToTri(g.Afmf);
@@ -264,7 +280,6 @@ public sealed partial class AppsPage : Page
             SurfaceFormatCombo.SelectedIndex = BoolToTri(g.SurfaceFormatOpt);
             PowerCombo.SelectedIndex = a.PowerLimitPercent.HasValue ? 1 : 0;
             PowerEditor.SetValue(a.PowerLimitPercent ?? 0);
-            SelectByTag(PresetCombo, a.TuningPreset);
 
             var c = App.Hardware.Caps.Graphics;
             AntiLagCombo.IsEnabled = c.AntiLag; AfmfCombo.IsEnabled = c.Afmf;
@@ -292,7 +307,6 @@ public sealed partial class AppsPage : Page
             BoostCombo.IsEnabled = c.Boost;
             var t = App.Hardware.Caps.Tuning;
             PowerCombo.IsEnabled = t.PowerSupported;
-            PresetCombo.IsEnabled = t.PresetSupported;
             UpdateEditorVisibility();
         }
         finally
@@ -319,7 +333,6 @@ public sealed partial class AppsPage : Page
         {
             _app.Graphics = g = new GraphicsSettings();
             _app.PowerLimitPercent = null;
-            _app.TuningPreset = null;
         }
 
         switch (key)
@@ -359,6 +372,32 @@ public sealed partial class AppsPage : Page
 
     private void Field_Toggled(object sender, RoutedEventArgs e) => Changed();
 
+    private void GlobalFrtc_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        GlobalFrtcEditor.IsEnabled = GlobalFrtcToggle.IsOn;
+        App.Settings.Current.GlobalFrtc = GlobalFrtcToggle.IsOn;
+        App.Settings.Current.GlobalFrtcFps = GlobalFrtcEditor.Value;
+        _frtcDebounce?.Trigger();
+    }
+
+    private void ApplyGlobalFrtc()
+    {
+        bool on = App.Settings.Current.GlobalFrtc;
+        int fps = App.Settings.Current.GlobalFrtcFps;
+        App.Settings.Save();
+        var r = App.Hardware.ApplyGlobalFrtc(on, fps);
+        Show(StatusBar, r.Ok ? InfoBarSeverity.Success : InfoBarSeverity.Warning, L(r.Ok ? (on ? "Tuning.FrtcOn" : "Tuning.FrtcOff") : "Tuning.FrtcFailed", fps), r.Ok ? "" : r.Message);
+    }
+
+    private void UseGlobal_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_loading || _app == null) return;
+        Changed();
+        SettingsHost.IsEnabled = IsGlobal(_app) || !_app.UseGlobal;
+        SettingsHost.Opacity = SettingsHost.IsEnabled ? 1 : 0.45;
+    }
+
     private void NameBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_loading || _app == null) return;
@@ -371,7 +410,7 @@ public sealed partial class AppsPage : Page
         if (_loading || _app == null) return;
         var a = _app;
         a.Enabled = EnabledToggle.IsOn;
-        a.KeepAfterExit = KeepCheck.IsChecked == true;
+        a.UseGlobal = !IsGlobal(a) && UseGlobalCheck.IsChecked == true;
         var g = a.Graphics;
         g.AntiLag = TriToBool(AntiLagCombo.SelectedIndex);
         g.Afmf = TriToBool(AfmfCombo.SelectedIndex);
@@ -403,7 +442,6 @@ public sealed partial class AppsPage : Page
         g.TripleBuffer = TriToBool(TripleBufferCombo.SelectedIndex);
         g.SurfaceFormatOpt = TriToBool(SurfaceFormatCombo.SelectedIndex);
         a.PowerLimitPercent = PowerCombo.SelectedIndex == 1 ? PowerEditor.Value : null;
-        a.TuningPreset = PresetCombo.SelectedItem is ComboBoxItem { Tag: string s } ? s : null;
 
         if (g.Chill == true && g.Frtc == true)
         {
@@ -451,8 +489,10 @@ public sealed partial class AppsPage : Page
     {
         var img = new Image { Width = 24, Height = 24, VerticalAlignment = VerticalAlignment.Center };
         SetIcon(img, a, 24);
-        var name = new TextBlock { Text = string.IsNullOrWhiteSpace(a.Name) ? a.ExeName : a.Name, TextTrimming = TextTrimming.CharacterEllipsis };
-        var sub = new TextBlock { Text = a.ExeName, FontSize = 11, Opacity = 0.6, TextTrimming = TextTrimming.CharacterEllipsis };
+        bool isGlobal = IsGlobal(a);
+        if (isGlobal) img.Source = null;
+        var name = new TextBlock { Text = isGlobal ? L("Apps.GlobalEntry") : string.IsNullOrWhiteSpace(a.Name) ? a.ExeName : a.Name, TextTrimming = TextTrimming.CharacterEllipsis };
+        var sub = new TextBlock { Text = isGlobal ? L("Apps.GlobalSub") : a.UseGlobal ? $"{a.ExeName}  ·  {L("Apps.UsesGlobalBadge")}" : a.ExeName, FontSize = 11, Opacity = 0.6, TextTrimming = TextTrimming.CharacterEllipsis };
         var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         texts.Children.Add(name);
         texts.Children.Add(sub);
@@ -460,7 +500,12 @@ public sealed partial class AppsPage : Page
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        row.Children.Add(img);
+        if (isGlobal)
+        {
+            var glyph = new FontIcon { Glyph = "\uE774", FontSize = 18, Width = 24, VerticalAlignment = VerticalAlignment.Center };
+            row.Children.Add(glyph);
+        }
+        else row.Children.Add(img);
         Grid.SetColumn(texts, 1);
         row.Children.Add(texts);
         if (ReferenceEquals(App.Engine.Active, a))
@@ -544,16 +589,19 @@ public sealed partial class AppsPage : Page
             return existing;
         }
 
-        var app = new AppProfile
-        {
-            Name = Path.GetFileNameWithoutExtension(exe),
-            ExecutablePath = exe,
-            IconBase64 = ShortcutResolver.ExtractIconBase64(exe)
-        };
+        var app = NewApp(exe, Path.GetFileNameWithoutExtension(exe), "Manual");
+        app.IconBase64 = ShortcutResolver.ExtractIconBase64(exe);
         Apps.Add(app);
         SaveNow();
         return app;
     }
+
+    private static AppProfile NewApp(string exe, string name, string source) => new()
+    {
+        Name = name,
+        ExecutablePath = exe,
+        Source = source
+    };
 
     private void Test_Click(object sender, RoutedEventArgs e)
     {
@@ -575,10 +623,9 @@ public sealed partial class AppsPage : Page
 
     private void Remove_Click(object sender, RoutedEventArgs e)
     {
-        if (_app == null) return;
+        if (_app == null || IsGlobal(_app)) return;
         Apps.Remove(_app);
-        _app = null;
         SaveNow();
-        RefreshList(null);
+        SelectApp(GlobalApp);
     }
 }

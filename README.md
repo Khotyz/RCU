@@ -1,12 +1,12 @@
 # Red Control Utility (RCU), An open-source, lightweight control utility for AMD drivers. (Unofficial community project, not affiliated with AMD).
 
-![version](https://img.shields.io/badge/version-0.2.4-blue)
+![version](https://img.shields.io/badge/version-0.2.5-blue)
 
 RCU is a small WinUI 3 / .NET 8 app that replaces AMD Software (Adrenalin) for everyday control of a Radeon GPU. It talks straight to the AMD display driver through ADLX (`amdadlx64.dll`) and ADL (`atiadlxx.dll`), which ship with the driver, so a **driver-only install is enough**, Adrenalin does not need to be installed and does not need to be running.
 
 It covers GPU clocks, undervolt, power limit, fan curve, VRAM, per-monitor display options (VSR, FreeSync, GPU scaling, integer scaling, custom color), the 3D feature set (Anti-Lag, AFMF, FSR upgrade, RSR, Image Sharpening, Radeon Boost, Chill, FRTC, Enhanced Sync, V-Sync, anisotropic filtering, tessellation) and per-application profiles, because the driver keeps forgetting everything when the game closes or the PC restarts.
 
-> **Status:** version 0.2.4, early release. Not every driver/GPU combination behaves the same; if an option does not respond, the Diagnostics panel tells you exactly what the driver answered. See [Troubleshooting](#troubleshooting).
+> **Status:** version 0.2.5, early release. Not every driver/GPU combination behaves the same; if an option does not respond, **Settings → Diagnostics** tells you exactly what the driver answered. See [Troubleshooting](#troubleshooting).
 
 ---
 
@@ -44,7 +44,7 @@ It covers GPU clocks, undervolt, power limit, fan curve, VRAM, per-monitor displ
 
 | Area | Options |
 | --- | --- |
-| GPU tuning | driver presets, min/max clock, max voltage (undervolt), power limit, VRAM clock and timing, fan curve, Zero RPM, voltage/frequency state list on older cards |
+| GPU tuning | min/max clock, max voltage (undervolt), power limit, VRAM clock and timing, fan curve, Zero RPM, voltage/frequency state list on older cards |
 | Display (per monitor) | FreeSync, Virtual Super Resolution, GPU scaling, integer scaling, scaling mode, custom color (hue, saturation, brightness, contrast, temperature) |
 | 3D features | Radeon Anti-Lag, AMD Fluid Motion Frames (AFMF), FSR upgrade, Radeon Super Resolution, Image Sharpening, Radeon Boost, Radeon Chill, FRTC (frame rate target), Enhanced Sync, V-Sync, anisotropic filtering, tessellation |
 | Per app profiles | any combination of the options above, applied only while the game runs, restored when it closes |
@@ -103,7 +103,7 @@ GPU model, architecture, memory, driver version and live statistics (usage, cloc
 
 ### Display
 
-Per-monitor driver options: FreeSync, Virtual Super Resolution, GPU scaling, integer scaling, scaling mode and custom color, plus saved colour profiles applied through the Windows gamma ramp. Display settings are stored by the driver and survive an app restart, but not always a driver restart.
+Per-monitor driver options: FreeSync, Virtual Super Resolution, GPU scaling, integer scaling, scaling mode and custom color, plus saved colour profiles applied through the Windows gamma ramp. The app remembers what you apply and puts it back at startup, after sleep and whenever the driver resets it.
 
 VSR and integer scaling only work with **GPU scaling on**: when you turn VSR on, the app enables GPU scaling first and gives the driver time to rebuild the mode list, then applies VSR and reads the value back.
 
@@ -114,11 +114,15 @@ VSR and integer scaling only work with **GPU scaling on**: when you turn VSR on,
 3. Options with a value (frame cap, Chill range, sharpening, Boost resolution, power limit) show a slider and the usual presets (30, 60, 120 fps…) once you turn them on.
 4. **Quick setup** fills the whole profile in one click: Competitive, 60 FPS cap, Power saver, Image quality, Clear all. Only options your GPU supports are touched.
 
+5. **Search games** scans your Steam, Epic Games and GOG libraries and lets you add several games at once, shown as a grid or a list. The program chosen for each game is the largest executable in its folder.
+6. **Add running process** lists the programs open right now, so you can add a game that is already running. Settings are only applied when the game starts, so close it and open it again after adding.
+7. The **Global profile** entry at the top of the list holds one set of options shared by every game that has *Use the global profile* turned on, plus the global FPS limit (FRTC), which affects all games. Games are added with their own settings and only follow the global profile when you tick that box.
+
 The app watches processes every 0.4 s so options such as FRTC, AFMF and FSR are in place as early as possible.
 
 ### Tuning
 
-Manual GPU tuning: presets, min/max clock, voltage (undervolt), power limit, VRAM clock/timing, fan curve or direct RPM settings, and Zero RPM, depending on driver support. Cards that expose a voltage/frequency state list get an editable list with a chart.
+Manual GPU tuning: min/max clock, voltage (undervolt), power limit, VRAM clock/timing, fan curve or direct RPM settings, and Zero RPM, depending on driver support. Cards that expose a voltage/frequency state list get an editable list with a chart.
 
 * Moving a slider only updates the label; nothing goes to the driver until you press **Apply**, unless *live apply* is enabled.
 * **Uniform offset** (-10, -25, -50 mV) lowers the voltage linearly from the factory value, like MSI Afterburner: -25 after -10 means -25, not -35. **Reset** returns to the baseline.
@@ -134,7 +138,7 @@ Save the current driver state into a profile, apply it, export it to JSON or imp
 
 ### Settings
 
-Language (Brazilian Portuguese, English, Spanish and Simplified Chinese), apply mode, advanced mode, confirmation before tuning, live undervolt, auto revert, apply on startup, per-app profiles, restore on exit, overlay on/off/corner/duration, start with Windows, start minimized, backend, GPU selection, sensor interval, shader cache cleanup, update check and diagnostics.
+Language (Brazilian Portuguese, English, Spanish and Simplified Chinese), apply mode, advanced mode, confirmation before tuning, live undervolt, auto revert, apply on startup, per-app profiles, overlay on/off/corner/duration, start with Windows, start minimized, minimize to tray (minimize and close send the window to the tray), backend, GPU selection, sensor interval, shader cache cleanup, update check and diagnostics.
 
 **Apply mode:** *Instant* sends every change to the driver as you make it (with a short debounce); *Manual* waits for the Apply button. Fine tuning always uses Apply.
 
@@ -154,7 +158,7 @@ The app applies the profile for that game, starts it, waits for it to exit, rest
 
 Keep **Enable per app profiles** on. The app checks running processes and applies the matching profile when a game starts, restoring your values when it closes. RCU has to be running, but it can sit in the tray, enable **Start with Windows** + **Start minimized** to make it automatic.
 
-If a game only honours an option that was set *before* it started (common with FRTC, AFMF and FSR), tick **Keep these settings after the game closes (global)** in that profile, or use launcher mode.
+If a game only honours an option that was set *before* it started (common with FRTC, AFMF and FSR), start it through launcher mode so the profile is in place before the game opens. When a game closes, your previous values are always restored.
 
 ### 3. Apply once and exit
 
@@ -245,10 +249,10 @@ After applying, the app reads everything back from the driver. The message lists
 
 RCU updates itself from this repository's GitHub releases, no store, no installer service.
 
-* **Settings → Updates** shows the version you are running (currently **0.2.4**) and has a **Check now** button.
+* **Settings → Updates** shows the version you are running (currently **0.2.5**) and has a **Check now** button.
 * **Check for updates automatically** (on by default) asks `api.github.com/repos/Khotyz/RCU/releases/latest` once at startup. Nothing is downloaded without your confirmation.
 * When a newer release exists, an information bar appears at the bottom of the window with a **Download** button. RCU downloads the release asset (`.exe`, `.msi` or `.zip`) to `%TEMP%\RedControlUtility\update-<tag>` and opens it; if the release has no asset, it opens the release page in your browser.
-* The comparison uses the tag (`v0.3.0` > `0.2.4`). Turn the option off in Settings if you prefer to update manually.
+* The comparison uses the tag (`v0.3.0` > `0.2.5`). Turn the option off in Settings if you prefer to update manually.
 
 ## Window size
 
@@ -258,7 +262,7 @@ The window opens at its final size (92% of the work area, at least 1280×820 eff
 
 **An option is greyed out.** The driver did not report it as supported for your GPU. Open **Settings → Diagnostics**, press **Copy** and read what the driver answered for that feature.
 
-**A setting says "Ok" but nothing changes in the game.** Check *Feature conflicts* above (AFMF and Chill/FRTC/RIS/RSR/Boost are mutually exclusive), and check whether the game reads the setting only at launch, in that case use launcher mode or *Keep these settings after the game closes*.
+**A setting says "Ok" but nothing changes in the game.** Check *Feature conflicts* above (AFMF and Chill/FRTC/RIS/RSR/Boost are mutually exclusive), and check whether the game reads the setting only at launch, in that case use launcher mode.
 
 **FRTC does not cap the way I expect.** Use a cap a little below your refresh rate (30 for a 60 Hz panel is fine, 60 for 60 Hz is not, it fights V-Sync). Make sure Chill is off: the two cap the frame rate in different ways.
 
@@ -308,11 +312,11 @@ To build locally with the full Microsoft Visual Studio:
 
 1. Open `RedControlUtility.sln` in Visual Studio with the WinUI project tooling, Windows SDK and .NET 8 SDK installed.
 2. Choose **Release | x64**, right-click the **RedControlUtility** project, choose **Publish** and run the included **FolderProfile**. Publish to the profile's default folder before compiling `installer/RCU.iss` in **Inno Setup 6.5 or later**.
-3. The installer reads `Product` and `Version` from the published executable's metadata, generated from `RedControlUtility.csproj`. No duplicate version or product name needs to be edited in the `.iss`. For this release, the output is `dist/RCU-Setup-0.2.4.exe`.
+3. The installer reads `Product` and `Version` from the published executable's metadata, generated from `RedControlUtility.csproj`. No duplicate version or product name needs to be edited in the `.iss`. For this release, the output is `dist/RCU-Setup-0.2.5.exe`.
 
 The package is self-contained and uses solid LZMA2 compression. It includes only the English, Brazilian Portuguese, Spanish and Simplified Chinese UI resources. The Simplified Chinese setup messages are from [Inno Setup's translation collection](https://github.com/jrsoftware/issrc/blob/is-6_7_4/Files/Languages/Unofficial/ChineseSimplified.isl).
 
-To publish a GitHub release, set `Version` in the project file, then push a matching tag such as `v0.2.4`. The release workflow publishes the app, builds the installer and a portable ZIP, and attaches both to the release. The updater compares the latest release tag with the installed version.
+To publish a GitHub release, set `Version` in the project file, then push a matching tag such as `v0.2.5`. The release workflow publishes the app, builds the installer and a portable ZIP, and attaches both to the release. The updater compares the latest release tag with the installed version.
 
 ---
 

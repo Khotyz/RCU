@@ -7,12 +7,11 @@ public sealed class AppProfile
     public string IconBase64 { get; set; } = string.Empty;
     public bool Enabled { get; set; } = true;
 
-    public bool KeepAfterExit { get; set; }
+    public bool UseGlobal { get; set; }
+    public string Source { get; set; } = string.Empty;
     public GraphicsSettings Graphics { get; set; } = new();
 
     public int? PowerLimitPercent { get; set; }
-
-    public string? TuningPreset { get; set; }
 
     public string ExeName => Path.GetFileName(ExecutablePath);
 }

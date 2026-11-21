@@ -15,11 +15,10 @@ public sealed class TuningSettings
     public int? FanTargetRpm { get; set; }
     public List<FanCurvePoint>? FanCurve { get; set; }
     public List<VfCurvePoint>? VfStates { get; set; }
-    public string? Preset { get; set; }
 
     public bool HasValues() => GpuMinMhz != null || GpuMaxMhz != null || VoltageMv != null || PowerLimitPercent != null ||
         VramMaxMhz != null || VramTiming != null || ZeroRpm != null || FanMinRpm != null || FanTargetRpm != null ||
-        FanCurve is { Count: > 0 } || VfStates is { Count: > 0 } || !string.IsNullOrEmpty(Preset);
+        FanCurve is { Count: > 0 } || VfStates is { Count: > 0 };
 
     public TuningSettings Clone()
     {

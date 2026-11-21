@@ -16,6 +16,7 @@ public partial class App : Application
     public static SensorService Sensors { get; private set; } = null!;
     public static AppProfileEngine Engine { get; private set; } = null!;
     public static StabilityWatchdog Stability { get; } = new();
+    public static DisplayPersistenceService DisplayPersistence { get; } = new();
     public static OverheatMonitor Overheat { get; } = new();
     public static UtilityProfile CurrentProfile { get; set; } = new();
     public static Window? MainWindowInstance { get; private set; }
@@ -43,7 +44,7 @@ public partial class App : Application
         CurrentProfile.GpuModel = Hardware.CurrentGpu.Name;
         CurrentProfile.Architecture = Hardware.CurrentGpu.Architecture;
 
-        Engine = new AppProfileEngine(Hardware, () => CurrentProfile.Apps, () => Settings.Current.RestoreOnAppExit);
+        Engine = new AppProfileEngine(Hardware, () => CurrentProfile.Apps, () => CurrentProfile.GlobalGame);
     }
 
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
@@ -84,6 +85,7 @@ public partial class App : Application
             try
             {
                 Stability.Stop();
+                DisplayPersistence.Stop();
                 Overheat.Stop();
                 Engine.Stop();
                 Sensors.Stop();
@@ -103,9 +105,10 @@ public partial class App : Application
         MainWindowInstance.Activate();
 
         bool minimized = cmd.Any(a => string.Equals(a, "--minimized", StringComparison.OrdinalIgnoreCase)) || Settings.Current.StartMinimized && cmd.Any(a => string.Equals(a, "--startup", StringComparison.OrdinalIgnoreCase));
-        if (minimized && MainWindowInstance.AppWindow.Presenter is OverlappedPresenter p)
+        if (minimized)
         {
-            p.Minimize();
+            if (Settings.Current.MinimizeToTray && MainWindowInstance is MainWindow mw) mw.HideAtStartup();
+            else if (MainWindowInstance.AppWindow.Presenter is OverlappedPresenter p) p.Minimize();
         }
 
         RestartEngine();
@@ -125,6 +128,9 @@ public partial class App : Application
             var report = await Task.Run(() => ApplyProfile(profile));
             LogService.Info($"Aplicar ao iniciar: {report.Summary}");
         }
+
+        _ = Task.Run(() => DisplayPersistence.Reapply(true));
+        DisplayPersistence.Start();
     }
 
     private static void OnGpuUnstable(string what)
@@ -187,8 +193,7 @@ public partial class App : Application
 
         try
         {
-            if (p.ColorProfile == "Custom") DisplayColor.ApplyCustomColor(p.CustomGamma, p.CustomRed, p.CustomGreen, p.CustomBlue);
-            else if (p.ColorProfile != "Default") DisplayColor.ApplyColorProfile(p.ColorProfile);
+            DisplayPersistenceService.ApplyColor(p);
         }
         catch (Exception ex)
         {

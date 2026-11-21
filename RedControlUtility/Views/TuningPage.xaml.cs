@@ -18,7 +18,6 @@ public sealed partial class TuningPage : Page
     private readonly List<NumberBox> _stateBoxes = new();
     private readonly List<NumberBox> _fanBoxes = new();
     private List<FanCurvePoint>? _driverFan;
-    private string? _loadedPreset;
     private const string FanPresetDriver = "driver", FanPresetOptimized = "optimized", FanPresetCustom = "custom";
     private bool _loading = true;
     private int _baseVoltage;
@@ -27,7 +26,6 @@ public sealed partial class TuningPage : Page
     private const int MinBelowMaxMhz = 100;
     private bool _busy;
     private Debouncer? _liveDebounce;
-    private Debouncer? _frtcDebounce;
 
     public TuningPage()
     {
@@ -73,7 +71,6 @@ public sealed partial class TuningPage : Page
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        _frtcDebounce = new Debouncer(DispatcherQueue, 500, ApplyFrtc);
         _liveDebounce = new Debouncer(DispatcherQueue, 600, () => _ = ApplyAsync(skipConfirm: true));
         App.Localization.LanguageChanged += LoadAll;
         LoadAll();
@@ -83,7 +80,6 @@ public sealed partial class TuningPage : Page
     {
         base.OnNavigatedFrom(e);
         _liveDebounce?.Cancel();
-        _frtcDebounce?.Cancel();
         App.Localization.LanguageChanged -= LoadAll;
     }
 
@@ -121,16 +117,11 @@ public sealed partial class TuningPage : Page
         _loading = true;
         try
         {
-            FrtcCard.Visibility = App.Hardware.AdlxAvailable ? Visibility.Visible : Visibility.Collapsed;
-            FrtcToggle.IsOn = App.Settings.Current.GlobalFrtc;
-            FrtcBox.Value = Math.Clamp(App.Settings.Current.GlobalFrtcFps, FrtcBox.Minimum, FrtcBox.Maximum);
-            FrtcBox.IsEnabled = FrtcToggle.IsOn;
-
             _caps = App.Hardware.Caps.Tuning;
             bool any = _caps.AnyTuning;
             UnsupportedText.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
             ApplyButton.IsEnabled = ReloadButton.IsEnabled = FactoryButton.IsEnabled = any;
-            foreach (var c in new UIElement[] { PresetCard, CoreCard, VramCard, FanCard })
+            foreach (var c in new UIElement[] { CoreCard, VramCard, FanCard })
                 c.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
 
             if (!any)
@@ -143,14 +134,6 @@ public sealed partial class TuningPage : Page
             var t = _caps;
             var s = _current;
 
-            PresetCard.Visibility = t.PresetSupported ? Visibility.Visible : Visibility.Collapsed;
-            PresetCombo.Items.Clear();
-            PresetCombo.Items.Add(Item(L("Tuning.PresetNone"), null));
-            foreach (var p in t.Presets) PresetCombo.Items.Add(Item(L($"Tuning.PresetName.{p}"), p));
-            PresetCombo.SelectedIndex = 0;
-            for (int i = 0; i < PresetCombo.Items.Count; i++)
-                if (PresetCombo.Items[i] is ComboBoxItem { Tag: string tag } && tag == s.Preset) PresetCombo.SelectedIndex = i;
-            _loadedPreset = s.Preset;
 
             bool minMax = t.GfxMode == GfxTuningMode.MinMaxVoltage;
             CoreCard.Visibility = minMax || t.PowerSupported ? Visibility.Visible : Visibility.Collapsed;
@@ -583,30 +566,6 @@ public sealed partial class TuningPage : Page
     }
     private void Field_Toggled(object sender, RoutedEventArgs e) => Changed(false);
 
-    private void Frtc_Changed(object sender, RoutedEventArgs e)
-    {
-        if (_loading) return;
-        FrtcBox.IsEnabled = FrtcToggle.IsOn;
-        _frtcDebounce?.Trigger();
-    }
-
-    private void Frtc_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
-    {
-        if (!_loading && !double.IsNaN(sender.Value)) _frtcDebounce?.Trigger();
-    }
-
-    private void ApplyFrtc()
-    {
-        if (double.IsNaN(FrtcBox.Value)) return;
-        bool on = FrtcToggle.IsOn;
-        int fps = (int)FrtcBox.Value;
-        App.Settings.Current.GlobalFrtc = on;
-        App.Settings.Current.GlobalFrtcFps = fps;
-        App.Settings.Save();
-        var r = App.Hardware.ApplyGlobalFrtc(on, fps);
-        Show(StatusBar, r.Ok ? InfoBarSeverity.Success : InfoBarSeverity.Warning, L(r.Ok ? (on ? "Tuning.FrtcOn" : "Tuning.FrtcOff") : "Tuning.FrtcFailed", fps), r.Ok ? "" : r.Message);
-    }
-
     private void Changed(bool live)
     {
         if (_loading) return;
@@ -647,11 +606,6 @@ public sealed partial class TuningPage : Page
             if (t.FanCurveSupported && _fan.Count > 0) s.FanCurve = _fan.Select(p => p.Clone()).ToList();
             if (FanMinRpmBox.Visibility == Visibility.Visible && !double.IsNaN(FanMinRpmBox.Value)) s.FanMinRpm = (int)FanMinRpmBox.Value;
             if (FanTargetRpmBox.Visibility == Visibility.Visible && !double.IsNaN(FanTargetRpmBox.Value)) s.FanTargetRpm = (int)FanTargetRpmBox.Value;
-        }
-
-        if (t.PresetSupported && PresetCombo.SelectedItem is ComboBoxItem { Tag: string preset } && preset != _loadedPreset)
-        {
-            return new TuningSettings { Preset = preset };
         }
 
         return s;
