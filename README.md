@@ -320,4 +320,4 @@ To publish a GitHub release, set `Version` in the project file, then push a matc
 
 ---
 
-Built with help from AI.
+> Built with help from AI.
