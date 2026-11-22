@@ -33,6 +33,12 @@ public partial class App : Application
             LogService.Error($"Exceção não tratada: {e.Exception}");
             e.Handled = true;
         };
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => LogService.Error($"Exceção fatal: {e.ExceptionObject}");
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            LogService.Error($"Exceção em tarefa: {e.Exception}");
+            e.SetObserved();
+        };
 
         Settings.Load();
         var s = Settings.Current;
