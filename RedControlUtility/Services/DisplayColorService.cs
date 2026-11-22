@@ -2,19 +2,8 @@ using System.Runtime.InteropServices;
 
 namespace RedControlUtility.Services;
 
-public sealed class DisplayColorService
+public sealed unsafe class DisplayColorService
 {
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-    private struct Ramp
-    {
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
-        public ushort[] Red;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
-        public ushort[] Green;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256)]
-        public ushort[] Blue;
-    }
-
     [DllImport("user32.dll")]
     private static extern IntPtr GetDC(IntPtr hWnd);
 
@@ -22,9 +11,12 @@ public sealed class DisplayColorService
     private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
 
     [DllImport("gdi32.dll")]
-    private static extern bool SetDeviceGammaRamp(IntPtr hDC, ref Ramp lpRamp);
+    private static extern bool SetDeviceGammaRamp(IntPtr hDC, ushort* ramp);
 
-    public bool ApplyColorProfile(string profileName)
+    [DllImport("gdi32.dll")]
+    private static extern bool GetDeviceGammaRamp(IntPtr hDC, ushort* ramp);
+
+    public bool ApplyColorProfile(string profileName, bool onlyIfChanged = false)
     {
         double rGain = 1.0;
         double gGain = 1.0;
@@ -74,28 +66,21 @@ public sealed class DisplayColorService
                 break;
         }
 
-        return ApplyCustomColor(gamma, rGain, gGain, bGain, blackPoint);
+        return ApplyCustomColor(gamma, rGain, gGain, bGain, blackPoint, onlyIfChanged);
     }
 
-    public bool ApplyCustomColor(double gamma, double rGain, double gGain, double bGain, double blackPoint = 0.0)
+    public bool ApplyCustomColor(double gamma, double rGain, double gGain, double bGain, double blackPoint = 0.0, bool onlyIfChanged = false)
     {
-
-        var ramp = new Ramp
-        {
-            Red = new ushort[256],
-            Green = new ushort[256],
-            Blue = new ushort[256]
-        };
-
+        ushort* ramp = stackalloc ushort[768];
         for (int i = 0; i < 256; i++)
         {
             double normalized = i / 255.0;
             double curved = Math.Pow(normalized, gamma);
             if (blackPoint > 0) curved = Math.Max(0.0, (curved - blackPoint) / (1.0 - blackPoint));
 
-            ramp.Red[i] = (ushort)Math.Clamp(curved * rGain * 65535.0, 0, 65535);
-            ramp.Green[i] = (ushort)Math.Clamp(curved * gGain * 65535.0, 0, 65535);
-            ramp.Blue[i] = (ushort)Math.Clamp(curved * bGain * 65535.0, 0, 65535);
+            ramp[i] = (ushort)Math.Clamp(curved * rGain * 65535.0, 0, 65535);
+            ramp[256 + i] = (ushort)Math.Clamp(curved * gGain * 65535.0, 0, 65535);
+            ramp[512 + i] = (ushort)Math.Clamp(curved * bGain * 65535.0, 0, 65535);
         }
 
         IntPtr hdc = GetDC(IntPtr.Zero);
@@ -106,7 +91,16 @@ public sealed class DisplayColorService
 
         try
         {
-            return SetDeviceGammaRamp(hdc, ref ramp);
+            if (onlyIfChanged)
+            {
+                ushort* current = stackalloc ushort[768];
+                if (GetDeviceGammaRamp(hdc, current) && new ReadOnlySpan<ushort>(current, 768).SequenceEqual(new ReadOnlySpan<ushort>(ramp, 768)))
+                {
+                    return true;
+                }
+            }
+
+            return SetDeviceGammaRamp(hdc, ramp);
         }
         finally
         {

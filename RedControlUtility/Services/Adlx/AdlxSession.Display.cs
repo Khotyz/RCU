@@ -139,8 +139,11 @@ public sealed partial class AdlxSession
 
         using (var f = DisplayFeature(d, DispSvc.IntegerScaling))
         {
-            c.IntegerScaling = f != null;
-            if (f != null && f.GetBool(4, out bool e).Succeeded()) s.IntegerScaling = e;
+            bool isOn = false;
+            bool readable = f != null && f.GetBool(4, out isOn).Succeeded();
+            if (readable) s.IntegerScaling = isOn;
+            c.IntegerScaling = f != null && (readable || f.Supported());
+            if (f != null && !c.IntegerScaling) LogService.Info($"Escala inteira: indisponível em '{info.Name}', opção desativada");
         }
 
         using (var f = DisplayFeature(d, DispSvc.ScalingMode))

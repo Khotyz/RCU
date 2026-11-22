@@ -204,8 +204,17 @@ public sealed partial class MainWindow : Window
         });
     }
 
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _trimTimer;
+
+    private void TrimTimer_Tick(Microsoft.UI.Dispatching.DispatcherQueueTimer sender, object args)
+    {
+        if (AppWindow.IsVisible) sender.Stop();
+        else MemoryService.Trim();
+    }
+
     private void RestoreFromTray()
     {
+        _trimTimer?.Stop();
         AppWindow.Show();
         if (AppWindow.Presenter is OverlappedPresenter p) p.Restore();
         if (ContentFrame.Content == null && _lastPage != null) ContentFrame.Navigate(_lastPage);
@@ -230,6 +239,12 @@ public sealed partial class MainWindow : Window
         t.IsRepeating = false;
         t.Tick += (_, _) => MemoryService.Trim();
         t.Start();
+        _trimTimer ??= DispatcherQueue.CreateTimer();
+        _trimTimer.Interval = TimeSpan.FromMinutes(5);
+        _trimTimer.IsRepeating = true;
+        _trimTimer.Tick -= TrimTimer_Tick;
+        _trimTimer.Tick += TrimTimer_Tick;
+        _trimTimer.Start();
     }
 
     private void AppWindow_Changed(AppWindow sender, AppWindowChangedEventArgs args)

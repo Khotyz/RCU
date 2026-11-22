@@ -59,8 +59,14 @@ public sealed class AppProfileEngine : IDisposable
             {
                 var candidates = _profiles().Where(x => x.Enabled && !string.IsNullOrEmpty(x.ExeName)).ToList();
                 if (candidates.Count == 0 && _active == null) return;
-                var running = ProcessListService.RunningNames();
-                var match = candidates.FirstOrDefault(p => running.Contains(Path.GetFileNameWithoutExtension(p.ExeName)));
+                var names = new string[candidates.Count];
+                for (int i = 0; i < names.Length; i++) names[i] = Path.GetFileNameWithoutExtension(candidates[i].ExeName);
+                var found = ProcessListService.FindRunning(names);
+                AppProfile? match = null;
+                for (int i = 0; i < found.Length; i++)
+                {
+                    if (found[i]) { match = candidates[i]; break; }
+                }
 
                 if (ReferenceEquals(match, _active)) return;
                 if (match != null && _active != null && string.Equals(match.ExecutablePath, _active.ExecutablePath, StringComparison.OrdinalIgnoreCase)) return;

@@ -23,7 +23,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Product>Red Control Utility</Product>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
-    <Version>0.2.7</Version>
+    <Version>0.2.8</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <PublishReadyToRun>false</PublishReadyToRun>
     <SatelliteResourceLanguages>en;en-US;pt;pt-BR;es;es-ES;zh;zh-CN;zh-Hans;zh-Hans-CN</SatelliteResourceLanguages>
@@ -86,11 +86,14 @@
   <Target Name="BuildInstaller" AfterTargets="TrimPublishedCultures" Condition="'$(RcuBuildInstaller)' == 'true' And '$(OS)' == 'Windows_NT' And '$(PublishDir)' != ''">
     <PropertyGroup>
       <_RcuSolutionDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..'))\</_RcuSolutionDir>
-      <_RcuIscc>$(ProgramFiles)\Inno Setup 6\ISCC.exe</_RcuIscc>
+      <_RcuIscc>$(ProgramFiles)\Inno Setup 7\ISCC.exe</_RcuIscc>
+      <_RcuIscc Condition="!Exists('$(_RcuIscc)')">$(MSBuildProgramFiles32)\Inno Setup 7\ISCC.exe</_RcuIscc>
+      <_RcuIscc Condition="!Exists('$(_RcuIscc)')">$([MSBuild]::GetRegistryValueFromView('HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 7_is1', 'InstallLocation', null, RegistryView.Registry64, RegistryView.Registry32))ISCC.exe</_RcuIscc>
+      <_RcuIscc Condition="!Exists('$(_RcuIscc)')">$(ProgramFiles)\Inno Setup 6\ISCC.exe</_RcuIscc>
       <_RcuIscc Condition="!Exists('$(_RcuIscc)')">$([MSBuild]::GetRegistryValueFromView('HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Inno Setup 6_is1', 'InstallLocation', null, RegistryView.Registry32))ISCC.exe</_RcuIscc>
       <_RcuIscc Condition="!Exists('$(_RcuIscc)')">$(MSBuildProgramFiles32)\Inno Setup 6\ISCC.exe</_RcuIscc>
     </PropertyGroup>
-    <Warning Condition="!Exists('$(_RcuIscc)')" Text="Inno Setup 6 was not found, so the installer was not built. Install it from https://jrsoftware.org/isdl.php and publish again." />
+    <Warning Condition="!Exists('$(_RcuIscc)')" Text="Inno Setup (version 7 or 6) was not found, so the installer was not built. Install it from https://jrsoftware.org/isdl.php and publish again." />
     <Exec Condition="Exists('$(_RcuIscc)')"
           Command="&quot;$(_RcuIscc)&quot; &quot;/DSourceDir=$(_RcuPublishPath.TrimEnd('\'))&quot; &quot;$(_RcuSolutionDir)installer\RCU.iss&quot;" />
   </Target>

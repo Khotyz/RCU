@@ -1,87 +1,235 @@
-# Red Control Utility (RCU), An open-source, lightweight control utility for AMD drivers. (Unofficial community project, not affiliated with AMD).
+# Red Control Utility (RCU)
 
-![version](https://img.shields.io/badge/version-0.2.7-blue)
+A small, open-source control panel for AMD Radeon graphics cards on Windows. Unofficial community project, not affiliated with AMD.
 
-## In short
+![version](https://img.shields.io/badge/version-0.2.8-blue)
 
-RCU is a small replacement for AMD Software (Adrenalin) on Windows. You install only the AMD graphics driver (a driver-only install, without Adrenalin) and then RCU, and RCU takes over the everyday controls: GPU clocks, undervolt, power limit, fan curve, VRAM, FreeSync, GPU scaling, color, and the 3D features (Anti-Lag, AFMF, FSR, Chill and more), with per-game profiles that apply when a game opens and go back to your normal values when it closes. It keeps your settings in place after a reboot, after sleep and when the driver resets them, sits in the system tray using very little memory and CPU, and works from Polaris to RDNA 4.
+## What is RCU?
 
-**To install, run the setup (`RCU-Setup-<version>.exe`) from [Releases](https://github.com/Khotyz/RCU/releases).** The setup installs the app, adds the shortcuts, can start it with Windows, updates it in place (old files are removed first, your settings are kept) and gives you a normal uninstaller. That is also why every release is built as a setup: the app is meant to be installed, not run from a loose folder.
+RCU replaces AMD Software (Adrenalin) for everyday use. Install only the AMD graphics driver (a driver-only install, without Adrenalin), install RCU, and you can control your card from one light app that sits in the system tray:
 
-RCU is a small WinUI 3 / .NET 8 app that replaces AMD Software (Adrenalin) for everyday control of a Radeon GPU. It talks straight to the AMD display driver through ADLX (`amdadlx64.dll`) and ADL (`atiadlxx.dll`), which ship with the driver, so a **driver-only install is enough**, Adrenalin does not need to be installed and does not need to be running.
+- tune the GPU: clocks, undervolt, power limit, fan curve and VRAM
+- set up each monitor: FreeSync, GPU scaling, VSR, color
+- turn Radeon features on or off: Anti-Lag, AFMF, FSR upgrade, Chill, Image Sharpening and more
+- give each game its own profile, applied when the game opens and undone when it closes
+- keep all of it in place after a reboot, after sleep, and when the driver resets things
 
-It covers GPU clocks, undervolt, power limit, fan curve, VRAM, per-monitor display options (VSR, FreeSync, GPU scaling, integer scaling, custom color), the 3D feature set (Anti-Lag, AFMF, FSR upgrade, RSR, Image Sharpening, Radeon Boost, Chill, Enhanced Sync, V-Sync, anisotropic filtering, tessellation) and per-application profiles, because the driver keeps forgetting everything when the game closes or the PC restarts.
+It works with Radeon cards from Polaris (RX 400/500) to RDNA 4, uses very little memory and CPU, and does not need AMD Software to be installed or running.
 
-> **Status:** version 0.2.7, early release. Not every driver/GPU combination behaves the same; if an option does not respond, **Settings → Diagnostics** tells you exactly what the driver answered. See [Troubleshooting](#troubleshooting).
+> **Status:** version 0.2.8, early release. Not every driver and GPU combination behaves the same. If an option does not respond, **Settings → Diagnostics** shows exactly what the driver answered. See [Troubleshooting](#troubleshooting).
 
----
+## Install
 
-## Contents
+1. Install the AMD graphics driver. A driver-only install is enough.
+2. Download **`RCU-Setup-<version>.exe`** from [Releases](https://github.com/Khotyz/RCU/releases) and run it. It asks for administrator rights, installs to `C:\RCU` by default, and downloads the Microsoft Visual C++ runtime only if your PC does not have it.
+3. Open **Red Control Utility** from the Start menu. During setup you can choose a desktop shortcut and "Start with Windows".
 
-- [What it can control](#what-it-can-control)
-- [Requirements](#requirements)
-- [Download and install](#download-and-install)
-- [Building from source](#building-from-source)
-- [How the app talks to the driver](#how-the-app-talks-to-the-driver)
-- [Using the app](#using-the-app)
-- [Per application profiles: three ways to use them](#per-application-profiles-three-ways-to-use-them)
-- [Command line](#command-line)
-- [Simple and Advanced mode](#simple-and-advanced-mode)
-- [Quick presets](#quick-presets)
-- [Safe apply (auto revert)](#safe-apply-auto-revert)
-- [GPU support: Polaris to RDNA 4](#gpu-support-polaris-to-rdna-4)
-- [GPU scaling](#gpu-scaling)
-- [Feature conflicts the driver enforces](#feature-conflicts-the-driver-enforces)
-- [FSR upgrade (AMD FSR Upscaling)](#fsr-upgrade-amd-fsr-upscaling)
-- [Overlay when a game profile starts](#overlay-when-a-game-profile-starts)
-- [Stability watchdog](#stability-watchdog)
-- [Interactive charts](#interactive-charts)
-- [Feedback after applying](#feedback-after-applying)
-- [Updates](#updates)
-- [Window size](#window-size)
-- [Troubleshooting](#troubleshooting)
-- [Memory use](#memory-use)
-- [Project layout](#project-layout)
-- [License and disclaimer](#license-and-disclaimer)
+To update, run the new setup over the old one. The old program files are removed first, so nothing from a previous version is left behind, and your settings are kept. A portable ZIP is attached to each release for testing, but the setup is the supported way to use RCU.
 
----
+**Requirements:** Windows 10 version 2004 (build 19041) or newer, 64 bit, and an AMD Radeon card with the AMD display driver installed. Nothing else to install: .NET and the Windows App Runtime are bundled.
+
+Your settings live in `%APPDATA%\RedControlUtility` and the logs in `%LOCALAPPDATA%\RedControlUtility\logs`. Delete those folders to reset everything.
 
 ## What it can control
 
 | Area | Options |
 | --- | --- |
-| GPU tuning | min/max clock, max voltage (undervolt), power limit, VRAM clock and timing, fan curve, Zero RPM, voltage/frequency state list on older cards |
+| GPU tuning | min and max clock, max voltage (undervolt), power limit, VRAM clock and timing, fan curve, Zero RPM, voltage and frequency state list on older cards |
 | Display (per monitor) | FreeSync, Virtual Super Resolution, GPU scaling, integer scaling, scaling mode, custom color (hue, saturation, brightness, contrast, temperature) |
 | 3D features | Radeon Anti-Lag, AMD Fluid Motion Frames (AFMF), FSR upgrade, Radeon Super Resolution, Image Sharpening, Radeon Boost, Radeon Chill, Enhanced Sync, V-Sync, anisotropic filtering, tessellation |
-| Per app profiles | any combination of the options above, applied only while the game runs, restored when it closes |
-| Extras | live sensors, colour profiles through the Windows gamma ramp, game overlay, tray icon, crash recovery, shader cache cleanup, diagnostics |
+| Game profiles | any mix of the options above, applied only while the game runs |
+| Extras | live sensors and history charts, color profiles, game overlay, tray icon, crash recovery, shader cache cleanup, diagnostics |
 
-## Requirements
+An option your card or driver does not offer stays greyed out.
 
-| Item | Requirement |
+## Getting started
+
+1. **Look at the Dashboard.** It shows your GPU, live usage, clocks, temperature, power and fan, plus charts of the last two minutes.
+2. **Try a quick preset.** The Dashboard has one-click presets: Safe undervolt (-25 mV), Quiet, Balanced (factory) and Performance. Their values stay inside the ranges your driver reports.
+3. **Add your games.** Open **Apps**, press **Search games** (it scans Steam, Epic Games and GOG) or **Add app**, and choose the options each game should use.
+4. **Let it sit in the tray.** Turn on **Start with Windows** and **Start minimized** in Settings. RCU then does its work quietly in the background.
+
+## Using the app
+
+### Dashboard
+
+GPU model, architecture, memory, driver version, BIOS, subsystem ID, PCIe link (current and maximum, the current one drops at idle) and live statistics: usage, clocks, temperatures, power, fan speed (and duty when the driver reports it) and VRAM. Four small charts show the last two minutes of usage, hotspot temperature, power and fan speed. They only collect data while the Dashboard is open, so they cost nothing while the app is in the tray. The Dashboard also shows which game profile is active and offers the quick presets.
+
+### Apps (game profiles)
+
+1. Press **Add app** (or drag a `.exe` or `.lnk` onto the page) and pick the game.
+2. Select it and set each option to **Driver default**, **On** or **Off**, or give it a value. Anything left on Driver default is not touched.
+3. Options with a value (frame cap, Chill range, sharpening, Boost resolution, power limit) show a slider with presets once you turn them on.
+4. **Quick setup** fills the whole profile in one click: Competitive, 60 FPS cap, Power saver, Image quality, Clear all.
+5. **Search games** scans Steam, Epic Games and GOG and adds several games at once, as a grid or a list.
+6. **Add running process** lists the programs open right now. Settings only apply when a game starts, so close it and open it again after adding.
+7. **Global profile** is one set of options shared by every game that has *Use the global profile* ticked. New games start with their own settings.
+
+Each game can also run a program when it starts and another when it closes, for example to start a monitoring tool. The program runs hidden, without a shell. Commands are never imported: a profile loaded from a file has them removed, so a shared profile cannot run anything on your PC.
+
+When a game closes, your previous values are always restored.
+
+### Tuning
+
+Manual GPU tuning, depending on what your driver supports: min and max clock, voltage, power limit, VRAM clock and timing, fan curve or direct RPM, and Zero RPM. Cards with a voltage and frequency state list get an editable list and chart.
+
+- Moving a slider only changes the label. Nothing goes to the driver until you press **Apply**, unless live apply is on. Apply sends only the values you changed.
+- **Uniform offset** (-10, -25, -50 mV) lowers the voltage in a straight line from the factory value, like MSI Afterburner.
+- **Keep min clock 100 MHz below max** makes the minimum follow the maximum.
+- **Reset to factory** restores the default values.
+
+> **Warning:** manual tuning can crash or destabilise the system. Change values in small steps. Safe apply and the stability watchdog (below) are there to help.
+
+### Display
+
+Per-monitor options: FreeSync, Virtual Super Resolution, GPU scaling, integer scaling, scaling mode and custom color, plus saved color profiles. VSR and integer scaling need GPU scaling on, so when you turn VSR on the app enables GPU scaling first. Options your monitor or driver does not support are greyed out.
+
+### Profiles
+
+Save the current driver state as a profile, apply it, export it to a JSON file, or import one. The current profile is saved automatically.
+
+### Settings
+
+Language (Brazilian Portuguese, English, Spanish, Simplified Chinese), apply mode, advanced mode, confirmation before tuning, live undervolt, auto revert, game profiles, overlay, start with Windows, start minimized, minimize to tray, backend, GPU selection, sensor interval, shader cache cleanup, update check and diagnostics.
+
+Apply mode: *Instant* sends each change as you make it, *Manual* waits for the Apply button. Fine tuning always uses Apply.
+
+## Your settings stay in place
+
+What you apply is saved and enforced while the app runs, including in the tray. Tuning (clocks, voltage, power limit, VRAM, fan) is reapplied at startup and after sleep, and checked every 45 seconds: if the driver resets a value, RCU puts it back. Display settings (adaptive sync, scaling, color) are kept the same way. Power limits are left alone while a game profile is active.
+
+**Reset to factory** clears the saved tuning. If the app crashed during a tuning change, it does not reapply tuning on the next start, so apply it again from the Tuning page.
+
+## Safe apply
+
+When you apply tuning or a preset, a dialog gives you 15 seconds to confirm. If you do not, the previous values come back automatically. You can turn this off in Settings.
+
+If the PC freezes or reboots before you confirm, RCU notices on the next start, does not reapply anything on its own, and tells you what happened.
+
+## Stability watchdog
+
+If the video driver stops responding and recovers while an undervolt or overclock is active, RCU returns the GPU to factory values, clears the saved tuning and shows a notice. It listens to the Windows event log, so it costs almost nothing. You can turn it off in Settings.
+
+## Simple and Advanced mode
+
+RCU starts in Simple mode: Dashboard, Apps, Tuning and Settings. Advanced mode also shows Display and Profiles, image quality options, VRAM tuning, the fan curve and the voltage state editor. Advanced fields stay in place and are dimmed, so the window never jumps around.
+
+## Game overlay
+
+When a game with a profile starts, a small overlay shows in the corner of its screen listing what the profile turned on or off. It never takes focus, lets clicks through and disappears by itself (3 seconds by default). Configure it in Settings. Games in exclusive fullscreen may hide it.
+
+## Interactive charts
+
+- **Manual editing:** click a point and drag it. On cards with a state list each point moves freely. On cards that take min clock, max clock and one max voltage (such as RDNA 2) the top point is your max clock and max voltage.
+- **Linear change:** select several points (click, drag a box, Ctrl to add, Ctrl+A for all, Esc to clear), then drag, use the mouse wheel or the arrow keys. The dashed curve is a ghost of the last applied values.
+- The fan curve keeps points coherent: setting a point to 100% raises every later point to 100%.
+
+## Updates
+
+RCU checks this repository's GitHub releases once at startup (you can turn it off in Settings). Nothing is downloaded without your confirmation. When a newer release exists, a bar appears with a **Download** button. Run the new setup to update. The check compares the release tag with your version, for example `0.3.0` is newer than `0.2.8`.
+
+## Game profiles: three ways to use them
+
+AMD offers no public per-game API, so RCU applies the profile itself while the game runs.
+
+1. **Watcher mode (default).** Keep **Enable per app profiles** on. RCU checks running programs once per second and applies the matching profile when a game starts. It can sit in the tray.
+2. **Launcher mode.** `RedControlUtility.exe --launch "C:\Games\Game\game.exe"` applies the profile, starts the game, waits for it to exit, restores your values and quits. Use it for games that only read some options (AFMF, FSR) before they start. Nothing stays in memory while you are not playing.
+3. **Apply once and exit.** `RedControlUtility.exe --apply "profile.json"` applies a saved profile without opening a window, handy as a scheduled task at logon.
+
+| Argument | What it does |
 | --- | --- |
-| OS | Windows 10 19041 (20H1) or newer, 64 bit |
-| GPU | AMD Radeon, Polaris (RX 400/500) up to RDNA 4, with the AMD display driver installed |
-| Runtime | None needed (the build is self-contained: .NET and Windows App Runtime are bundled) |
-| Build tools | Visual Studio 2022 with the .NET desktop workload and the Windows App SDK |
+| `--launch "<exe>" [args]` | applies the profile of that app, runs it, restores on exit, then quits |
+| `--apply "<profile.json>"` | applies the profile and quits, with no window |
+| `--startup` | used by the "start with Windows" entry |
+| `--minimized` | starts hidden in the tray |
 
-AMD Software / Adrenalin is **not** required. Everything goes through the driver libraries that the display driver installs into `System32`.
+## GPU support: Polaris to RDNA 4
 
-## Download and install
+The card is detected from its PCI device ID and name, covering Polaris, Vega, RDNA 1, 2, 3 and 4. What you can control depends on what your driver reports. RCU disables what it cannot confirm, and where a driver wrongly says "not supported" it tries anyway and reports the real answer.
 
-1. Install the AMD graphics driver. A driver-only install is enough, Adrenalin is not needed.
-2. Download `RCU-Setup-<version>.exe` from [Releases](https://github.com/Khotyz/RCU/releases) and run it. It needs administrator rights, installs to `C:\RCU` by default and downloads the Microsoft Visual C++ runtime only when it is missing.
-3. Open **Red Control Utility** from the Start menu. Updating later is the same: run the new setup over the old one.
+- **RDNA 1 to RDNA 4:** tuning through ADLX for the features the driver reports.
+- **Polaris (RX 400/500):** frequency and voltage per performance state for undervolting and overclocking. If ADLX does not expose core tuning or fan control, RCU uses AMD Display Library Overdrive N for the missing controls, with minimum and target fan RPM instead of a curve. Polaris tuning has not been verified on real hardware yet.
+- **Other older cards:** ADLX support where available. The sensor fallback is read-only.
 
-A portable ZIP is also attached to each release for testing, but the setup is the supported way to use RCU.
+## Feature conflicts the driver enforces
 
-The app stores its settings in `%APPDATA%\RedControlUtility` and its logs in `%LOCALAPPDATA%\RedControlUtility\logs`. Delete those folders to reset everything.
+The driver answers "OK" and still ignores some combinations, so RCU resolves them before writing and lists every decision in the log:
+
+- AFMF does not run together with Chill, Image Sharpening, RSR or Boost. AFMF wins and the others are reported as not applied.
+- Enhanced Sync needs a FreeSync display. Without it, RCU enables FreeSync first.
+- VSR and integer scaling need GPU scaling on.
+
+After applying, RCU reads every value back from the driver. A setting the driver silently ignored is reported as a failure, with what the driver answered, instead of a green "OK".
+
+## Capping the frame rate
+
+RCU has no standalone frame rate limit. For a cap, use Radeon Chill with the same minimum and maximum, which is what the **Limit to 60 FPS** quick setting does. Do not combine it with another cap in the game or another tool.
+
+## FSR upgrade
+
+FSR upgrade needs RDNA 2 or newer (RX 6000 and up). On older cards the option is disabled with a note. It works straight in the driver, without AMD Software. The driver reads the setting when a game starts, so RCU sets it as the game opens and restores it afterwards. If the game was already running, restart it. The game must have FSR 3.1 or newer enabled in its own settings, and the driver only upgrades the titles it supports. Vulkan games are not covered.
+
+## Memory and CPU use
+
+- Sensors only run while the Dashboard is open.
+- When minimized to the tray, the sensors stop, the current page is released and the app trims its memory now and every few minutes.
+- Background checks (settings drift, game detection) are light and skip work when nothing changed.
+- A Debug build with the debugger attached uses 2 to 3 times more memory. Measure a Release build started outside Visual Studio.
+- `--apply` and `--launch` never create a window.
+
+## Troubleshooting
+
+**An option is greyed out.** The driver did not report it as supported for your GPU or monitor. Open **Settings → Diagnostics**, press **Copy** and read what the driver answered for that feature.
+
+**A setting says OK but nothing changes in the game.** Check the feature conflicts above. Also check whether the game reads the setting only when it launches, in that case use launcher mode.
+
+**The game does not hold the frame rate I set.** Use Chill with the same minimum and maximum, a little below your refresh rate if V-Sync is on.
+
+**VSR does not appear in Windows.** VSR needs GPU scaling on. RCU enables it, but Windows may need to re-detect the display (Win+Ctrl+Shift+B, or disable and enable the monitor) before the new resolutions show up.
+
+**The GPU clock shows 0 or jumps around.** Radeon cards switch parts of the chip off when idle, so a clock of 0 is normal at rest. Setting min and max clock to the same value is the closest thing to a locked clock.
+
+**The app says ADLX is unavailable.** Usually `amdadlx64.dll` is missing, which means the AMD driver is not properly installed. **Settings → Diagnostics** shows whether the file exists, which backend was used and the startup log.
+
+**Where are the logs?** In `%LOCALAPPDATA%\RedControlUtility\logs`, or press **Open logs** in Settings. When reporting a problem, attach the text from **Settings → Diagnostics**.
+
+**Drag and drop does not work.** Windows blocks dragging from Explorer into an administrator window. Use the **Add app** button instead.
+
+## License and disclaimer
+
+AGPL-3.0, see [LICENSE.txt](LICENSE.txt).
+
+This is an unofficial community project, **not affiliated with, endorsed by or supported by AMD**. "Radeon", "Adrenalin", "FreeSync", "Anti-Lag", "Fluid Motion Frames", "Radeon Boost", "Radeon Chill" and "Radeon Super Resolution" are trademarks of Advanced Micro Devices, Inc. RCU calls AMD's own public driver APIs, like other open-source tools such as GPU-Z. Nothing is reverse engineered and no AMD code is redistributed.
+
+Manual overclocking, undervolting and firmware-level changes are always at your own risk. The authors are not responsible for damage to hardware, data loss or instability.
+
+---
+
+# For developers
+
+Everything above is for users. The rest of this file is for people who want to build, package or understand the code.
+
+## How RCU talks to the driver
+
+In **Automatic** mode the app tries these backends in order:
+
+1. **AMD's own DLL:** `C:\Windows\System32\amdadlx64.dll`, installed with the display driver. The app asks it for the driver's own ADLX version first, like AMD's official `ADLXHelper`.
+2. **Helper DLL:** `RedAdlxHelper.dll` next to the executable (optional fallback).
+3. **Fallback without ADLX:** GPU details from the registry and sensors through ADL where supported. On a verified Polaris adapter, Overdrive N can also provide core and fan tuning. Controls that need ADLX stay unavailable.
+
+You can force a backend in **Settings → Hardware**.
+
+A self-built ADLX helper must **not** be named `amdadlx64.dll`: it calls `LoadLibrary("amdadlx64.dll")` internally and would load itself instead of AMD's real library. Keep it as `RedAdlxHelper.dll`, built in Release x64 (a Debug build needs `VCRUNTIME140D.dll` and `ucrtbased.dll` from Visual Studio), and put it in the `native` folder. It is optional.
+
+GPU scaling uses `ADL2_DFP_GPUScalingEnable_Set` through `atiadlxx.dll` when ADLX reports it unavailable. FSR upgrade uses the ADLX service when the driver exposes it, otherwise the `FsrOverride` value in the driver's `UMD` key through `ADL2_Adapter_RegValueString_Set`, with support checked through `ADL2_DriverMLSRSupport_Get` and the presence of `amdxcffx64.dll`.
 
 ## Building from source
 
-1. Open `RedControlUtility.sln` in Visual Studio 2022.
-2. Set the platform to **x64**.
-3. Build **Release** (Debug works but uses the Visual Studio debug CRT and much more memory).
+Requirements: Visual Studio 2022 with the .NET desktop workload, the Windows App SDK tooling, the Windows SDK and the .NET 8 SDK.
+
+1. Open `RedControlUtility.sln`.
+2. Set the platform to **x64** and the configuration to **Release**. Debug works but uses the Visual Studio debug runtime and much more memory.
+3. Build, or run from a terminal:
 
 ```
 dotnet publish RedControlUtility -c Release -r win-x64 -p:Platform=x64
@@ -89,210 +237,19 @@ dotnet publish RedControlUtility -c Release -r win-x64 -p:Platform=x64
 
 The `locales` and `native` folders are copied into the output automatically.
 
-## How the app talks to the driver
+## Installer and releases
 
-In **Automatic** mode the app tries these backends in order:
+The installer is an Inno Setup script in `installer/RCU.iss`. It installs to `C:\RCU` by default (changeable in the wizard), adds Start menu and optional desktop shortcuts, an optional "start with Windows" entry and a normal uninstaller. When an existing RCU install is found in the folder, its old files are removed before the new version is copied. Settings and logs live in your user profile, so neither updating nor uninstalling touches them.
 
-1. **AMD's own DLL**: `C:\Windows\System32\amdadlx64.dll`, installed with the display driver (no Adrenalin needed). The app asks it for the *driver's own* ADLX version first, exactly like AMD's official `ADLXHelper`.
-2. **Helper DLL**: `RedAdlxHelper.dll` next to the executable (optional fallback).
-3. **Fallback without ADLX**: the app shows GPU details from the registry and reads sensors through ADL where supported. On a verified Polaris adapter, Overdrive N can also provide core and fan tuning. Controls that require ADLX remain unavailable.
+To build the installer locally:
 
-You can force a backend in **Settings → Hardware**.
+1. In Visual Studio choose **Release | x64**, right-click the **RedControlUtility** project, choose **Publish** and run the included **FolderProfile**.
+2. The publish step trims what the app does not need (unused languages, AI and machine learning components, debug tools) and then compiles `installer/RCU.iss` with **Inno Setup 6.5 or later**. The script also works with Inno Setup 7, and the project looks for version 7 first.
+3. The installer reads `Product` and `Version` from the published executable's metadata, which comes from `RedControlUtility.csproj`. Nothing needs to be edited in the `.iss`. The output is `dist/RCU-Setup-<version>.exe`.
 
-### About the helper DLL
+The package is self-contained and uses solid LZMA2 compression. It includes only the English, Brazilian Portuguese, Spanish and Simplified Chinese resources. The Simplified Chinese setup messages are from [Inno Setup's translation collection](https://github.com/jrsoftware/issrc/blob/is-6_7_4/Files/Languages/Unofficial/ChineseSimplified.isl).
 
-A self-built ADLX helper must **not** be named `amdadlx64.dll`: it calls `LoadLibrary("amdadlx64.dll")` internally and would load itself instead of AMD's real library, so ADLX would never initialise. Keep it as `RedAdlxHelper.dll`, built in **Release x64** (a Debug build needs `VCRUNTIME140D.dll` / `ucrtbased.dll` from Visual Studio and fails on any other machine), and drop it in the `native` folder. It is optional, the app uses the driver's own DLL by default.
-
-## Using the app
-
-### Dashboard
-
-GPU model, architecture, memory, driver version, BIOS, subsystem ID and PCIe link (current and maximum, the current one drops at idle) and live statistics (usage, clocks, temperatures, power, fan speed and duty when the driver reports it, VRAM). Below the tiles, four small charts show the last two minutes of usage, hotspot temperature, power and fan speed. The charts only collect data while the Dashboard is open, so they cost nothing while the app is in the tray. It also shows which per-application profile is active and offers the [quick presets](#quick-presets).
-
-### Display
-
-Per-monitor driver options: FreeSync, Virtual Super Resolution, GPU scaling, integer scaling, scaling mode and custom color, plus saved colour profiles applied through the Windows gamma ramp. The app remembers what you apply and puts it back at startup, after sleep and whenever the driver resets it.
-
-VSR and integer scaling only work with **GPU scaling on**: when you turn VSR on, the app enables GPU scaling first and gives the driver time to rebuild the mode list, then applies VSR and reads the value back.
-
-### Apps (per application profiles)
-
-1. Click **Add app** (or drag a `.exe` / `.lnk` anywhere on the page) and pick the game.
-2. Select it and set each option to **Driver default**, **On** or **Off**, or give it a value. Anything left on *Driver default* is not touched.
-3. Options with a value (frame cap, Chill range, sharpening, Boost resolution, power limit) show a slider and the usual presets (30, 60, 120 fps…) once you turn them on.
-4. **Quick setup** fills the whole profile in one click: Competitive, 60 FPS cap, Power saver, Image quality, Clear all. Only options your GPU supports are touched.
-
-5. **Search games** scans your Steam, Epic Games and GOG libraries and lets you add several games at once, shown as a grid or a list. The program chosen for each game is the largest executable in its folder.
-6. **Add running process** lists the programs open right now, so you can add a game that is already running. Settings are only applied when the game starts, so close it and open it again after adding.
-7. The **Global profile** entry at the top of the list holds one set of options shared by every game that has *Use the global profile* turned on. Games are added with their own settings and only follow the global profile when you tick that box.
-
-The app watches processes once per second, with a single lightweight process snapshot, so options such as AFMF and FSR are in place as early as possible.
-
-### Tuning
-
-Manual GPU tuning: min/max clock, voltage (undervolt), power limit, VRAM clock/timing, fan curve or direct RPM settings, and Zero RPM, depending on driver support. Cards that expose a voltage/frequency state list get an editable list with a chart.
-
-* Moving a slider only updates the label; nothing goes to the driver until you press **Apply**, unless *live apply* is enabled.
-* **Uniform offset** (-10, -25, -50 mV) lowers the voltage linearly from the factory value, like MSI Afterburner: -25 after -10 means -25, not -35. **Reset** returns to the baseline.
-* **Keep min clock 100 MHz below max** makes the minimum follow the maximum, keeping the GPU out of idle clocks.
-* **Reset to factory** restores the default values.
-* Tuning is normally lost on reboot or driver restart, save a profile (or enable *Apply profile on startup*) to reapply it.
-
-> **Warning:** manual tuning can crash or destabilise the system. Change values in small steps; the [safe apply](#safe-apply-auto-revert) dialog and the [watchdog](#stability-watchdog) are there for that.
-
-### Profiles
-
-Save the current driver state into a profile, apply it, export it to JSON or import one. The current profile is saved automatically.
-
-### Settings
-
-Language (Brazilian Portuguese, English, Spanish and Simplified Chinese), apply mode, advanced mode, confirmation before tuning, live undervolt, auto revert, per-app profiles, overlay on/off/corner/duration, start with Windows, start minimized, minimize to tray (minimize and close send the window to the tray), backend, GPU selection, sensor interval, shader cache cleanup, update check and diagnostics.
-
-**Apply mode:** *Instant* sends every change to the driver as you make it (with a short debounce); *Manual* waits for the Apply button. Fine tuning always uses Apply.
-
-## Per application profiles: three ways to use them
-
-ADLX has no public per-game API, so RCU applies the profile itself while the game runs.
-
-### 1. Launcher mode (no background process)
-
-```
-RedControlUtility.exe --launch "C:\Games\Game\game.exe"
-```
-
-The app applies the profile for that game, starts it, waits for it to exit, restores your previous values and quits. Extra arguments after the path are forwarded to the game. Nothing stays in memory while you are not playing.
-
-### 2. Watcher mode
-
-Keep **Enable per app profiles** on. The app checks running processes and applies the matching profile when a game starts, restoring your values when it closes. RCU has to be running, but it can sit in the tray, enable **Start with Windows** + **Start minimized** to make it automatic.
-
-Each game can also run a program when it starts and another when it closes (for example to start a monitoring tool or switch a lighting profile). The program runs hidden, without a shell. Commands are never imported: profiles loaded from a file have them removed, so a shared profile cannot run anything on your PC.
-
-If a game only honours an option that was set *before* it started (common with AFMF and FSR), start it through launcher mode so the profile is in place before the game opens. When a game closes, your previous values are always restored.
-
-### 3. Apply once and exit
-
-Display, colour and 3D values stay in the driver after the app closes. To apply a saved profile without opening a window:
-
-```
-RedControlUtility.exe --apply "profile.json"
-```
-
-That is handy in a scheduled task at logon to reapply tuning after a reboot.
-
-## Command line
-
-| Argument | What it does |
-| --- | --- |
-| `--launch "<exe>" [args…]` | applies the profile of that app, runs it, restores on exit, then quits |
-| `--apply "<profile.json>"` | applies the profile and quits (no window) |
-| `--startup` | used by the "start with Windows" entry |
-| `--minimized` | starts hidden in the tray |
-
-## Simple and Advanced mode
-
-RCU starts in **Simple mode**: Dashboard, Apps, Tuning and Settings. Turn on **Advanced mode** to also show Display and Profiles, image quality options, VRAM tuning, the fan curve and the voltage state editor. Fields that belong to Advanced mode stay in place and are dimmed instead of disappearing, so the window never jumps around.
-
-## Settings that stay
-
-What you apply is saved and enforced while the app runs, including in the tray. Tuning (clocks, voltage, power limit, VRAM, fan) is reapplied at startup and after sleep, and checked every 45 seconds: if the driver resets any value, the app puts it back. Display settings (adaptive sync, scaling, color) are kept the same way. **Reset to factory** clears the saved tuning. Per game power limits are left alone while a game profile is active. After a crash during a tuning change the app does not reapply tuning on the next start; apply it again from the Tuning page. Turn on *Start with Windows* so this works after a reboot.
-
-## Quick presets
-
-One-click presets on the Dashboard: **Safe undervolt (-25 mV)**, **Quiet**, **Balanced (factory)** and **Performance**. Values come from the ranges your driver reports, so they stay inside what the GPU accepts. Balanced simply resets tuning to factory values.
-
-## Safe apply (auto revert)
-
-When you apply tuning or a preset, a dialog gives you 15 seconds to confirm. If you do not confirm, the previous values are restored automatically. It can be turned off in Settings.
-
-If the PC freezes or reboots before you confirm, the app notices on the next start, does **not** reapply anything automatically and tells you what happened.
-
-## GPU support: Polaris to RDNA 4
-
-The GPU model and architecture are detected from the PCI device ID and name, covering Polaris, Vega, RDNA 1, RDNA 2, RDNA 3 and RDNA 4. What you can control depends on what your driver reports; the app disables what it cannot confirm (and where the driver lies about support, it tries anyway and reports the real answer).
-
-* **AMD RDNA 1 to AMD RDNA 4:** tuning through ADLX for the features reported by the driver.
-* **AMD Polaris (Radeon RX 400/500):** frequency and voltage per performance state for undervolting and overclocking. The app prefers the [ADLX manual graphics and fan tuning interfaces](https://gpuopen.com/manuals/adlx/programming-with-adlx/adlx-samples/cplus-samples/gpu-tuning/manualgraphicstuning/). If ADLX does not expose core tuning or fan control, the app probes [AMD Display Library Overdrive N](https://gpuopen-librariesandsdks.github.io/adl/group__OVERDRIVENAPI.html) for the missing controls. An unambiguous PCI adapter match is required to write through ADL. Rather than simulating a fan curve, the fallback exposes minimum and target fan speed in RPM where supported. **Reset to factory** restores the available tuning controls, including automatic fan control on Overdrive N.
-* **Other pre-RDNA GPUs:** existing ADLX support where available; the ADL sensor fallback remains read-only for these GPUs.
-
-## GPU scaling
-
-GPU scaling uses `ADL2_DFP_GPUScalingEnable_Set` through `atiadlxx.dll` when ADLX reports it unavailable, since some drivers have no ADLX equivalent. Several drivers only report VSR and integer scaling as available after GPU scaling is on.
-
-## Capping the frame rate
-
-The app has no standalone frame rate limit. For a cap, use Radeon Chill with the same minimum and maximum, which is what the **Limit to 60 FPS** quick setting does. An earlier global frame rate target was removed: it went through an undocumented ADL call, and stacked with other caps it made games run far below the requested value.
-
-The driver returns `OK` and still ignores some combinations, so the app resolves them before writing and lists every decision in the log:
-
-- AFMF does not run together with Chill, RIS, RSR or Boost, AFMF wins, the others are reported as not supported for that apply.
-- Enhanced Sync needs a FreeSync-capable display; without it the app enables FreeSync first, otherwise the setting is accepted and does nothing.
-- VSR and integer scaling need GPU scaling on.
-
-Every value is read back from the driver. A setting the driver silently ignored is reported as a failure (with what the driver answered) instead of a green "Ok".
-
-## FSR upgrade (AMD FSR Upscaling)
-
-FSR upgrade needs RDNA 2 or newer (RX 6000 and up); on older GPUs the option is disabled with a note. It is applied straight in the driver, without AMD Software:
-
-1. If the driver exposes the FSR service through ADLX, that is used.
-2. Otherwise the app uses the same switch AMD Software uses: `FsrOverride` (`1` on, `0` off) in the driver's `UMD` key, written through `ADL2_Adapter_RegValueString_Set`. Support is checked with `ADL2_DriverMLSRSupport_Get` and the presence of `amdxcffx64.dll` in the driver folder.
-
-The driver reads that value when a game starts, so the app sets it as the game opens and restores it afterwards. If the game was already running, restart it. The game must have FSR 3.1+ enabled in its own settings, and the driver only upgrades the titles it supports. Vulkan games are not covered by the driver upgrade.
-
-## Overlay when a game profile starts
-
-When a game with a profile starts, a small overlay appears in the corner of its screen listing the technologies the profile turned on or off (green dot = on). It is a click-through window drawn with plain Win32, never takes focus and disappears by itself (default 3 s). Configure it in Settings: on/off, corner, duration, preview. Games in exclusive fullscreen may hide it, because Windows does not let other windows draw above them.
-
-## Stability watchdog
-
-If the video driver stops responding and recovers (Windows event *Display 4101* or a critical AMD driver event) while an undervolt or overclock is active, the app returns the GPU to factory values, clears the saved tuning and shows a notice. It listens to the Windows event log through the native API, so it costs almost nothing. It can be turned off in Settings.
-
-## Interactive charts
-
-* **Manual editing:** click a point and drag it. On cards with a voltage/frequency state list each point moves freely; on cards that take min clock, max clock and one max voltage (such as RDNA 2) the top point of the curve is your max clock and max voltage.
-* **Linear change:** select several points (click, drag a box, Ctrl to add, Ctrl+A for all, Esc to clear), then drag, use the mouse wheel or the arrow keys. Clock drops in proportion to the voltage, like MSI Afterburner. The dashed curve is a ghost of the last applied values.
-* The fan curve keeps points coherent: setting a point to 100% raises every later point to 100%.
-
-## Feedback after applying
-
-After applying, the app reads everything back from the driver. The message lists each option with the code the driver returned and flags anything the driver accepted but did not actually change. Options your GPU or driver does not expose stay disabled in the editor.
-
-## Updates
-
-RCU updates itself from this repository's GitHub releases, no store, no installer service.
-
-* **Settings → Updates** shows the version you are running (currently **0.2.7**) and has a **Check now** button.
-* **Check for updates automatically** (on by default) asks `api.github.com/repos/Khotyz/RCU/releases/latest` once at startup. Nothing is downloaded without your confirmation.
-* When a newer release exists, an information bar appears at the bottom of the window with a **Download** button. RCU downloads the release asset (`.exe`, `.msi` or `.zip`) to `%TEMP%\RedControlUtility\update-<tag>` and opens it; if the release has no asset, it opens the release page in your browser.
-* The comparison uses the tag (`0.3.0` > `0.2.7`). Turn the option off in Settings if you prefer to update manually.
-
-## Window size
-
-The window opens at its final size (92% of the work area, at least 1280×820 effective pixels) and stays there: a size change that does not come from you is undone. Pages never add or remove controls when you toggle an option, advanced fields are dimmed in place, so nothing moves or animates while you change settings.
-
-## Troubleshooting
-
-**An option is greyed out.** The driver did not report it as supported for your GPU. Open **Settings → Diagnostics**, press **Copy** and read what the driver answered for that feature.
-
-**A setting says "Ok" but nothing changes in the game.** Check *Feature conflicts* above (AFMF and Chill/RIS/RSR/Boost are mutually exclusive), and check whether the game reads the setting only at launch, in that case use launcher mode.
-
-**The game does not hold the frame rate I set.** Use Chill with the same minimum and maximum, a little below your refresh rate if V-Sync is on. Do not combine it with another cap in the game or in another tool.
-
-**VSR does not appear in Windows.** VSR needs GPU scaling on; the app enables it automatically, but Windows may need the display to be re-detected (Win+Ctrl+Shift+B or disable/enable the monitor) before the new resolutions show up.
-
-**The app says ADLX is unavailable.** Usually `amdadlx64.dll` is missing, which means the AMD driver is not properly installed. **Settings → Diagnostics** shows whether the DLL exists, which backend was used and the initialisation log.
-
-**Where are the logs?** `%LOCALAPPDATA%\RedControlUtility\logs`, or press **Open logs** in Settings. When reporting a problem, attach the diagnostics text from **Settings → Diagnostics**.
-
-**Windows blocks drag and drop.** Drag and drop from Explorer into an elevated (administrator) window is blocked by Windows; use the **Add app** button instead.
-
-## Memory use
-
-* Sensors only run while the Dashboard is open.
-* Minimised, the sensors stop, the current page is released and the app trims its memory.
-* A Debug build with the debugger attached uses 2-3× more memory than Release. Measure a Release build started outside Visual Studio.
-* `--apply` and `--launch` never create a window.
+To publish a GitHub release, set `Version` in the project file, then push a matching tag such as `0.2.8` (without a "v"). The release workflow publishes the app, builds the installer and a portable ZIP, and attaches both to the release. The in-app updater compares the latest release tag with the installed version.
 
 ## Project layout
 
@@ -304,32 +261,11 @@ RedControlUtility/
     Adl/             ADL fallbacks (Overdrive N, GPU scaling, FSR override, sensors)
     *.cs             profiles, sensors, overlay, tray, updates, stability watchdog
   Views/             WinUI pages (Dashboard, Display, Apps, Tuning, Profiles, Settings)
-  Controls/          interactive charts
+  Controls/          interactive charts and layout helpers
   locales/           pt-BR.json, en-US.json, es-ES.json, zh-CN.json
   native/            optional RedAdlxHelper.dll
+installer/           Inno Setup script and publish trimming
 ```
-
-## License and disclaimer
-
-AGPL-3.0, see [LICENSE.txt](LICENSE.txt).
-
-This is an unofficial community project, **not affiliated with, endorsed by or supported by AMD**. "Radeon", "Adrenalin", "FreeSync", "Anti-Lag", "Fluid Motion Frames", "Radeon Boost", "Radeon Chill" and "Radeon Super Resolution" are trademarks of Advanced Micro Devices, Inc. The app calls AMD's own public driver APIs, exactly like open-source tools such as GPU-Z; nothing is reverse engineered, and no AMD code is redistributed.
-
-Manual overclocking, undervolting and firmware-level changes are always at your own risk. The authors are not responsible for damage to hardware, data loss or instability.
-
-## Installer and releases
-
-The installer is an Inno Setup script in `installer/RCU.iss`. It installs to `C:\RCU` by default (the folder can be changed in the wizard), adds Start menu and optional desktop shortcuts, an optional "start with Windows" entry, and a normal uninstaller. When an existing RCU install is found in the folder, its old files are removed before the new version is copied, so nothing from a previous version is left behind. Settings and logs stay in your user profile, so neither updating nor uninstalling touches them.
-
-To build locally with the full Microsoft Visual Studio:
-
-1. Open `RedControlUtility.sln` in Visual Studio with the WinUI project tooling, Windows SDK and .NET 8 SDK installed.
-2. Choose **Release | x64**, right-click the **RedControlUtility** project, choose **Publish** and run the included **FolderProfile**. Publish to the profile's default folder before compiling `installer/RCU.iss` in **Inno Setup 6.5 or later**.
-3. The installer reads `Product` and `Version` from the published executable's metadata, generated from `RedControlUtility.csproj`. No duplicate version or product name needs to be edited in the `.iss`. For this release, the output is `dist/RCU-Setup-0.2.7.exe`.
-
-The package is self-contained and uses solid LZMA2 compression. It includes only the English, Brazilian Portuguese, Spanish and Simplified Chinese UI resources. The Simplified Chinese setup messages are from [Inno Setup's translation collection](https://github.com/jrsoftware/issrc/blob/is-6_7_4/Files/Languages/Unofficial/ChineseSimplified.isl).
-
-To publish a GitHub release, set `Version` in the project file, then push a matching tag such as `0.2.7`. The release workflow publishes the app, builds the installer and a portable ZIP, and attaches both to the release. The updater compares the latest release tag with the installed version.
 
 ---
 

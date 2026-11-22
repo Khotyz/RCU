@@ -48,6 +48,58 @@ public static class ProcessListService
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool Process32NextW(IntPtr snapshot, ref ProcessEntry entry);
 
+    [StructLayout(LayoutKind.Sequential)]
+    private unsafe struct FastEntry
+    {
+        public uint Size;
+        public uint Usage;
+        public uint ProcessId;
+        public IntPtr DefaultHeapId;
+        public uint ModuleId;
+        public uint Threads;
+        public uint ParentProcessId;
+        public int PriorityClassBase;
+        public uint Flags;
+        public fixed char ExeFile[260];
+    }
+
+    [DllImport("kernel32.dll", EntryPoint = "Process32FirstW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool FastFirst(IntPtr snapshot, ref FastEntry entry);
+
+    [DllImport("kernel32.dll", EntryPoint = "Process32NextW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool FastNext(IntPtr snapshot, ref FastEntry entry);
+
+    public static unsafe bool[] FindRunning(string[] names)
+    {
+        var found = new bool[names.Length];
+        IntPtr snap = CreateToolhelp32Snapshot(0x2, 0);
+        if (snap == IntPtr.Zero || snap == new IntPtr(-1)) return found;
+        try
+        {
+            var e = new FastEntry { Size = (uint)sizeof(FastEntry) };
+            if (!FastFirst(snap, ref e)) return found;
+            do
+            {
+                var span = new ReadOnlySpan<char>(e.ExeFile, 260);
+                int end = span.IndexOf('\0');
+                if (end >= 0) span = span.Slice(0, end);
+                int dot = span.LastIndexOf('.');
+                if (dot > 0) span = span.Slice(0, dot);
+                for (int i = 0; i < names.Length; i++)
+                {
+                    if (!found[i] && span.Equals(names[i], StringComparison.OrdinalIgnoreCase)) found[i] = true;
+                }
+            }
+            while (FastNext(snap, ref e));
+        }
+        finally
+        {
+            CloseHandle(snap);
+        }
+
+        return found;
+    }
+
     public static HashSet<string> RunningNames()
     {
         var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

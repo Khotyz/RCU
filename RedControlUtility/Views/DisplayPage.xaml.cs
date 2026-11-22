@@ -162,7 +162,7 @@ public sealed partial class DisplayPage : Page
         return s;
     }
 
-    private static bool Ne<T>(T? cur, T? want) where T : struct => want.HasValue && !Nullable.Equals(cur, want);
+    private static bool Ne<T>(T? cur, T? want) where T : struct => want.HasValue && !EqualityComparer<T>.Default.Equals(cur ?? default(T), want.Value);
 
     private static DisplaySettings Diff(DisplaySettings c, DisplaySettings d)
     {

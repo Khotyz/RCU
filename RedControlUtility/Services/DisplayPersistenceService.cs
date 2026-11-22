@@ -119,7 +119,7 @@ public sealed class DisplayPersistenceService : IDisposable
         {
             if (App.CurrentProfile.Displays.Count > 0 && App.Hardware.AdlxAvailable)
             {
-                foreach (var d in App.Hardware.ReadDisplays(false))
+                foreach (var d in App.Hardware.ReadDisplays(false, true))
                 {
                     if (!App.CurrentProfile.Displays.TryGetValue(Key(d), out var saved)) continue;
                     var diff = Drift(d, saved);
@@ -143,8 +143,8 @@ public sealed class DisplayPersistenceService : IDisposable
 
     public static void ApplyColor(UtilityProfile p)
     {
-        if (p.ColorProfile == "Custom") App.DisplayColor.ApplyCustomColor(p.CustomGamma, p.CustomRed, p.CustomGreen, p.CustomBlue);
-        else if (p.ColorProfile != "Default") App.DisplayColor.ApplyColorProfile(p.ColorProfile);
+        if (p.ColorProfile == "Custom") App.DisplayColor.ApplyCustomColor(p.CustomGamma, p.CustomRed, p.CustomGreen, p.CustomBlue, 0.0, true);
+        else if (p.ColorProfile != "Default") App.DisplayColor.ApplyColorProfile(p.ColorProfile, true);
     }
 
     private static DisplaySettings? Drift(DisplayInfo d, DisplaySettings saved)

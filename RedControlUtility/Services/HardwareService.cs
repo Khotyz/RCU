@@ -384,11 +384,13 @@ public sealed class HardwareService : IDisposable
 
     private List<DisplayInfo> _displayCache = new();
 
-    public List<DisplayInfo> ReadDisplays(bool log = true)
+    public List<DisplayInfo> ReadDisplays(bool log = true, bool light = false)
     {
         var list = _session?.ReadDisplays() ?? new List<DisplayInfo>();
-        MergeAdlFreeSync(list);
+        bool adlxComplete = light && list.Count > 0 && list.All(d => d.Caps.FreeSync && d.Caps.GpuScaling);
+        if (!adlxComplete) MergeAdlFreeSync(list, log);
         _displayCache = list;
+        if (adlxComplete) return list;
         if (log) LogService.Info($"Monitores pelo ADLX: {list.Count}" + string.Concat(list.Select(d =>
             $" | [{d.Index}] {d.Name}: FreeSync={d.Caps.FreeSync} VSR={d.Caps.Vsr} Escala={d.Caps.GpuScaling}")));
 
@@ -423,10 +425,10 @@ public sealed class HardwareService : IDisposable
         return list;
     }
 
-    private void MergeAdlFreeSync(List<DisplayInfo> list)
+    private void MergeAdlFreeSync(List<DisplayInfo> list, bool log)
     {
         if (list.Count == 0) return;
-        var fs = Adl.DriverFsrService.ReadFreeSync(CurrentGpu.Index);
+        var fs = Adl.DriverFsrService.ReadFreeSync(CurrentGpu.Index, log);
         if (fs.Count == 0) return;
         for (int i = 0; i < list.Count; i++)
         {
