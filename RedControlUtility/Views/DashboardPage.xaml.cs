@@ -24,6 +24,7 @@ public sealed partial class DashboardPage : Page
         new StatTile { TitleKey = "Stat.Fan", TipKey = "StatTip.Fan", Unit = "RPM", Optional = true },
         new StatTile { TitleKey = "Stat.VramUsed", TipKey = "StatTip.VramUsed", Unit = "MB", Optional = true },
         new StatTile { TitleKey = "Stat.Voltage", TipKey = "StatTip.Voltage", Unit = "mV" },
+        new StatTile { TitleKey = "Stat.FanDuty", TipKey = "StatTip.FanDuty", Unit = "%", Optional = true },
     };
 
     private readonly ObservableCollection<StatTile> _tiles = new();
@@ -38,6 +39,7 @@ public sealed partial class DashboardPage : Page
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
+        MetricsHistory.Clear();
         App.Sensors.Updated += OnSensors;
         App.Sensors.Start(App.Settings.Current.SensorIntervalMs);
         App.Engine.ActiveChanged += OnActiveChanged;
@@ -89,6 +91,8 @@ public sealed partial class DashboardPage : Page
         Add("Info.Type", gpu.FromAdlx ? (gpu.IsDiscrete ? L("Info.Discrete") : L("Info.Integrated")) : string.Empty);
         Add("Info.Driver", gpu.DriverVersion);
         Add("Info.Bios", gpu.BiosVersion);
+        Add("Info.Subsystem", string.IsNullOrEmpty(gpu.SubSystemId) ? string.Empty : $"{gpu.SubSystemVendorId}:{gpu.SubSystemId}");
+        Add("Info.Pcie", PcieLinkService.Read(gpu.DeviceId));
         Add("Info.Backend", hw.AdlxAvailable ? $"{hw.BackendName}  (ADLX {hw.AdlxVersion})" : hw.BackendName);
         if (hw.Caps.SamSupported) Add("Info.Sam", hw.Caps.SamEnabled ? L("Common.On") : L("Common.Off"));
 
@@ -103,6 +107,11 @@ public sealed partial class DashboardPage : Page
 
         PresetCard.Visibility = hw.Caps.Tuning.AnyTuning ? Visibility.Visible : Visibility.Collapsed;
         foreach (var t in _all) { t.Title = L(t.TitleKey); t.Tip = L(t.TipKey); }
+        UsageChart.Title = L("History.Usage");
+        TempChart.Title = L("History.Temp");
+        PowerChart.Title = L("History.Power");
+        FanChart.Title = L("History.Fan");
+        HistoryWindowText.Text = L("History.Window", MetricsHistory.Capacity * App.Settings.Current.SensorIntervalMs / 1000);
         UpdateActive();
     }
 
@@ -112,6 +121,14 @@ public sealed partial class DashboardPage : Page
         ActiveAppText.Text = a != null
             ? L("Dashboard.ActiveAppOn", a.Name)
             : (App.Settings.Current.PerAppProfilesEnabled ? L("Dashboard.ActiveAppNone") : L("Dashboard.ActiveAppDisabled"));
+    }
+
+    private void UpdateHistory()
+    {
+        UsageChart.Refresh();
+        TempChart.Refresh();
+        PowerChart.Refresh();
+        FanChart.Refresh();
     }
 
     private int? _lastVolt;
@@ -147,10 +164,13 @@ public sealed partial class DashboardPage : Page
         Set(7, I(fan), F(fan, 4000));
         Set(8, I(vused), F(vused, Math.Max(1, App.Hardware.CurrentGpu.VramMb)));
         Set(9, I(volt), F(volt, 1300));
+        int? duty = s.FanDutyPercent;
+        Set(10, I(duty), F(duty, 100));
+        UpdateHistory();
 
         bool real = s.GpuUsage.HasValue || s.GpuClockMhz.HasValue || s.TempEdgeC.HasValue;
         if (!real) return;
-        bool[] has = { true, true, vclk.HasValue, edge.HasValue, hot.HasValue, mem.HasValue, pw.HasValue, fan.HasValue, vused.HasValue, volt.HasValue };
+        bool[] has = { true, true, vclk.HasValue, edge.HasValue, hot.HasValue, mem.HasValue, pw.HasValue, fan.HasValue, vused.HasValue, volt.HasValue, duty.HasValue };
         for (int i = 0; i < _all.Count; i++)
         {
             _seen[i] |= has[i];

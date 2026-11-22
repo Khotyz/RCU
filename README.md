@@ -1,12 +1,18 @@
 # Red Control Utility (RCU), An open-source, lightweight control utility for AMD drivers. (Unofficial community project, not affiliated with AMD).
 
-![version](https://img.shields.io/badge/version-0.2.6-blue)
+![version](https://img.shields.io/badge/version-0.2.7-blue)
+
+## In short
+
+RCU is a small replacement for AMD Software (Adrenalin) on Windows. You install only the AMD graphics driver (a driver-only install, without Adrenalin) and then RCU, and RCU takes over the everyday controls: GPU clocks, undervolt, power limit, fan curve, VRAM, FreeSync, GPU scaling, color, and the 3D features (Anti-Lag, AFMF, FSR, Chill and more), with per-game profiles that apply when a game opens and go back to your normal values when it closes. It keeps your settings in place after a reboot, after sleep and when the driver resets them, sits in the system tray using very little memory and CPU, and works from Polaris to RDNA 4.
+
+**To install, run the setup (`RCU-Setup-<version>.exe`) from [Releases](https://github.com/Khotyz/RCU/releases).** The setup installs the app, adds the shortcuts, can start it with Windows, updates it in place (old files are removed first, your settings are kept) and gives you a normal uninstaller. That is also why every release is built as a setup: the app is meant to be installed, not run from a loose folder.
 
 RCU is a small WinUI 3 / .NET 8 app that replaces AMD Software (Adrenalin) for everyday control of a Radeon GPU. It talks straight to the AMD display driver through ADLX (`amdadlx64.dll`) and ADL (`atiadlxx.dll`), which ship with the driver, so a **driver-only install is enough**, Adrenalin does not need to be installed and does not need to be running.
 
 It covers GPU clocks, undervolt, power limit, fan curve, VRAM, per-monitor display options (VSR, FreeSync, GPU scaling, integer scaling, custom color), the 3D feature set (Anti-Lag, AFMF, FSR upgrade, RSR, Image Sharpening, Radeon Boost, Chill, Enhanced Sync, V-Sync, anisotropic filtering, tessellation) and per-application profiles, because the driver keeps forgetting everything when the game closes or the PC restarts.
 
-> **Status:** version 0.2.6, early release. Not every driver/GPU combination behaves the same; if an option does not respond, **Settings → Diagnostics** tells you exactly what the driver answered. See [Troubleshooting](#troubleshooting).
+> **Status:** version 0.2.7, early release. Not every driver/GPU combination behaves the same; if an option does not respond, **Settings → Diagnostics** tells you exactly what the driver answered. See [Troubleshooting](#troubleshooting).
 
 ---
 
@@ -63,9 +69,11 @@ AMD Software / Adrenalin is **not** required. Everything goes through the driver
 
 ## Download and install
 
-1. Take the release zip from [Releases](https://github.com/Khotyz/RCU/releases).
-2. Extract it anywhere (for example `C:\Tools\RedControlUtility`).
-3. Run `RedControlUtility.exe`. No installer, no service, no background driver.
+1. Install the AMD graphics driver. A driver-only install is enough, Adrenalin is not needed.
+2. Download `RCU-Setup-<version>.exe` from [Releases](https://github.com/Khotyz/RCU/releases) and run it. It needs administrator rights, installs to `C:\RCU` by default and downloads the Microsoft Visual C++ runtime only when it is missing.
+3. Open **Red Control Utility** from the Start menu. Updating later is the same: run the new setup over the old one.
+
+A portable ZIP is also attached to each release for testing, but the setup is the supported way to use RCU.
 
 The app stores its settings in `%APPDATA%\RedControlUtility` and its logs in `%LOCALAPPDATA%\RedControlUtility\logs`. Delete those folders to reset everything.
 
@@ -99,7 +107,7 @@ A self-built ADLX helper must **not** be named `amdadlx64.dll`: it calls `LoadLi
 
 ### Dashboard
 
-GPU model, architecture, memory, driver version and live statistics (usage, clocks, temperatures, power, fan speed, VRAM). It also shows which per-application profile is active and offers the [quick presets](#quick-presets).
+GPU model, architecture, memory, driver version, BIOS, subsystem ID and PCIe link (current and maximum, the current one drops at idle) and live statistics (usage, clocks, temperatures, power, fan speed and duty when the driver reports it, VRAM). Below the tiles, four small charts show the last two minutes of usage, hotspot temperature, power and fan speed. The charts only collect data while the Dashboard is open, so they cost nothing while the app is in the tray. It also shows which per-application profile is active and offers the [quick presets](#quick-presets).
 
 ### Display
 
@@ -118,7 +126,7 @@ VSR and integer scaling only work with **GPU scaling on**: when you turn VSR on,
 6. **Add running process** lists the programs open right now, so you can add a game that is already running. Settings are only applied when the game starts, so close it and open it again after adding.
 7. The **Global profile** entry at the top of the list holds one set of options shared by every game that has *Use the global profile* turned on. Games are added with their own settings and only follow the global profile when you tick that box.
 
-The app watches processes every 0.4 s so options such as AFMF and FSR are in place as early as possible.
+The app watches processes once per second, with a single lightweight process snapshot, so options such as AFMF and FSR are in place as early as possible.
 
 ### Tuning
 
@@ -157,6 +165,8 @@ The app applies the profile for that game, starts it, waits for it to exit, rest
 ### 2. Watcher mode
 
 Keep **Enable per app profiles** on. The app checks running processes and applies the matching profile when a game starts, restoring your values when it closes. RCU has to be running, but it can sit in the tray, enable **Start with Windows** + **Start minimized** to make it automatic.
+
+Each game can also run a program when it starts and another when it closes (for example to start a monitoring tool or switch a lighting profile). The program runs hidden, without a shell. Commands are never imported: profiles loaded from a file have them removed, so a shared profile cannot run anything on your PC.
 
 If a game only honours an option that was set *before* it started (common with AFMF and FSR), start it through launcher mode so the profile is in place before the game opens. When a game closes, your previous values are always restored.
 
@@ -252,10 +262,10 @@ After applying, the app reads everything back from the driver. The message lists
 
 RCU updates itself from this repository's GitHub releases, no store, no installer service.
 
-* **Settings → Updates** shows the version you are running (currently **0.2.6**) and has a **Check now** button.
+* **Settings → Updates** shows the version you are running (currently **0.2.7**) and has a **Check now** button.
 * **Check for updates automatically** (on by default) asks `api.github.com/repos/Khotyz/RCU/releases/latest` once at startup. Nothing is downloaded without your confirmation.
 * When a newer release exists, an information bar appears at the bottom of the window with a **Download** button. RCU downloads the release asset (`.exe`, `.msi` or `.zip`) to `%TEMP%\RedControlUtility\update-<tag>` and opens it; if the release has no asset, it opens the release page in your browser.
-* The comparison uses the tag (`v0.3.0` > `0.2.6`). Turn the option off in Settings if you prefer to update manually.
+* The comparison uses the tag (`0.3.0` > `0.2.7`). Turn the option off in Settings if you prefer to update manually.
 
 ## Window size
 
@@ -309,17 +319,17 @@ Manual overclocking, undervolting and firmware-level changes are always at your 
 
 ## Installer and releases
 
-The installer is an Inno Setup script in `installer/RCU.iss`. It installs to `C:\RCU` by default (the folder can be changed in the wizard), adds Start menu and optional desktop shortcuts, an optional "start with Windows" entry, and a normal uninstaller. Settings and logs stay in your user profile, so uninstalling does not touch them.
+The installer is an Inno Setup script in `installer/RCU.iss`. It installs to `C:\RCU` by default (the folder can be changed in the wizard), adds Start menu and optional desktop shortcuts, an optional "start with Windows" entry, and a normal uninstaller. When an existing RCU install is found in the folder, its old files are removed before the new version is copied, so nothing from a previous version is left behind. Settings and logs stay in your user profile, so neither updating nor uninstalling touches them.
 
 To build locally with the full Microsoft Visual Studio:
 
 1. Open `RedControlUtility.sln` in Visual Studio with the WinUI project tooling, Windows SDK and .NET 8 SDK installed.
 2. Choose **Release | x64**, right-click the **RedControlUtility** project, choose **Publish** and run the included **FolderProfile**. Publish to the profile's default folder before compiling `installer/RCU.iss` in **Inno Setup 6.5 or later**.
-3. The installer reads `Product` and `Version` from the published executable's metadata, generated from `RedControlUtility.csproj`. No duplicate version or product name needs to be edited in the `.iss`. For this release, the output is `dist/RCU-Setup-0.2.6.exe`.
+3. The installer reads `Product` and `Version` from the published executable's metadata, generated from `RedControlUtility.csproj`. No duplicate version or product name needs to be edited in the `.iss`. For this release, the output is `dist/RCU-Setup-0.2.7.exe`.
 
 The package is self-contained and uses solid LZMA2 compression. It includes only the English, Brazilian Portuguese, Spanish and Simplified Chinese UI resources. The Simplified Chinese setup messages are from [Inno Setup's translation collection](https://github.com/jrsoftware/issrc/blob/is-6_7_4/Files/Languages/Unofficial/ChineseSimplified.isl).
 
-To publish a GitHub release, set `Version` in the project file, then push a matching tag such as `v0.2.6`. The release workflow publishes the app, builds the installer and a portable ZIP, and attaches both to the release. The updater compares the latest release tag with the installed version.
+To publish a GitHub release, set `Version` in the project file, then push a matching tag such as `0.2.7`. The release workflow publishes the app, builds the installer and a portable ZIP, and attaches both to the release. The updater compares the latest release tag with the installed version.
 
 ---
 

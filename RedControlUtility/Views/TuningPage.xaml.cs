@@ -611,6 +611,29 @@ public sealed partial class TuningPage : Page
         return s;
     }
 
+    private static bool Ne(int? cur, int? want) => want.HasValue && cur != want;
+
+    private static TuningSettings Diff(TuningSettings cur, TuningSettings want)
+    {
+        var r = new TuningSettings();
+        if (Ne(cur.GpuMinMhz, want.GpuMinMhz)) r.GpuMinMhz = want.GpuMinMhz;
+        if (Ne(cur.GpuMaxMhz, want.GpuMaxMhz)) r.GpuMaxMhz = want.GpuMaxMhz;
+        if (Ne(cur.VoltageMv, want.VoltageMv)) r.VoltageMv = want.VoltageMv;
+        if (Ne(cur.PowerLimitPercent, want.PowerLimitPercent)) r.PowerLimitPercent = want.PowerLimitPercent;
+        if (Ne(cur.VramMaxMhz, want.VramMaxMhz)) r.VramMaxMhz = want.VramMaxMhz;
+        if (want.VramTiming != null && cur.VramTiming != want.VramTiming) r.VramTiming = want.VramTiming;
+        if (want.ZeroRpm != null && cur.ZeroRpm != want.ZeroRpm) r.ZeroRpm = want.ZeroRpm;
+        if (Ne(cur.FanMinRpm, want.FanMinRpm)) r.FanMinRpm = want.FanMinRpm;
+        if (Ne(cur.FanTargetRpm, want.FanTargetRpm)) r.FanTargetRpm = want.FanTargetRpm;
+        if (want.FanCurve is { Count: > 0 } && !(cur.FanCurve != null && cur.FanCurve.Count == want.FanCurve.Count &&
+            cur.FanCurve.Zip(want.FanCurve).All(p => p.First.TemperatureC == p.Second.TemperatureC && p.First.FanSpeedPercent == p.Second.FanSpeedPercent)))
+            r.FanCurve = want.FanCurve;
+        if (want.VfStates is { Count: > 0 } && !(cur.VfStates != null && cur.VfStates.Count == want.VfStates.Count &&
+            cur.VfStates.Zip(want.VfStates).All(p => p.First.Index == p.Second.Index && p.First.FrequencyMHz == p.Second.FrequencyMHz && p.First.VoltageMv == p.Second.VoltageMv)))
+            r.VfStates = want.VfStates;
+        return r;
+    }
+
     private void Reload_Click(object sender, RoutedEventArgs e)
     {
         LoadAll();
@@ -622,6 +645,13 @@ public sealed partial class TuningPage : Page
     private async Task ApplyAsync(bool skipConfirm)
     {
         if (_busy || _loading) return;
+        if (!Diff(_current, Collect()).HasValues())
+        {
+            if (!skipConfirm) Show(StatusBar, InfoBarSeverity.Informational, L("Msg.NothingToApply"));
+            PendingText.Text = string.Empty;
+            return;
+        }
+
         if (!skipConfirm && App.Settings.Current.ConfirmTuning)
         {
             var r = await ConfirmAsync(XamlRoot, L("Tuning.ConfirmTitle"), L("Tuning.ConfirmText"), L("Common.Apply"), L("Common.Cancel"));
@@ -631,7 +661,14 @@ public sealed partial class TuningPage : Page
         _busy = true;
         try
         {
-            var settings = Collect();
+            var settings = Diff(_current, Collect());
+            if (!settings.HasValues())
+            {
+                if (!skipConfirm) Show(StatusBar, InfoBarSeverity.Informational, L("Msg.NothingToApply"));
+                PendingText.Text = string.Empty;
+                return;
+            }
+
             ApplyReport report;
             if (skipConfirm)
             {
@@ -658,6 +695,7 @@ public sealed partial class TuningPage : Page
             else
             {
                 PendingText.Text = string.Empty;
+                _current = await Task.Run(() => App.Hardware.ReadTuning());
             }
         }
         catch (Exception ex)

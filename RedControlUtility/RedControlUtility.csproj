@@ -23,7 +23,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Product>Red Control Utility</Product>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
-    <Version>0.2.6</Version>
+    <Version>0.2.7</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <PublishReadyToRun>false</PublishReadyToRun>
     <SatelliteResourceLanguages>en;en-US;pt;pt-BR;es;es-ES;zh;zh-CN;zh-Hans;zh-Hans-CN</SatelliteResourceLanguages>

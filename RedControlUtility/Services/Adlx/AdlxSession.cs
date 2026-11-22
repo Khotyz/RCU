@@ -290,14 +290,14 @@ public sealed partial class AdlxSession : IDisposable
                 using var m = new AdlxObject(p);
                 snap.Valid = true;
 
-                if (m.GetDouble(4, out double usage).Succeeded()) snap.GpuUsage = usage;
+                if (m.GetDouble(4, out double usage).Succeeded() && !double.IsNaN(usage) && usage >= 0) snap.GpuUsage = Math.Min(usage, 100);
                 if (m.GetInt(5, out int clk).Succeeded()) snap.GpuClockMhz = clk;
                 if (m.GetInt(6, out int vclk).Succeeded()) snap.VramClockMhz = vclk;
                 if (m.GetDouble(7, out double t).Succeeded()) snap.TempEdgeC = t;
                 if (m.GetDouble(8, out double hs).Succeeded()) snap.TempHotspotC = hs;
                 if (m.GetDouble(9, out double pw).Succeeded()) snap.PowerW = pw;
                 if (m.GetDouble(10, out double bp).Succeeded()) snap.BoardPowerW = bp;
-                if (m.GetInt(11, out int fan).Succeeded()) snap.FanRpm = fan;
+                if (m.GetInt(11, out int fan).Succeeded() && fan is >= 0 and <= 20000) snap.FanRpm = fan;
                 if (m.GetInt(12, out int vram).Succeeded()) snap.VramUsedMb = vram;
                 if (m.GetInt(13, out int volt).Succeeded()) snap.VoltageMv = volt;
 
@@ -305,7 +305,7 @@ public sealed partial class AdlxSession : IDisposable
                 if (m1 != null && m1.GetDouble(15, out double mt).Succeeded()) snap.TempMemoryC = mt;
 
                 using var m3 = m.Query("IADLXGPUMetrics3");
-                if (m3 != null && m3.GetInt(19, out int duty).Succeeded()) snap.FanDutyPercent = duty;
+                if (m3 != null && m3.GetInt(19, out int duty).Succeeded() && duty is >= 0 and <= 100) snap.FanDutyPercent = duty;
             }
             catch (Exception ex)
             {

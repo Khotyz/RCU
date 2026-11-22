@@ -12,6 +12,8 @@ public sealed class AppProfile
     public GraphicsSettings Graphics { get; set; } = new();
 
     public int? PowerLimitPercent { get; set; }
+    public string RunOnStart { get; set; } = string.Empty;
+    public string RunOnExit { get; set; } = string.Empty;
 
     public string ExeName => Path.GetFileName(ExecutablePath);
 }

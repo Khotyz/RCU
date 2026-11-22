@@ -88,6 +88,9 @@ Source: "{#PublishPath}{#FolderName}\*"; DestDir: "{app}\{#FolderName}"; Exclude
   #call FindClose(FindHandle)
 #endif
 
+[InstallDelete]
+Type: filesandordirs; Name: "{app}\*"; Check: IsExistingInstall
+
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
@@ -108,6 +111,11 @@ Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM {#AppExe}"; Flags: runhidden
 Type: filesandordirs; Name: "{app}"
 
 [Code]
+function IsExistingInstall: Boolean;
+begin
+  Result := FileExists(ExpandConstant('{app}\{#AppExe}'));
+end;
+
 function NeedsVcRedist: Boolean;
 var
   Installed: Cardinal;

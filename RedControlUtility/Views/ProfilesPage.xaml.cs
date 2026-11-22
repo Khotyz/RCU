@@ -91,6 +91,12 @@ public sealed partial class ProfilesPage : Page
                 return;
             }
 
+            foreach (var imported in loaded.Apps)
+            {
+                imported.RunOnStart = string.Empty;
+                imported.RunOnExit = string.Empty;
+            }
+
             App.CurrentProfile = loaded;
             App.SaveCurrentProfile();
             App.RestartEngine();

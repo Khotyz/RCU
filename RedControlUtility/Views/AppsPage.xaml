@@ -17,18 +17,18 @@
     <ScrollViewer x:Name="PageScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <Grid>
         <Grid.ColumnDefinitions><ColumnDefinition Width="*" MaxWidth="1280" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-        <StackPanel Spacing="8" HorizontalAlignment="Stretch">
+        <StackPanel Spacing="8" HorizontalAlignment="Stretch" Margin="0,0,14,0">
             <TextBlock Style="{StaticResource PageTitleStyle}" rcu:Loc.Key="Apps.Title" />
             <TextBlock x:Name="ActiveText" Opacity="0.85" />
 
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <ctl:WrapPanel>
                 <Button Style="{StaticResource AccentButtonStyle}" Click="Add_Click" rcu:Loc.Key="Apps.Add" rcu:Loc.Tip="Apps.AddTip" />
                 <Button x:Name="SearchGamesButton" Click="SearchGames_Click" rcu:Loc.Key="Apps.SearchGames" rcu:Loc.Tip="Apps.SearchGamesTip" />
                 <Button x:Name="FromProcessButton" Click="FromProcess_Click" rcu:Loc.Key="Apps.FromProcess" rcu:Loc.Tip="Apps.FromProcessTip" />
                 <Button x:Name="RemoveButton" Click="Remove_Click" rcu:Loc.Key="Apps.Remove" />
                 <Button x:Name="TestButton" Click="Test_Click" rcu:Loc.Key="Apps.TestNow" rcu:Loc.Tip="Apps.TestNowTip" />
                 <TextBlock VerticalAlignment="Center" Opacity="0.65" rcu:Loc.Key="Apps.DropHint" />
-            </StackPanel>
+            </ctl:WrapPanel>
 
             <Grid ColumnSpacing="10">
                 <Grid.ColumnDefinitions>
@@ -68,17 +68,26 @@
                         </Grid>
                         <CheckBox x:Name="UseGlobalCheck" rcu:Loc.Key="Apps.UseGlobal" rcu:Loc.Tip="Apps.UseGlobalTip" Checked="UseGlobal_Changed" Unchecked="UseGlobal_Changed" />
 
+                        <Grid x:Name="CommandsPanel" ColumnSpacing="10" RowSpacing="4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Style="{StaticResource RowLabel}" rcu:Loc.Key="Apps.RunOnStart" rcu:Loc.Tip="Tip.RunCommand" />
+                            <TextBox x:Name="RunOnStartBox" Grid.Row="0" Grid.Column="1" rcu:Loc.Tip="Tip.RunCommand" TextChanged="Command_TextChanged" />
+                            <TextBlock Grid.Row="1" Style="{StaticResource RowLabel}" rcu:Loc.Key="Apps.RunOnExit" rcu:Loc.Tip="Tip.RunCommand" />
+                            <TextBox x:Name="RunOnExitBox" Grid.Row="1" Grid.Column="1" rcu:Loc.Tip="Tip.RunCommand" TextChanged="Command_TextChanged" />
+                        </Grid>
+
                         <ContentControl x:Name="SettingsHost" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Top">
                         <StackPanel Spacing="4">
                         <StackPanel Spacing="4">
                             <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Apps.QuickTitle" rcu:Loc.Tip="Apps.QuickTitleTip" />
-                            <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ctl:WrapPanel>
                                 <Button Tag="competitive" Click="Quick_Click" rcu:Loc.Key="Apps.PresetCompetitive" rcu:Loc.Tip="Apps.PresetCompetitiveTip" />
                                 <Button Tag="fps60" Click="Quick_Click" rcu:Loc.Key="Apps.Preset60" rcu:Loc.Tip="Apps.Preset60Tip" />
                                 <Button Tag="saver" Click="Quick_Click" rcu:Loc.Key="Apps.PresetSaver" rcu:Loc.Tip="Apps.PresetSaverTip" />
                                 <Button Tag="quality" Click="Quick_Click" rcu:Loc.Key="Apps.PresetQuality" rcu:Loc.Tip="Apps.PresetQualityTip" />
                                 <Button Tag="clear" Click="Quick_Click" rcu:Loc.Key="Apps.PresetClear" rcu:Loc.Tip="Apps.PresetClearTip" />
-                            </StackPanel>
+                            </ctl:WrapPanel>
                         </StackPanel>
 
                         <Grid ColumnSpacing="10" RowSpacing="4">

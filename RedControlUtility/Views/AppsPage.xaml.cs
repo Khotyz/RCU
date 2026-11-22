@@ -236,6 +236,9 @@ public sealed partial class AppsPage : Page
             GlobalHeader.Visibility = isGlobal ? Visibility.Visible : Visibility.Collapsed;
             UseGlobalCheck.Visibility = isGlobal ? Visibility.Collapsed : Visibility.Visible;
             UseGlobalCheck.IsChecked = a.UseGlobal;
+            CommandsPanel.Visibility = isGlobal ? Visibility.Collapsed : Visibility.Visible;
+            RunOnStartBox.Text = a.RunOnStart ?? string.Empty;
+            RunOnExitBox.Text = a.RunOnExit ?? string.Empty;
             RemoveButton.IsEnabled = !isGlobal && Apps.Count > 0;
             SettingsHost.IsEnabled = isGlobal || !a.UseGlobal;
             SettingsHost.Opacity = SettingsHost.IsEnabled ? 1 : 0.45;
@@ -364,6 +367,8 @@ public sealed partial class AppsPage : Page
 
     private void Field_Toggled(object sender, RoutedEventArgs e) => Changed();
 
+    private void Command_TextChanged(object sender, TextChangedEventArgs e) => Changed();
+
     private void UseGlobal_Changed(object sender, RoutedEventArgs e)
     {
         if (_loading || _app == null) return;
@@ -385,6 +390,11 @@ public sealed partial class AppsPage : Page
         var a = _app;
         a.Enabled = EnabledToggle.IsOn;
         a.UseGlobal = !IsGlobal(a) && UseGlobalCheck.IsChecked == true;
+        if (!IsGlobal(a))
+        {
+            a.RunOnStart = RunOnStartBox.Text.Trim();
+            a.RunOnExit = RunOnExitBox.Text.Trim();
+        }
         var g = a.Graphics;
         g.AntiLag = TriToBool(AntiLagCombo.SelectedIndex);
         g.Afmf = TriToBool(AfmfCombo.SelectedIndex);

@@ -24,6 +24,53 @@ public static class ProcessListService
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool QueryFullProcessImageName(IntPtr process, uint flags, StringBuilder name, ref int size);
 
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct ProcessEntry
+    {
+        public uint Size;
+        public uint Usage;
+        public uint ProcessId;
+        public IntPtr DefaultHeapId;
+        public uint ModuleId;
+        public uint Threads;
+        public uint ParentProcessId;
+        public int PriorityClassBase;
+        public uint Flags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string ExeFile;
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint pid);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool Process32FirstW(IntPtr snapshot, ref ProcessEntry entry);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool Process32NextW(IntPtr snapshot, ref ProcessEntry entry);
+
+    public static HashSet<string> RunningNames()
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        IntPtr snap = CreateToolhelp32Snapshot(0x2, 0);
+        if (snap == IntPtr.Zero || snap == new IntPtr(-1)) return set;
+        try
+        {
+            var e = new ProcessEntry { Size = (uint)Marshal.SizeOf<ProcessEntry>() };
+            if (!Process32FirstW(snap, ref e)) return set;
+            do
+            {
+                set.Add(Path.GetFileNameWithoutExtension(e.ExeFile));
+            }
+            while (Process32NextW(snap, ref e));
+        }
+        finally
+        {
+            CloseHandle(snap);
+        }
+
+        return set;
+    }
+
     private static readonly string[] SystemNames =
     {
         "explorer", "applicationframehost", "textinputhost", "systemsettings", "searchhost", "startmenuexperiencehost", "shellexperiencehost",

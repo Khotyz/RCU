@@ -36,7 +36,7 @@ public sealed class AppProfileEngine : IDisposable
     public void Start()
     {
         Stop();
-        _timer = new Timer(_ => Tick(), null, 500, 400);
+        _timer = new Timer(_ => Tick(), null, 500, 1000);
     }
 
     public void Stop()
@@ -57,9 +57,10 @@ public sealed class AppProfileEngine : IDisposable
             _busy = true;
             try
             {
-                var running = RunningProcessNames(_profiles().Where(x => x.Enabled && !string.IsNullOrEmpty(x.ExeName)).Select(x => Path.GetFileNameWithoutExtension(x.ExeName)));
-                var match = _profiles().FirstOrDefault(p => p.Enabled && !string.IsNullOrEmpty(p.ExeName) &&
-                    running.Contains(Path.GetFileNameWithoutExtension(p.ExeName)));
+                var candidates = _profiles().Where(x => x.Enabled && !string.IsNullOrEmpty(x.ExeName)).ToList();
+                if (candidates.Count == 0 && _active == null) return;
+                var running = ProcessListService.RunningNames();
+                var match = candidates.FirstOrDefault(p => running.Contains(Path.GetFileNameWithoutExtension(p.ExeName)));
 
                 if (ReferenceEquals(match, _active)) return;
                 if (match != null && _active != null && string.Equals(match.ExecutablePath, _active.ExecutablePath, StringComparison.OrdinalIgnoreCase)) return;
@@ -78,17 +79,46 @@ public sealed class AppProfileEngine : IDisposable
         }
     }
 
-    private static HashSet<string> RunningProcessNames(IEnumerable<string> wanted)
+    private static void RunCommand(string? command, string profileName, string phase)
     {
-        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var name in wanted.Distinct(StringComparer.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(command)) return;
+        try
         {
-            var list = Process.GetProcessesByName(name);
-            if (list.Length > 0) set.Add(name);
-            foreach (var p in list) p.Dispose();
-        }
+            string text = command.Trim();
+            string file, args = string.Empty;
+            if (text.StartsWith('"'))
+            {
+                int end = text.IndexOf('"', 1);
+                if (end < 0) return;
+                file = text.Substring(1, end - 1);
+                args = text.Substring(end + 1).Trim();
+            }
+            else
+            {
+                int sp = text.IndexOf(' ');
+                file = sp < 0 ? text : text.Substring(0, sp);
+                args = sp < 0 ? string.Empty : text.Substring(sp + 1).Trim();
+            }
 
-        return set;
+            if (!File.Exists(file))
+            {
+                LogService.Error($"Command {phase} '{profileName}': file not found: {file}");
+                return;
+            }
+
+            var psi = new ProcessStartInfo(file, args)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = Path.GetDirectoryName(file) ?? string.Empty
+            };
+            using var p = Process.Start(psi);
+            LogService.Info($"Command {phase} '{profileName}': started {Path.GetFileName(file)}");
+        }
+        catch (Exception ex)
+        {
+            LogService.Error($"Command {phase} '{profileName}': {ex.Message}");
+        }
     }
 
     private void Activate(AppProfile profile)
@@ -145,6 +175,7 @@ public sealed class AppProfileEngine : IDisposable
 
         LastReport = report;
         _active = profile;
+        RunCommand(profile.RunOnStart, profile.Name, "start");
         ActiveChanged?.Invoke(profile);
     }
 
@@ -173,6 +204,7 @@ public sealed class AppProfileEngine : IDisposable
             }
         }
 
+        if (profile != null) RunCommand(profile.RunOnExit, profile.Name, "exit");
         _active = null;
         _restoreGraphics = null;
         _restoreTuning = null;
