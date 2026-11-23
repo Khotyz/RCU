@@ -100,6 +100,18 @@ public sealed partial class AdlxSession
         return result;
     }
 
+    private static readonly HashSet<string> LoggedOnce = new();
+
+    private static void LogOnce(string message)
+    {
+        lock (LoggedOnce)
+        {
+            if (!LoggedOnce.Add(message)) return;
+        }
+
+        LogService.Info(message);
+    }
+
     private void ReadDisplayFeatures(AdlxObject d, DisplayInfo info)
     {
         var c = info.Caps;
@@ -122,7 +134,7 @@ public sealed partial class AdlxSession
             c.GpuScaling = f != null;
             if (f != null)
             {
-                if (!f.Supported()) LogService.Info($"Escala da GPU: IsSupported=false em '{info.Name}' (liberada mesmo assim)");
+                if (!f.Supported()) LogOnce($"Escala da GPU: IsSupported=false em '{info.Name}' (liberada mesmo assim)");
                 if (f.GetBool(4, out bool e).Succeeded()) s.GpuScaling = e;
             }
         }
@@ -132,7 +144,7 @@ public sealed partial class AdlxSession
             c.Vsr = f != null;
             if (f != null)
             {
-                if (!f.Supported()) LogService.Info($"VSR: IsSupported=false em '{info.Name}' (liberado mesmo assim)");
+                if (!f.Supported()) LogOnce($"VSR: IsSupported=false em '{info.Name}' (liberado mesmo assim)");
                 if (f.GetBool(4, out bool e).Succeeded()) s.Vsr = e;
             }
         }
@@ -143,7 +155,7 @@ public sealed partial class AdlxSession
             bool readable = f != null && f.GetBool(4, out isOn).Succeeded();
             if (readable) s.IntegerScaling = isOn;
             c.IntegerScaling = f != null && (readable || f.Supported());
-            if (f != null && !c.IntegerScaling) LogService.Info($"Escala inteira: indisponível em '{info.Name}', opção desativada");
+            if (f != null && !c.IntegerScaling) LogOnce($"Escala inteira: indisponível em '{info.Name}', opção desativada");
         }
 
         using (var f = DisplayFeature(d, DispSvc.ScalingMode))

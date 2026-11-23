@@ -45,11 +45,28 @@ public sealed partial class AdlxSession
         [NAfmf] = new[] { NChill, NFrtc, NRis, NRsr, NBoost },
     };
 
+    private readonly HashSet<string> _faulted = new();
+
     private AdlxObject? Feature(AdlxObject? services, int slot, bool withGpu)
     {
         if (services == null || _gpu == null) return null;
-        AdlxResult r = withGpu ? services.GetPtrWith(slot, _gpu.Ptr, out IntPtr p) : services.GetPtr(slot, out p);
-        return r.Succeeded() && p != IntPtr.Zero ? new AdlxObject(p) : null;
+        string key = $"{System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(services)}:{slot}:{withGpu}";
+        lock (_faulted)
+        {
+            if (_faulted.Contains(key)) return null;
+        }
+
+        try
+        {
+            AdlxResult r = withGpu ? services.GetPtrWith(slot, _gpu.Ptr, out IntPtr p) : services.GetPtr(slot, out p);
+            return r.Succeeded() && p != IntPtr.Zero ? new AdlxObject(p) : null;
+        }
+        catch (Exception ex)
+        {
+            lock (_faulted) _faulted.Add(key);
+            LogService.Warn($"ADLX: the driver failed on service slot {slot} ({ex.GetType().Name}), marked as unsupported");
+            return null;
+        }
     }
 
     private AdlxObject? Feature3D(string name) => name switch
@@ -669,9 +686,16 @@ public sealed partial class AdlxSession
             foreach (var name in new[] { "IADLX3DSettingsServices3", "IADLX3DSettingsServices4",
                                          "IADLX3DFidelityFXSuperResolution", "IADLX3DFidelityFXFrameGenUpgrade" })
             {
-                using var a = _3d?.Query(name);
-                using var b = _gpu?.Query(name);
-                sb.AppendLine($"QueryInterface({name}): {UiHelper.L("Diag.Services")}={(a != null ? UiHelper.L("Common.Yes") : UiHelper.L("Common.No"))} gpu={(b != null ? UiHelper.L("Common.Yes") : UiHelper.L("Common.No"))}");
+                try
+                {
+                    using var a = _3d?.Query(name);
+                    using var b = _gpu?.Query(name);
+                    sb.AppendLine($"QueryInterface({name}): {UiHelper.L("Diag.Services")}={(a != null ? UiHelper.L("Common.Yes") : UiHelper.L("Common.No"))} gpu={(b != null ? UiHelper.L("Common.Yes") : UiHelper.L("Common.No"))}");
+                }
+                catch (Exception ex)
+                {
+                    sb.AppendLine($"QueryInterface({name}): {ex.GetType().Name}");
+                }
             }
         }
 
@@ -686,17 +710,24 @@ public sealed partial class AdlxSession
             return;
         }
 
-        AdlxResult r = withGpu ? services.GetPtrWith(slot, _gpu.Ptr, out IntPtr p) : services.GetPtr(slot, out p);
-        if (!r.Succeeded() || p == IntPtr.Zero)
+        try
         {
-            sb.AppendLine($"{name}: obter objeto => {r}");
-            return;
-        }
+            AdlxResult r = withGpu ? services.GetPtrWith(slot, _gpu.Ptr, out IntPtr p) : services.GetPtr(slot, out p);
+            if (!r.Succeeded() || p == IntPtr.Zero)
+            {
+                sb.AppendLine($"{name}: obter objeto => {r}");
+                return;
+            }
 
-        using var f = new AdlxObject(p);
-        var rs = f.GetBool(3, out bool sup);
-        var re = f.GetBool(4, out bool en);
-        sb.AppendLine($"{name}: objeto ok | IsSupported={sup} ({rs}) | IsEnabled={en} ({re})");
+            using var f = new AdlxObject(p);
+            var rs = f.GetBool(3, out bool sup);
+            var re = f.GetBool(4, out bool en);
+            sb.AppendLine($"{name}: objeto ok | IsSupported={sup} ({rs}) | IsEnabled={en} ({re})");
+        }
+        catch (Exception ex)
+        {
+            sb.AppendLine($"{name}: driver {ex.GetType().Name} (not supported by this ADLX version)");
+        }
     }
 
     public AdlxResult ResetShaderCache()

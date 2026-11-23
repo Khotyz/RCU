@@ -38,7 +38,8 @@
                         </Grid>
                     </StackPanel>
                     <ToggleSwitch x:Name="AutoRevertToggle" rcu:Loc.Header="Settings.AutoRevert" rcu:Loc.Tip="Settings.AutoRevertTip" Toggled="Toggle_Changed" />
-                    <ToggleSwitch x:Name="LiveUndervoltToggle" rcu:Loc.Header="Settings.LiveUndervolt" rcu:Loc.Tip="Settings.LiveUndervoltTip" Toggled="Toggle_Changed" />
+                    <ToggleSwitch x:Name="LiveUndervoltToggle" rcu:Loc.Header="Settings.LiveUndervolt" rcu:Loc.Tip="Settings.LiveUndervoltTip" Toggled="LiveUndervolt_Toggled" />
+                    <InfoBar x:Name="LiveWarnBar" Severity="Warning" IsOpen="True" IsClosable="False" Margin="0,2,0,6" />
                 </StackPanel>
             </Border>
 

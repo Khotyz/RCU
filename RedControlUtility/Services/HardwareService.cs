@@ -534,7 +534,7 @@ public sealed class HardwareService : IDisposable
         sb.AppendLine(InitReport);
         sb.AppendLine();
         sb.AppendLine("--- GPU ---");
-        foreach (var g in _gpus)
+        foreach (var g in _gpus.ToArray())
         {
             sb.AppendLine($"{(g.Index == CurrentGpu.Index ? "*" : " ")} [{g.Index}] {g.Name} | VEN {g.VendorId} DEV {g.DeviceId} REV {g.RevisionId} | {g.ArchitectureText} | VRAM {g.VramMb} MB {g.VramType} | driver {g.DriverVersion} | BIOS {g.BiosVersion}");
         }
@@ -556,7 +556,8 @@ public sealed class HardwareService : IDisposable
         if (_session != null)
         {
             sb.AppendLine("--- "+UiHelper.L("Diag.Upscalers")+" ---");
-            sb.AppendLine(_session.ProbeUpscalers());
+            try { sb.AppendLine(_session.ProbeUpscalers()); }
+            catch (Exception ex) { sb.AppendLine(ex.Message); }
         }
 
         var t = c.Tuning;

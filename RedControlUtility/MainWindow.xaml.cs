@@ -16,6 +16,11 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ContentFrame.NavigationFailed += (_, e) =>
+        {
+            LogService.Error($"Navigation failed ({e.SourcePageType?.Name}): {e.Exception}");
+            e.Handled = true;
+        };
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         SizeToScreen();
@@ -310,7 +315,14 @@ public sealed partial class MainWindow : Window
                 "Settings" => typeof(SettingsPage),
                 _ => typeof(DashboardPage)
             };
-            ContentFrame.Navigate(pageType);
+            try
+            {
+                ContentFrame.Navigate(pageType);
+            }
+            catch (Exception ex)
+            {
+                LogService.Error($"Navigation to {tag}: {ex}");
+            }
         }
     }
 }

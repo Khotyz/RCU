@@ -83,8 +83,8 @@ public sealed partial class SettingsPage : Page
 
             GpuCombo.Items.Clear();
             foreach (var g in App.Hardware.AllGpus) GpuCombo.Items.Add(Item($"[{g.Index}] {g.Name}", g.Index));
-            GpuCombo.IsEnabled = App.Hardware.AllGpus.Count > 1;
-            GpuCombo.Opacity = App.Hardware.AllGpus.Count > 1 ? 1 : 0.5;
+            GpuCombo.IsEnabled = App.Hardware.AllGpus.Count > 1 && App.Hardware.AdlxAvailable;
+            GpuCombo.Opacity = GpuCombo.IsEnabled ? 1 : 0.5;
             BackendCombo.IsEnabled = S.AdvancedMode;
             ApplyModeCombo.IsEnabled = S.AdvancedMode;
             GpuCombo.SelectedIndex = Math.Clamp(App.Hardware.CurrentGpu.Index, 0, Math.Max(0, GpuCombo.Items.Count - 1));
@@ -97,12 +97,79 @@ public sealed partial class SettingsPage : Page
             AutoUpdateToggle.IsOn = S.CheckForUpdates;
             VersionText.Text = L("Settings.UpdateVersion", UpdateService.CurrentText);
 
-            DiagBox.Text = App.Hardware.BuildDiagnostics();
+            LiveWarnBar.Title = L("Settings.LiveWarnTitle");
+            LiveWarnBar.Message = L("Settings.LiveWarnBanner");
+            LoadDiagnosticsAsync();
+        }
+        catch (Exception ex)
+        {
+            LogService.Error($"Settings page: {ex}");
         }
         finally
         {
             _loading = false;
         }
+    }
+
+    private async void LoadDiagnosticsAsync()
+    {
+        try
+        {
+            DiagBox.Text = await Task.Run(() => App.Hardware.BuildDiagnostics());
+        }
+        catch (Exception ex)
+        {
+            LogService.Error($"Diagnostics: {ex}");
+            DiagBox.Text = ex.Message;
+        }
+    }
+
+    private async void LiveUndervolt_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        if (LiveUndervoltToggle.IsOn && !S.LiveApplyUndervolt && !await ConfirmLiveUndervoltAsync())
+        {
+            _loading = true;
+            try { LiveUndervoltToggle.IsOn = false; }
+            finally { _loading = false; }
+            return;
+        }
+
+        Toggle_Changed(sender, e);
+    }
+
+    private async Task<bool> ConfirmLiveUndervoltAsync()
+    {
+        var red = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xE8, 0x4A, 0x4A));
+        var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
+        title.Children.Add(new FontIcon { Glyph = "\uE7BA", FontSize = 34, Foreground = red });
+        title.Children.Add(new TextBlock
+        {
+            Text = L("Settings.LiveWarnTitle"),
+            FontSize = 28,
+            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+            Foreground = red,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        var ack = new CheckBox { Content = L("Settings.LiveWarnAck") };
+        var body = new StackPanel { Spacing = 16, MaxWidth = 540 };
+        body.Children.Add(new TextBlock { Text = L("Settings.LiveWarnBody"), TextWrapping = TextWrapping.Wrap, FontSize = 15 });
+        body.Children.Add(ack);
+
+        var dlg = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = title,
+            Content = body,
+            PrimaryButtonText = L("Settings.LiveWarnEnable"),
+            CloseButtonText = L("Common.Cancel"),
+            DefaultButton = ContentDialogButton.Close,
+            IsPrimaryButtonEnabled = false
+        };
+        ack.Checked += (_, _) => dlg.IsPrimaryButtonEnabled = true;
+        ack.Unchecked += (_, _) => dlg.IsPrimaryButtonEnabled = false;
+        return await dlg.ShowAsync() == ContentDialogResult.Primary;
     }
 
     private void Language_Changed(object sender, SelectionChangedEventArgs e)
@@ -211,7 +278,7 @@ public sealed partial class SettingsPage : Page
         S.GpuIndex = idx;
         App.Settings.Save();
         App.Hardware.SelectGpu(idx);
-        DiagBox.Text = App.Hardware.BuildDiagnostics();
+        LoadDiagnosticsAsync();
         Show(StatusBar, InfoBarSeverity.Success, L("Settings.GpuChanged"));
     }
 
@@ -276,10 +343,13 @@ public sealed partial class SettingsPage : Page
         Show(StatusBar, InfoBarSeverity.Success, L("Settings.ShaderCleared", n, r.Succeeded() ? L("Common.Yes") : L("Common.No")));
     }
 
-    private void CopyDiag_Click(object sender, RoutedEventArgs e)
+    private async void CopyDiag_Click(object sender, RoutedEventArgs e)
     {
+        string text;
+        try { text = await Task.Run(() => App.Hardware.BuildDiagnostics()); }
+        catch (Exception ex) { text = ex.Message; }
         var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
-        dp.SetText(App.Hardware.BuildDiagnostics());
+        dp.SetText(text);
         Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
         Show(StatusBar, InfoBarSeverity.Success, L("Settings.Copied"));
     }

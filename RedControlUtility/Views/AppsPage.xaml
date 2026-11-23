@@ -130,9 +130,9 @@
 
                             <TextBlock Grid.Row="7" Grid.ColumnSpan="3" Margin="0,10,0,0" Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Apps.GroupFrames" />
 
-                            <TextBlock Grid.Row="8" Visibility="Collapsed" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Frtc" rcu:Loc.Tip="Tip.Frtc" />
-                            <ComboBox x:Name="FrtcCombo" Visibility="Collapsed" Grid.Row="8" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Frtc" SelectionChanged="Field_SelectionChanged" />
-                            <ctl:ValueEditor x:Name="FrtcEditor" Visibility="Collapsed" Grid.Row="8" Grid.Column="2" rcu:Loc.Tip="Tip.FrtcFps" />
+                            <TextBlock Grid.Row="8" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Frtc" rcu:Loc.Tip="Tip.Frtc" />
+                            <ComboBox x:Name="FrtcCombo" Grid.Row="8" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Frtc" SelectionChanged="Field_SelectionChanged" />
+                            <ctl:ValueEditor x:Name="FrtcEditor" Grid.Row="8" Grid.Column="2" rcu:Loc.Tip="Tip.FrtcFps" />
 
                             <TextBlock Grid.Row="9" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.Chill" rcu:Loc.Tip="Tip.Chill" />
                             <ComboBox x:Name="ChillCombo" Grid.Row="9" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.Chill" SelectionChanged="Field_SelectionChanged" />

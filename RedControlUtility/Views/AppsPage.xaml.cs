@@ -201,6 +201,7 @@ public sealed partial class AppsPage : Page
         }
 
         Reserve(ChillPanel, ChillCombo);
+        Reserve(FrtcEditor, FrtcCombo);
         Reserve(RisEditor, RisCombo);
         Reserve(RsrEditor, RsrCombo);
         Reserve(BoostEditor, BoostCombo);
@@ -396,6 +397,7 @@ public sealed partial class AppsPage : Page
             a.RunOnExit = RunOnExitBox.Text.Trim();
         }
         var g = a.Graphics;
+        bool chillWas = g.Chill == true;
         g.AntiLag = TriToBool(AntiLagCombo.SelectedIndex);
         g.Afmf = TriToBool(AfmfCombo.SelectedIndex);
         g.Fsr = TriToBool(FsrCombo.SelectedIndex);
@@ -406,8 +408,8 @@ public sealed partial class AppsPage : Page
         int cmin = ChillMinEditor.Value, cmax = Math.Max(cmin, ChillMaxEditor.Value);
         g.ChillMinFps = chillOn ? cmin : null;
         g.ChillMaxFps = chillOn ? cmax : null;
-        g.Frtc = null;
-        g.FrtcFps = null;
+        g.Frtc = TriToBool(FrtcCombo.SelectedIndex);
+        g.FrtcFps = FrtcCombo.SelectedIndex == 1 ? FrtcEditor.Value : null;
         g.ImageSharpening = TriToBool(RisCombo.SelectedIndex);
         g.ImageSharpeningLevel = risOn ? RisEditor.Value : null;
         g.Rsr = TriToBool(RsrCombo.SelectedIndex);
@@ -429,9 +431,22 @@ public sealed partial class AppsPage : Page
 
         if (g.Chill == true && g.Frtc == true)
         {
-            g.Frtc = null;
-            g.FrtcFps = null;
-            _loading = true; FrtcCombo.SelectedIndex = 0; _loading = false;
+            _loading = true;
+            if (chillWas)
+            {
+                g.Chill = null;
+                g.ChillMinFps = null;
+                g.ChillMaxFps = null;
+                ChillCombo.SelectedIndex = 0;
+            }
+            else
+            {
+                g.Frtc = null;
+                g.FrtcFps = null;
+                FrtcCombo.SelectedIndex = 0;
+            }
+
+            _loading = false;
             UpdateEditorVisibility();
         }
 
