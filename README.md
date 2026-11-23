@@ -2,7 +2,7 @@
 
 A small, open-source control panel for AMD Radeon graphics cards on Windows. Unofficial community project, not affiliated with AMD.
 
-![version](https://img.shields.io/badge/version-0.2.10-blue)
+![version](https://img.shields.io/badge/version-0.2.11-blue)
 
 ## What is RCU?
 
@@ -16,7 +16,7 @@ RCU replaces AMD Software (Adrenalin) for everyday use. Install only the AMD gra
 
 It works with Radeon cards from Polaris (RX 400/500) to RDNA 4, uses very little memory and CPU, and does not need AMD Software to be installed or running.
 
-> **Status:** version 0.2.10, early release. Not every driver and GPU combination behaves the same. If an option does not respond, **Settings → Diagnostics** shows exactly what the driver answered. See [Troubleshooting](#troubleshooting).
+> **Status:** version 0.2.11, early release. Not every driver and GPU combination behaves the same. If an option does not respond, **Settings → Diagnostics** shows exactly what the driver answered. See [Troubleshooting](#troubleshooting).
 
 ## Install
 

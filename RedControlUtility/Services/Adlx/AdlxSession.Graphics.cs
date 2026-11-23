@@ -46,6 +46,16 @@ public sealed partial class AdlxSession
     };
 
     private readonly HashSet<string> _faulted = new();
+    private readonly HashSet<int> _faultedSlots = new();
+
+    public GpuArchitecture Architecture { get; set; } = GpuArchitecture.Unknown;
+
+    private bool ArchAllows(string name) => name switch
+    {
+        NAfmf => Architecture is not (GpuArchitecture.Gcn or GpuArchitecture.Polaris or GpuArchitecture.Vega),
+        NFsr => Architecture.SupportsFsr4(),
+        _ => true
+    };
 
     private AdlxObject? Feature(AdlxObject? services, int slot, bool withGpu)
     {
@@ -63,13 +73,18 @@ public sealed partial class AdlxSession
         }
         catch (Exception ex)
         {
-            lock (_faulted) _faulted.Add(key);
+            lock (_faulted)
+            {
+                _faulted.Add(key);
+                _faultedSlots.Add(slot);
+            }
+
             LogService.Warn($"ADLX: the driver failed on service slot {slot} ({ex.GetType().Name}), marked as unsupported");
             return null;
         }
     }
 
-    private AdlxObject? Feature3D(string name) => name switch
+    private AdlxObject? Feature3D(string name) => !ArchAllows(name) ? null : name switch
     {
         NAntiLag => Feature(_3d, S3D.AntiLag, true),
         NAfmf => Feature(_3d1, S3D.Afmf, false),
@@ -673,15 +688,65 @@ public sealed partial class AdlxSession
         return any;
     }
 
+    private static int SlotOf(string name) => name switch
+    {
+        NAntiLag => S3D.AntiLag,
+        NAfmf => S3D.Afmf,
+        NFsr => S3D.FidelityFxSuperResolution,
+        NEnhSync => S3D.EnhancedSync,
+        NChill => S3D.Chill,
+        NFrtc => S3D.Frtc,
+        NRis => S3D.ImageSharpening,
+        NRsr => S3D.Rsr,
+        NBoost => S3D.Boost,
+        _ => -1
+    };
+
+    private static bool CapOf(GraphicsCapabilities c, string name) => name switch
+    {
+        NAntiLag => c.AntiLag,
+        NAfmf => c.Afmf,
+        NFsr => c.Fsr,
+        NEnhSync => c.EnhancedSync,
+        NChill => c.Chill,
+        NFrtc => c.Frtc,
+        NRis => c.ImageSharpening,
+        NRsr => c.Rsr,
+        NBoost => c.Boost,
+        _ => false
+    };
+
+    public string CompatReport(GraphicsCapabilities c)
+    {
+        var sb = new System.Text.StringBuilder($"ADLX compatibility: driver {AdlxVersion}, {Architecture} |");
+        foreach (var name in new[] { NAntiLag, NAfmf, NFsr, NEnhSync, NChill, NFrtc, NRis, NRsr, NBoost })
+        {
+            bool faulted;
+            lock (_faulted) faulted = _faultedSlots.Contains(SlotOf(name));
+            string state = !ArchAllows(name) ? "skipped (architecture)" : faulted ? "driver error" : CapOf(c, name) ? "ok" : "absent";
+            sb.Append($" {name}={state};");
+        }
+
+        return sb.ToString();
+    }
+
     public string ProbeUpscalers()
     {
         var sb = new System.Text.StringBuilder();
         lock (_sync)
         {
             sb.AppendLine($"ADLX {AdlxVersion} | 3D={_3d != null} S1={_3d1 != null} S2={_3d2 != null} S3={_3d3 != null}");
-            Probe(sb, "AFMF (S1 slot 17)", _3d1, S3D.Afmf, false);
-            Probe(sb, "FSR upgrade (S3 slot 19)", _3d3, S3D.FidelityFxSuperResolution, true);
-            Probe(sb, "FSR frame gen (S3 slot 20)", _3d3, S3D.FidelityFxFrameGen, true);
+            if (ArchAllows(NAfmf)) Probe(sb, "AFMF (S1 slot 17)", _3d1, S3D.Afmf, false);
+            else sb.AppendLine("AFMF: skipped (not available on this architecture)");
+            if (ArchAllows(NFsr))
+            {
+                Probe(sb, "FSR upgrade (S3 slot 19)", _3d3, S3D.FidelityFxSuperResolution, true);
+                Probe(sb, "FSR frame gen (S3 slot 20)", _3d3, S3D.FidelityFxFrameGen, true);
+            }
+            else
+            {
+                sb.AppendLine("FSR: skipped (not available on this architecture)");
+            }
 
             foreach (var name in new[] { "IADLX3DSettingsServices3", "IADLX3DSettingsServices4",
                                          "IADLX3DFidelityFXSuperResolution", "IADLX3DFidelityFXFrameGenUpgrade" })

@@ -70,6 +70,22 @@ public sealed class HardwareService : IDisposable
         }
 
         RefreshLegacySensors(CurrentGpu.Index);
+        LogCompat(true);
+    }
+
+    private void LogCompat(bool append)
+    {
+        try
+        {
+            if (_session == null) return;
+            string report = _session.CompatReport(Caps.Graphics);
+            if (append) InitReport += (InitReport.Length > 0 ? Environment.NewLine : string.Empty) + report;
+            LogService.Info(report);
+        }
+        catch (Exception ex)
+        {
+            LogService.Warn($"ADLX compatibility report: {ex.Message}");
+        }
     }
 
     private void RefreshLegacySensors(int gpuIndex)
@@ -102,6 +118,7 @@ public sealed class HardwareService : IDisposable
             if (_session == null || _gpus.Count == 0) return;
             SelectGpuCore(index);
             RefreshLegacySensors(CurrentGpu.Index);
+            LogCompat(false);
         }
         Reinitialized?.Invoke();
     }
@@ -117,6 +134,7 @@ public sealed class HardwareService : IDisposable
         var (arch, chip) = GpuArchitectureDetector.Detect(CurrentGpu.DeviceId, CurrentGpu.PnpString, CurrentGpu.Name);
         CurrentGpu.Architecture = arch;
         CurrentGpu.ChipName = chip;
+        _session.Architecture = arch;
         DriverInfoService.Enrich(CurrentGpu);
 
         RefreshCapabilities();
