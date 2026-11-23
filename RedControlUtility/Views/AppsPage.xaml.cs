@@ -580,12 +580,18 @@ public sealed partial class AppsPage : Page
         return app;
     }
 
-    private static AppProfile NewApp(string exe, string name, string source) => new()
+    private static AppProfile NewApp(string exe, string name, string source)
     {
-        Name = name,
-        ExecutablePath = exe,
-        Source = source
-    };
+        var global = GlobalApp;
+        return new()
+        {
+            Name = name,
+            ExecutablePath = exe,
+            Source = source,
+            Graphics = global.Graphics.Clone(),
+            PowerLimitPercent = global.PowerLimitPercent
+        };
+    }
 
     private void Test_Click(object sender, RoutedEventArgs e)
     {

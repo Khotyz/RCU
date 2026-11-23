@@ -323,6 +323,7 @@ public sealed unsafe partial class AdlLegacySession
             (target > 0 && min > target)) return AdlxResult.InvalidArgs;
         if (min == fan.MinimumSpeed && target == fan.TargetSpeed) return AdlxResult.Ok;
         fan.Mode = ManualMode;
+        fan.ControlMode = ManualMode;
         fan.MinimumSpeed = min;
         fan.TargetSpeed = target;
         return Result(_setFan(_ctx, _adapter, &fan), "FanControl_Set");
@@ -376,6 +377,7 @@ public sealed unsafe partial class AdlLegacySession
             if (_getFan(_ctx, _adapter, &fan) == 0)
             {
                 fan.Mode = AutomaticMode;
+                fan.ControlMode = AutomaticMode;
                 fanResult = Result(_setFan(_ctx, _adapter, &fan), "FanControl_Set automatic");
             }
             if (!fanResult.Succeeded()) result = fanResult;

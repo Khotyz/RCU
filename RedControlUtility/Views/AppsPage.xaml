@@ -93,7 +93,7 @@
                         <Grid ColumnSpacing="10" RowSpacing="4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="190" />
-                                <ColumnDefinition Width="150" />
+                                <ColumnDefinition Width="Auto" MinWidth="170" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
@@ -163,7 +163,7 @@
                         <Expander x:Name="AdvancedExpander" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="12">
                             <Expander.Header><TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Apps.Advanced" /></Expander.Header>
                             <Grid ColumnSpacing="10" RowSpacing="4">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="Auto" MinWidth="170" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Style="{StaticResource RowLabel}" rcu:Loc.Key="Feature.AaMode" rcu:Loc.Tip="Tip.AaMode" />
                                 <ComboBox x:Name="AaModeCombo" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" rcu:Loc.Tip="Tip.AaMode" SelectionChanged="Field_SelectionChanged" />
