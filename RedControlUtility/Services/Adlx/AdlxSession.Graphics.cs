@@ -48,7 +48,28 @@ public sealed partial class AdlxSession
     private readonly HashSet<string> _faulted = new();
     private readonly HashSet<int> _faultedSlots = new();
 
+    private string _faultKey = string.Empty;
+
     public GpuArchitecture Architecture { get; set; } = GpuArchitecture.Unknown;
+
+    public void LoadFaults(string key)
+    {
+        _faultKey = key;
+        var stored = FaultStore.Load(key);
+        lock (_faulted)
+        {
+            _faulted.Clear();
+            _faultedSlots.Clear();
+            foreach (var item in stored)
+            {
+                _faulted.Add(item);
+                var parts = item.Split(':');
+                if (parts.Length == 3 && int.TryParse(parts[1], out int slot)) _faultedSlots.Add(slot);
+            }
+        }
+
+        if (stored.Length > 0) LogService.Info($"ADLX: {stored.Length} driver call(s) remembered as unsupported and skipped");
+    }
 
     private bool ArchAllows(string name) => name switch
     {
@@ -60,7 +81,8 @@ public sealed partial class AdlxSession
     private AdlxObject? Feature(AdlxObject? services, int slot, bool withGpu)
     {
         if (services == null || _gpu == null) return null;
-        string key = $"{System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(services)}:{slot}:{withGpu}";
+        string tag = ReferenceEquals(services, _3d) ? "3d" : ReferenceEquals(services, _3d1) ? "3d1" : ReferenceEquals(services, _3d2) ? "3d2" : ReferenceEquals(services, _3d3) ? "3d3" : "x";
+        string key = $"{tag}:{slot}:{withGpu}";
         lock (_faulted)
         {
             if (_faulted.Contains(key)) return null;
@@ -73,13 +95,16 @@ public sealed partial class AdlxSession
         }
         catch (Exception ex)
         {
+            string[] snapshot;
             lock (_faulted)
             {
                 _faulted.Add(key);
                 _faultedSlots.Add(slot);
+                snapshot = _faulted.ToArray();
             }
 
-            LogService.Warn($"ADLX: the driver failed on service slot {slot} ({ex.GetType().Name}), marked as unsupported");
+            if (_faultKey.Length > 0) FaultStore.Save(_faultKey, snapshot);
+            LogService.Warn($"ADLX: the driver failed on service slot {slot} ({ex.GetType().Name}), marked as unsupported and remembered for this driver");
             return null;
         }
     }

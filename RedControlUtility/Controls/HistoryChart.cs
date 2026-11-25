@@ -11,7 +11,7 @@ public sealed class HistoryChart : Grid
 {
     private readonly Polyline _line = new() { StrokeThickness = 1.5, StrokeLineJoin = PenLineJoin.Round };
     private readonly Canvas _canvas = new() { Height = 64 };
-    private readonly TextBlock _title = new() { Opacity = 0.7, FontSize = 12 };
+    private readonly TextBlock _title = new() { FontSize = 12 };
     private readonly TextBlock _value = new() { FontSize = 12, HorizontalAlignment = HorizontalAlignment.Right };
     private readonly float[] _buffer = new float[MetricsHistory.Capacity];
     private readonly PointCollection _points = new();
@@ -40,8 +40,22 @@ public sealed class HistoryChart : Grid
         SetRow(_canvas, 1);
         _canvas.Children.Add(_line);
         _line.Points = _points;
-        _line.Stroke = new SolidColorBrush(Application.Current.Resources.TryGetValue("SystemAccentColor", out var c) && c is Windows.UI.Color col ? col : Colors.DodgerBlue);
-        _canvas.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(14, 128, 128, 128));
+        void Paint()
+        {
+            _line.Stroke = new SolidColorBrush(ThemeService.Colors.AccentText);
+            _canvas.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(40, ThemeService.Colors.Muted.R, ThemeService.Colors.Muted.G, ThemeService.Colors.Muted.B));
+            _title.Foreground = new SolidColorBrush(ThemeService.Colors.Muted);
+            _value.Foreground = new SolidColorBrush(ThemeService.Colors.Text);
+        }
+
+        Paint();
+        Loaded += (_, _) =>
+        {
+            ThemeService.Changed -= Paint;
+            ThemeService.Changed += Paint;
+            Paint();
+        };
+        Unloaded += (_, _) => ThemeService.Changed -= Paint;
         Children.Add(_canvas);
     }
 

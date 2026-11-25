@@ -85,8 +85,12 @@ public sealed class OverlayService : IDisposable
     private IntPtr _fontTitle, _font;
 
     private static uint Rgb(int r, int g, int b) => (uint)(r | (g << 8) | (b << 16));
-    private static readonly uint Bg = Rgb(32, 32, 32), Text = Rgb(243, 243, 243), Muted = Rgb(150, 150, 150),
-        Green = Rgb(108, 203, 95), Accent = Rgb(229, 37, 42);
+    private static uint Of(Windows.UI.Color c) => Rgb(c.R, c.G, c.B);
+    private static uint Bg => Of(ThemeService.Colors.Surface);
+    private static uint Text => Of(ThemeService.Colors.Text);
+    private static uint Muted => Of(ThemeService.Colors.Muted);
+    private static uint Accent => Of(ThemeService.Colors.AccentText);
+    private static readonly uint Green = Rgb(108, 203, 95);
 
     public static OverlayService Shared { get; } = new();
 

@@ -87,6 +87,7 @@ public partial class App : Application
 
         try { File.Delete(AppPaths.PendingFlag); } catch { }
         MainWindowInstance = new MainWindow();
+        if (MainWindowInstance is MainWindow themed) ThemeService.Apply(themed);
         MainWindowInstance.Closed += (_, _) =>
         {
             try
@@ -110,13 +111,15 @@ public partial class App : Application
             }
         };
 
-        MainWindowInstance.Activate();
-
         bool minimized = cmd.Any(a => string.Equals(a, "--minimized", StringComparison.OrdinalIgnoreCase)) || Settings.Current.StartMinimized && cmd.Any(a => string.Equals(a, "--startup", StringComparison.OrdinalIgnoreCase));
-        if (minimized)
+        if (minimized && !RecoveredFromCrash && MainWindowInstance is MainWindow mw)
         {
-            if (Settings.Current.MinimizeToTray && MainWindowInstance is MainWindow mw) mw.HideAtStartup();
-            else if (MainWindowInstance.AppWindow.Presenter is OverlappedPresenter p) p.Minimize();
+            if (Settings.Current.MinimizeToTray) mw.StartHidden();
+            else mw.StartMinimized();
+        }
+        else
+        {
+            MainWindowInstance.Activate();
         }
 
         RestartEngine();

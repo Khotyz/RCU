@@ -13,6 +13,10 @@ public sealed partial class MainWindow : Window
     private bool _exiting;
     private Type? _lastPage;
 
+    public FrameworkElement RootElement => RootGrid;
+
+    public Microsoft.UI.Xaml.Controls.Panel RootPanel => RootGrid;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -222,12 +226,17 @@ public sealed partial class MainWindow : Window
         _trimTimer?.Stop();
         AppWindow.Show();
         if (AppWindow.Presenter is OverlappedPresenter p) p.Restore();
-        if (ContentFrame.Content == null && _lastPage != null) ContentFrame.Navigate(_lastPage);
+        if (ContentFrame.Content == null) ContentFrame.Navigate(_lastPage ?? typeof(DashboardPage));
         Activate();
         if (ContentFrame.Content is DashboardPage && !App.Sensors.Running) App.Sensors.Start(App.Settings.Current.SensorIntervalMs);
     }
 
-    public void HideAtStartup() => DispatcherQueue.TryEnqueue(HideToTray);
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hwnd, int cmd);
+
+    public void StartHidden() => HideToTray();
+
+    public void StartMinimized() => ShowWindow(WinRT.Interop.WindowNative.GetWindowHandle(this), 7);
 
     private void HideToTray()
     {
@@ -269,31 +278,32 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            UpdateBar.Title = UiHelper.L("Update.Available", info.Version.ToString(3));
-            UpdateBar.Message = UiHelper.L("Update.Message", UpdateService.CurrentText);
-            UpdateBar.IsOpen = true;
+            UpdateTitle.Text = UiHelper.L("Update.Available", info.Version.ToString(3));
+            UpdateMessage.Text = UiHelper.L("Update.Message", UpdateService.CurrentText);
+            UpdateBanner.Visibility = Visibility.Visible;
         }
         catch
         {
         }
     }
 
+    private void UpdateLater_Click(object sender, RoutedEventArgs e) => UpdateBanner.Visibility = Visibility.Collapsed;
+
     private async void Update_Click(object sender, RoutedEventArgs e)
     {
         var info = UpdateService.Available;
         if (info == null)
         {
-            UpdateBar.IsOpen = false;
+            UpdateBanner.Visibility = Visibility.Collapsed;
             return;
         }
 
         UpdateButton.IsEnabled = false;
         try
         {
-            var (ok, message) = await UpdateService.InstallAsync(info);
-            UpdateBar.Message = ok ? UiHelper.L("Update.Started") : UiHelper.L("Update.Failed");
-            UpdateBar.Severity = ok ? InfoBarSeverity.Success : InfoBarSeverity.Error;
-            if (!ok) LogService.Warn($"Atualização: {message}");
+            UpdateBanner.Visibility = Visibility.Collapsed;
+            await UiHelper.RunUpdateAsync(NavView.XamlRoot, info);
+            UpdateBanner.Visibility = Visibility.Visible;
         }
         finally
         {

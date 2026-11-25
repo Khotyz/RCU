@@ -48,7 +48,7 @@ public sealed class HardwareService : IDisposable
         {
             _session = AdlxSession.Open(kind, out string report);
             InitReport = report;
-            LogService.Info($"ADLX init ({kind}):{Environment.NewLine}{report}");
+            if (_session == null) LogService.Info($"ADLX init ({kind}):{Environment.NewLine}{report}");
         }
         catch (Exception ex)
         {
@@ -135,6 +135,7 @@ public sealed class HardwareService : IDisposable
         CurrentGpu.Architecture = arch;
         CurrentGpu.ChipName = chip;
         _session.Architecture = arch;
+        _session.LoadFaults($"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}|{_session.AdlxVersion}|{CurrentGpu.DeviceId}");
         DriverInfoService.Enrich(CurrentGpu);
 
         RefreshCapabilities();

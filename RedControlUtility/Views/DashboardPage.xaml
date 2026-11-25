@@ -16,7 +16,7 @@
             <Border Style="{StaticResource CardStyle}">
                 <StackPanel Spacing="10">
                     <TextBlock x:Name="GpuNameText" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
-                    <TextBlock x:Name="GpuArchText" Foreground="{ThemeResource SystemAccentColorLight1}" FontSize="15" />
+                    <TextBlock x:Name="GpuArchText" Foreground="{ThemeResource AppAccentText}" FontSize="15" />
                     <Grid x:Name="InfoGrid" ColumnSpacing="24" RowSpacing="4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -83,7 +83,7 @@
         </StackPanel>
         </Grid>
     </ScrollViewer>
-    <InfoBar x:Name="StatusBar" IsOpen="False" IsClosable="True" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+    <ctl:Banner x:Name="StatusBar" IsOpen="False" IsClosable="True" VerticalAlignment="Bottom" HorizontalAlignment="Center"
              MaxWidth="720" Margin="16,0,16,12" />
     </Grid>
 </Page>

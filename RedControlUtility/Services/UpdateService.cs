@@ -5,12 +5,21 @@ using System.Text.Json;
 
 namespace RedControlUtility.Services;
 
+public sealed record UpdateProgress(string Stage, int Percent = 0, long Bytes = 0, long Total = 0);
+
 public sealed record UpdateInfo(string Tag, Version Version, string PageUrl, string? AssetUrl, string AssetName, string Notes);
 
 public static class UpdateService
 {
     public const string Owner = "Khotyz";
     public const string Repo = "RCU";
+
+    public const string StageDownload = "download";
+    public const string StageDownloaded = "downloaded";
+    public const string StageLaunch = "launch";
+    public const string StageLaunched = "launched";
+    public const string StageClosing = "closing";
+    public const string StagePage = "page";
 
     public static Version Current { get; } = ReadCurrentVersion();
 
@@ -101,6 +110,7 @@ public static class UpdateService
                     string name = a.TryGetProperty("name", out var n) ? n.GetString() ?? string.Empty : string.Empty;
                     string? dl = a.TryGetProperty("browser_download_url", out var d) ? d.GetString() : null;
                     if (string.IsNullOrEmpty(dl) || string.IsNullOrEmpty(name)) continue;
+                    if (a.TryGetProperty("state", out var st) && !string.Equals(st.GetString(), "uploaded", StringComparison.OrdinalIgnoreCase)) continue;
                     if (!name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
                         !name.EndsWith(".msi", StringComparison.OrdinalIgnoreCase) &&
                         !name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) continue;
@@ -113,8 +123,10 @@ public static class UpdateService
             }
 
             var info = new UpdateInfo(tag, version, page, assetUrl, assetName, notes);
-            Available = version > Current ? info : null;
-            LogService.Info($"Atualização: instalada {CurrentText}, GitHub {tag} ({version}) => {(Available != null ? "nova versão disponível" : "já está atualizado")}");
+            bool newer = version > Current;
+            bool hasFiles = assetUrl != null;
+            Available = newer && hasFiles ? info : null;
+            LogService.Info($"Atualização: instalada {CurrentText}, GitHub {tag} ({version}) => {(Available != null ? "nova versão disponível" : newer ? "release ainda sem Setup ou Portable, ignorada" : "já está atualizado")}");
             if (Available != null) Found?.Invoke(Available);
             return (info, null);
         }
@@ -129,12 +141,13 @@ public static class UpdateService
         }
     }
 
-    public static async Task<(bool Ok, string Message)> InstallAsync(UpdateInfo info, CancellationToken ct = default)
+    public static async Task<(bool Ok, string Message)> InstallAsync(UpdateInfo info, IProgress<UpdateProgress>? progress = null, CancellationToken ct = default)
     {
         try
         {
             if (string.IsNullOrEmpty(info.AssetUrl))
             {
+                progress?.Report(new UpdateProgress(StagePage));
                 OpenPage(info.PageUrl);
                 return (true, UiHelper.L("Update.PageOpened"));
             }
@@ -146,13 +159,31 @@ public static class UpdateService
             using (var res = await Http.GetAsync(info.AssetUrl, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false))
             {
                 res.EnsureSuccessStatusCode();
+                long total = res.Content.Headers.ContentLength ?? 0;
                 await using var src = await res.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
                 await using var dst = File.Create(file);
-                await src.CopyToAsync(dst, ct).ConfigureAwait(false);
+                var buffer = new byte[81920];
+                long done = 0;
+                int lastPercent = -1;
+                int read;
+                while ((read = await src.ReadAsync(buffer, ct).ConfigureAwait(false)) > 0)
+                {
+                    await dst.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
+                    done += read;
+                    int percent = total > 0 ? (int)(done * 100 / total) : 0;
+                    if (percent != lastPercent)
+                    {
+                        lastPercent = percent;
+                        progress?.Report(new UpdateProgress(StageDownload, percent, done, total));
+                    }
+                }
             }
+
+            progress?.Report(new UpdateProgress(StageDownloaded, 100));
 
             bool installer = info.AssetName.Contains("Setup", StringComparison.OrdinalIgnoreCase) &&
                              info.AssetName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
+            progress?.Report(new UpdateProgress(StageLaunch));
             Process.Start(new ProcessStartInfo
             {
                 FileName = file,
@@ -160,8 +191,10 @@ public static class UpdateService
                 UseShellExecute = true,
                 Verb = installer ? "runas" : string.Empty
             });
+            progress?.Report(new UpdateProgress(StageLaunched));
             if (installer)
             {
+                progress?.Report(new UpdateProgress(StageClosing));
                 _ = Task.Run(async () =>
                 {
                     await Task.Delay(2500).ConfigureAwait(false);

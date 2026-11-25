@@ -8,8 +8,20 @@ public enum ApplyMode
     Manual = 1
 }
 
+public enum AppTheme
+{
+    Dark = 0,
+    Light = 1,
+    Dracula = 2,
+    System = 3,
+    CyberGreen = 4,
+    CrimsonCarbon = 5,
+    ArcCobalt = 6
+}
+
 public sealed class AppSettings
 {
+    public int Theme { get; set; }
     public string Language { get; set; } = string.Empty;
     public ApplyMode GraphicsApplyMode { get; set; } = ApplyMode.Manual;
     public bool ConfirmTuning { get; set; } = true;

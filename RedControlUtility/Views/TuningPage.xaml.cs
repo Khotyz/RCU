@@ -91,7 +91,7 @@ public sealed partial class TuningPage : Page
             Maximum = Math.Max(max, min + 1),
             Value = Math.Clamp(value, min, Math.Max(max, min + 1)),
             Width = width,
-            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact,
+            SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
             ValidationMode = NumberBoxValidationMode.InvalidInputOverwritten
         };
     }

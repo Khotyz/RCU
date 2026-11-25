@@ -50,6 +50,16 @@ public sealed partial class SettingsPage : Page
             LanguageCombo.SelectedItem = LanguageCombo.Items.OfType<ComboBoxItem>()
                 .FirstOrDefault(item => Equals(item.Tag, App.Localization.Language));
 
+            ThemeCombo.Items.Clear();
+            ThemeCombo.Items.Add(Item(L("Theme.System"), AppTheme.System));
+            ThemeCombo.Items.Add(Item(L("Theme.Dark"), AppTheme.Dark));
+            ThemeCombo.Items.Add(Item(L("Theme.Light"), AppTheme.Light));
+            ThemeCombo.Items.Add(Item(L("Theme.Dracula"), AppTheme.Dracula));
+            ThemeCombo.Items.Add(Item(L("Theme.CyberGreen"), AppTheme.CyberGreen));
+            ThemeCombo.Items.Add(Item(L("Theme.CrimsonCarbon"), AppTheme.CrimsonCarbon));
+            ThemeCombo.Items.Add(Item(L("Theme.ArcCobalt"), AppTheme.ArcCobalt));
+            ThemeCombo.SelectedItem = ThemeCombo.Items.OfType<ComboBoxItem>().FirstOrDefault(i => Equals(i.Tag, (AppTheme)S.Theme));
+
             ApplyModeCombo.Items.Clear();
             ApplyModeCombo.Items.Add(Item(L("Settings.ModeInstant"), ApplyMode.Instant));
             ApplyModeCombo.Items.Add(Item(L("Settings.ModeManual"), ApplyMode.Manual));
@@ -158,7 +168,7 @@ public sealed partial class SettingsPage : Page
         body.Children.Add(ack);
 
         var dlg = new ContentDialog
-        {
+        { RequestedTheme = ThemeService.Element,
             XamlRoot = XamlRoot,
             Title = title,
             Content = body,
@@ -169,7 +179,7 @@ public sealed partial class SettingsPage : Page
         };
         ack.Checked += (_, _) => dlg.IsPrimaryButtonEnabled = true;
         ack.Unchecked += (_, _) => dlg.IsPrimaryButtonEnabled = false;
-        return await dlg.ShowAsync() == ContentDialogResult.Primary;
+        return await ThemeService.ShowAsync(dlg) == ContentDialogResult.Primary;
     }
 
     private void Language_Changed(object sender, SelectionChangedEventArgs e)
@@ -178,6 +188,14 @@ public sealed partial class SettingsPage : Page
         S.Language = lang;
         App.Settings.Save();
         DispatcherQueue.TryEnqueue(() => App.Localization.LoadLanguage(lang));
+    }
+
+    private void Theme_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || ThemeCombo.SelectedItem is not ComboBoxItem { Tag: AppTheme theme }) return;
+        S.Theme = (int)theme;
+        App.Settings.Save();
+        ThemeService.Refresh();
     }
 
     private void ApplyMode_Changed(object sender, SelectionChangedEventArgs e)
@@ -292,6 +310,7 @@ public sealed partial class SettingsPage : Page
     private async void Reinit_Click(object sender, RoutedEventArgs e)
     {
         App.Engine.Stop();
+        FaultStore.Clear();
         await Task.Run(() => App.Hardware.Initialize(S.Backend, S.GpuIndex));
         App.RestartEngine();
         Load();
@@ -326,8 +345,7 @@ public sealed partial class SettingsPage : Page
             var answer = await ConfirmAsync(XamlRoot, L("Update.Available", v), L("Update.Confirm", v), L("Update.Download"), L("Common.Cancel"));
             if (answer != ContentDialogResult.Primary) return;
 
-            var (ok, message) = await UpdateService.InstallAsync(newer);
-            Show(StatusBar, ok ? InfoBarSeverity.Success : InfoBarSeverity.Error, ok ? L("Update.Started") : L("Update.Failed"), ok ? string.Empty : message);
+            await RunUpdateAsync(XamlRoot, newer);
         }
         finally
         {
@@ -352,6 +370,21 @@ public sealed partial class SettingsPage : Page
         dp.SetText(text);
         Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
         Show(StatusBar, InfoBarSeverity.Success, L("Settings.Copied"));
+    }
+
+    private async void Report_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string path = await Task.Run(() => ReportService.Create(App.Hardware.BuildDiagnostics()));
+            Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = $"/select,\"{path}\"", UseShellExecute = true });
+            Show(StatusBar, InfoBarSeverity.Success, L("Settings.ReportDone"), path);
+        }
+        catch (Exception ex)
+        {
+            LogService.Error($"Report: {ex.Message}");
+            Show(StatusBar, InfoBarSeverity.Error, L("Settings.ReportFailed"), ex.Message);
+        }
     }
 
     private void OpenLogs_Click(object sender, RoutedEventArgs e)

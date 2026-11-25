@@ -7,9 +7,10 @@
     <Window.SystemBackdrop>
         <MicaBackdrop Kind="Base" />
     </Window.SystemBackdrop>
-    <Grid>
+    <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="30" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <Grid x:Name="AppTitleBar" Grid.Row="0" Padding="16,0" Background="Transparent">
@@ -19,11 +20,11 @@
                 VerticalAlignment="Center"
                 FontSize="12"
                 FontWeight="SemiBold"
-                Foreground="{ThemeResource SystemAccentColorLight1}" />
+                Foreground="{ThemeResource AppAccentText}" />
         </Grid>
         <NavigationView
             x:Name="NavView"
-            Grid.Row="1"
+            Grid.Row="2"
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="False"
             PaneDisplayMode="Left"
@@ -48,11 +49,21 @@
             </NavigationView.MenuItems>
             <Frame x:Name="ContentFrame" Padding="16,8,12,10" />
         </NavigationView>
-        <InfoBar x:Name="UpdateBar" Grid.Row="1" IsOpen="False" IsClosable="True" Severity="Informational"
-                 VerticalAlignment="Bottom" HorizontalAlignment="Center" MaxWidth="720" Margin="16,0,16,12">
-            <InfoBar.ActionButton>
-                <Button x:Name="UpdateButton" Click="Update_Click" rcu:Loc.Key="Update.Download" />
-            </InfoBar.ActionButton>
-        </InfoBar>
+        <Border x:Name="UpdateBanner" Grid.Row="1" Visibility="Collapsed" Margin="12,4,12,6" Padding="16,12" CornerRadius="8" BorderThickness="2"
+                Background="{ThemeResource SolidBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource AccentFillColorDefaultBrush}">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <TextBlock x:Name="UpdateTitle" FontSize="18" FontWeight="Bold" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                    <TextBlock x:Name="UpdateMessage" FontSize="15" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                </StackPanel>
+                <Button x:Name="UpdateButton" Grid.Column="1" Style="{StaticResource AccentButtonStyle}" FontSize="15" Click="Update_Click" rcu:Loc.Key="Update.Install" />
+                <Button Grid.Column="2" FontSize="15" Click="UpdateLater_Click" rcu:Loc.Key="Update.Later" />
+            </Grid>
+        </Border>
     </Grid>
 </Window>

@@ -2,7 +2,8 @@
     x:Class="RedControlUtility.Views.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:rcu="using:RedControlUtility">
+    xmlns:rcu="using:RedControlUtility"
+    xmlns:ctl="using:RedControlUtility.Controls">
     <Grid>
     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <Grid>
@@ -14,6 +15,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Settings.GroupGeneral" />
                     <ComboBox x:Name="LanguageCombo" Width="300" rcu:Loc.Header="Settings.Language" rcu:Loc.Tip="Settings.LanguageTip" SelectionChanged="Language_Changed" />
+                    <ComboBox x:Name="ThemeCombo" Width="300" rcu:Loc.Header="Settings.Theme" rcu:Loc.Tip="Settings.ThemeTip" SelectionChanged="Theme_Changed" />
                     <ComboBox x:Name="ApplyModeCombo" Width="420" rcu:Loc.Header="Settings.ApplyMode" rcu:Loc.Tip="Settings.ApplyModeTip" SelectionChanged="ApplyMode_Changed" />
                     <ToggleSwitch x:Name="AdvancedToggle" rcu:Loc.Header="Settings.Advanced" rcu:Loc.Tip="Settings.AdvancedTip" Toggled="Toggle_Changed" />
                     <ToggleSwitch x:Name="AutoResetToggle" rcu:Loc.Header="Settings.AutoReset" rcu:Loc.Tip="Settings.AutoResetTip" Toggled="Toggle_Changed" />
@@ -39,7 +41,7 @@
                     </StackPanel>
                     <ToggleSwitch x:Name="AutoRevertToggle" rcu:Loc.Header="Settings.AutoRevert" rcu:Loc.Tip="Settings.AutoRevertTip" Toggled="Toggle_Changed" />
                     <ToggleSwitch x:Name="LiveUndervoltToggle" rcu:Loc.Header="Settings.LiveUndervolt" rcu:Loc.Tip="Settings.LiveUndervoltTip" Toggled="LiveUndervolt_Toggled" />
-                    <InfoBar x:Name="LiveWarnBar" Severity="Warning" IsOpen="True" IsClosable="False" Margin="0,2,0,6" />
+                    <ctl:Banner x:Name="LiveWarnBar" Severity="Warning" IsOpen="True" IsClosable="False" Margin="0,2,0,6" />
                 </StackPanel>
             </Border>
 
@@ -97,13 +99,14 @@
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Button Click="CopyDiag_Click" rcu:Loc.Key="Settings.CopyDiag" rcu:Loc.Tip="Settings.CopyDiagTip" />
                         <Button Click="OpenLogs_Click" rcu:Loc.Key="Settings.OpenLogs" rcu:Loc.Tip="Settings.OpenLogsTip" />
+                        <Button Click="Report_Click" rcu:Loc.Key="Settings.Report" rcu:Loc.Tip="Settings.ReportTip" />
                     </StackPanel>
                 </StackPanel>
             </Border>
         </StackPanel>
         </Grid>
     </ScrollViewer>
-    <InfoBar x:Name="StatusBar" IsOpen="False" IsClosable="True" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+    <ctl:Banner x:Name="StatusBar" IsOpen="False" IsClosable="True" VerticalAlignment="Bottom" HorizontalAlignment="Center"
              MaxWidth="720" Margin="16,0,16,12" />
     </Grid>
 </Page>

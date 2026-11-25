@@ -315,7 +315,7 @@ public sealed partial class AdlxSession
 
         foreach (var (feature, result) in report.Items)
         {
-            LogService.Info($"Tuning: {feature} => {result}");
+            if (!result.Succeeded()) LogService.Info($"Tuning: {feature} => {result}");
         }
 
         return report;

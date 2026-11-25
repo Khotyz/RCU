@@ -195,7 +195,7 @@
         </StackPanel>
         </Grid>
     </ScrollViewer>
-    <InfoBar x:Name="StatusBar" IsOpen="False" IsClosable="True" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+    <ctl:Banner x:Name="StatusBar" IsOpen="False" IsClosable="True" VerticalAlignment="Bottom" HorizontalAlignment="Center"
              MaxWidth="720" Margin="16,0,16,12" />
     </Grid>
 </Page>

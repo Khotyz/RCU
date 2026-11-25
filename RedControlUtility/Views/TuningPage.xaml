@@ -18,8 +18,8 @@
                 <StackPanel Spacing="4">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupCore" />
                     <StackPanel x:Name="MinMaxPanel" Orientation="Horizontal" Spacing="12">
-                        <NumberBox x:Name="GpuMinBox" Width="170" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.GpuMin" rcu:Loc.Tip="Tuning.GpuMinTip" ValueChanged="Field_NumberChanged" />
-                        <NumberBox x:Name="GpuMaxBox" Width="170" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.GpuMax" rcu:Loc.Tip="Tuning.GpuMaxTip" ValueChanged="Field_NumberChanged" />
+                        <NumberBox x:Name="GpuMinBox" Width="170" SpinButtonPlacementMode="Inline" rcu:Loc.Header="Tuning.GpuMin" rcu:Loc.Tip="Tuning.GpuMinTip" ValueChanged="Field_NumberChanged" />
+                        <NumberBox x:Name="GpuMaxBox" Width="170" SpinButtonPlacementMode="Inline" rcu:Loc.Header="Tuning.GpuMax" rcu:Loc.Tip="Tuning.GpuMaxTip" ValueChanged="Field_NumberChanged" />
                     </StackPanel>
                     <Grid x:Name="VoltagePanel" ColumnSpacing="10">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="220" /></Grid.ColumnDefinitions>
@@ -66,7 +66,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Style="{StaticResource SectionTitleStyle}" rcu:Loc.Key="Tuning.GroupVram" />
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <NumberBox x:Name="VramBox" Width="190" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.VramClock" rcu:Loc.Tip="Tuning.VramClockTip" ValueChanged="Field_NumberChanged" />
+                        <NumberBox x:Name="VramBox" Width="190" SpinButtonPlacementMode="Inline" rcu:Loc.Header="Tuning.VramClock" rcu:Loc.Tip="Tuning.VramClockTip" ValueChanged="Field_NumberChanged" />
                         <ComboBox x:Name="VramTimingCombo" Width="240" rcu:Loc.Header="Tuning.VramTiming" rcu:Loc.Tip="Tuning.VramTimingTip" SelectionChanged="Field_SelectionChanged" />
                     </StackPanel>
                 </StackPanel>
@@ -80,8 +80,8 @@
                     <ToggleSwitch x:Name="ZeroRpmToggle" rcu:Loc.Header="Tuning.ZeroRpm" rcu:Loc.Tip="Tuning.ZeroRpmTip" Toggled="Field_Toggled" />
                     <ctl:CurveChart x:Name="FanChart" rcu:Loc.Tip="Tuning.FanChartTip" Height="220" />
                     <StackPanel x:Name="FanRpmPanel" Orientation="Horizontal" Spacing="12" Visibility="Collapsed">
-                        <NumberBox x:Name="FanMinRpmBox" Width="210" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.FanMinRpm" ValueChanged="Field_NumberChanged" />
-                        <NumberBox x:Name="FanTargetRpmBox" Width="210" SpinButtonPlacementMode="Compact" rcu:Loc.Header="Tuning.FanTargetRpm" ValueChanged="Field_NumberChanged" />
+                        <NumberBox x:Name="FanMinRpmBox" Width="210" SpinButtonPlacementMode="Inline" rcu:Loc.Header="Tuning.FanMinRpm" ValueChanged="Field_NumberChanged" />
+                        <NumberBox x:Name="FanTargetRpmBox" Width="210" SpinButtonPlacementMode="Inline" rcu:Loc.Header="Tuning.FanTargetRpm" ValueChanged="Field_NumberChanged" />
                     </StackPanel>
                     <StackPanel x:Name="FanRows" Spacing="4" />
                 </StackPanel>
@@ -100,7 +100,7 @@
             </StackPanel>
         </Grid>
     </Border>
-    <InfoBar x:Name="StatusBar" Grid.Row="0" IsOpen="False" IsClosable="True" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+    <ctl:Banner x:Name="StatusBar" Grid.Row="0" IsOpen="False" IsClosable="True" VerticalAlignment="Bottom" HorizontalAlignment="Center"
              MaxWidth="720" Margin="16,0,16,12" />
     </Grid>
 </Page>

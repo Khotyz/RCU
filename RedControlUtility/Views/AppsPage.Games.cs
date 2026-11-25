@@ -97,7 +97,7 @@ public sealed partial class AppsPage
         root.Children.Add(useGlobal);
 
         var dlg = new ContentDialog
-        {
+        { RequestedTheme = ThemeService.Element,
             XamlRoot = XamlRoot,
             Title = L("Apps.GamesTitle"),
             Content = root,
@@ -197,7 +197,7 @@ public sealed partial class AppsPage
         };
 
         Populate();
-        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+        if (await ThemeService.ShowAsync(dlg) != ContentDialogResult.Primary) return;
 
         AppProfile? last = null;
         int added = 0;
@@ -222,7 +222,7 @@ public sealed partial class AppsPage
         {
             var all = new List<RunningProcess>();
             var chosen = (RunningProcess?)null;
-            var note = new InfoBar { IsOpen = true, IsClosable = false, Severity = InfoBarSeverity.Warning, Title = L("Apps.ProcNoteTitle"), Message = L("Apps.RestartNote") };
+            var note = new RedControlUtility.Controls.Banner { IsOpen = true, IsClosable = false, Severity = InfoBarSeverity.Warning, Title = L("Apps.ProcNoteTitle"), Message = L("Apps.RestartNote") };
             var filter = new TextBox { PlaceholderText = L("Apps.ProcFilter"), Width = 260 };
             var onlyWindows = new CheckBox { Content = L("Apps.ProcOnlyWindows"), IsChecked = true };
             var refresh = new Button { Content = L("Apps.ProcRefresh") };
@@ -240,7 +240,7 @@ public sealed partial class AppsPage
             root.Children.Add(empty);
 
             var dlg = new ContentDialog
-            {
+            { RequestedTheme = ThemeService.Element,
                 XamlRoot = XamlRoot,
                 Title = L("Apps.ProcTitle"),
                 Content = root,
@@ -310,7 +310,7 @@ public sealed partial class AppsPage
             onlyWindows.Click += async (_, _) => await Reload();
 
             await Reload();
-            if (await dlg.ShowAsync() != ContentDialogResult.Primary || chosen == null) return;
+            if (await ThemeService.ShowAsync(dlg) != ContentDialogResult.Primary || chosen == null) return;
 
             var app = NewApp(chosen.ExecutablePath, chosen.Name, "Process");
             Apps.Add(app);
