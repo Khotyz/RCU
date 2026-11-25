@@ -9,6 +9,30 @@ namespace RedControlUtility;
 
 public static class UiHelper
 {
+    private static long _lastTuningApplyTicks;
+    public static DateTime LastTuningApplyUtc
+    {
+        get => new(Interlocked.Read(ref _lastTuningApplyTicks), DateTimeKind.Utc);
+        set => Interlocked.Exchange(ref _lastTuningApplyTicks, value.Ticks);
+    }
+
+    public static void PaintTip(ToolTip tip)
+    {
+        var c = ThemeService.Colors;
+        tip.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(c.Surface);
+        tip.Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(c.Text);
+        tip.BorderBrush = new Microsoft.UI.Xaml.Media.SolidColorBrush(c.ControlBorder);
+        tip.BorderThickness = new Thickness(1);
+    }
+
+    public static void SetTip(DependencyObject target, string text)
+    {
+        var tip = new ToolTip { Content = text };
+        PaintTip(tip);
+        tip.Opened += (s, _) => PaintTip((ToolTip)s);
+        ToolTipService.SetToolTip(target, tip);
+    }
+
     public static string L(string key) => App.Localization.Get(key);
     public static string L(string key, params object[] args) => App.Localization.Get(key, args);
 
@@ -197,7 +221,9 @@ public static class UiHelper
         var before = await Task.Run(() => hw.ReadTuning());
         try { File.WriteAllText(AppPaths.PendingFlag, DateTime.Now.ToString("o")); } catch { }
 
+        UiHelper.LastTuningApplyUtc = DateTime.UtcNow;
         var report = await Task.Run(() => hw.ApplyTuning(settings));
+        UiHelper.LastTuningApplyUtc = DateTime.UtcNow;
         bool kept = true;
         if (report.AnyOk && App.Settings.Current.AutoRevertTuning)
         {
@@ -206,6 +232,7 @@ public static class UiHelper
             {
                 var back = await Task.Run(() => hw.ApplyTuning(before));
                 LogService.Info($"Ajuste revertido: {back.Summary}");
+                LastTuningApplyUtc = DateTime.UtcNow;
             }
         }
 

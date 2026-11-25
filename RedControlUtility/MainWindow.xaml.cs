@@ -17,9 +17,22 @@ public sealed partial class MainWindow : Window
 
     public Microsoft.UI.Xaml.Controls.Panel RootPanel => RootGrid;
 
+    private void Nav_PaneClosing(NavigationView sender, NavigationViewPaneClosingEventArgs args)
+    {
+        App.Settings.Current.NavPaneOpen = false;
+        App.Settings.Save();
+    }
+
+    private void Nav_PaneOpening(NavigationView sender, object args)
+    {
+        App.Settings.Current.NavPaneOpen = true;
+        App.Settings.Save();
+    }
+
     public MainWindow()
     {
         InitializeComponent();
+        NavView.IsPaneOpen = App.Settings.Current.NavPaneOpen;
         ContentFrame.NavigationFailed += (_, e) =>
         {
             LogService.Error($"Navigation failed ({e.SourcePageType?.Name}): {e.Exception}");

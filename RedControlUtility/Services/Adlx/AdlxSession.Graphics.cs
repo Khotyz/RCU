@@ -320,8 +320,11 @@ public sealed partial class AdlxSession
 
         if (f.GetBool(4, out bool now).Succeeded())
         {
-            LogService.Info($"{name}: pedido {on}, driver respondeu {now}");
-            if (now != on) return AdlxResult.Fail;
+            if (now != on)
+            {
+                LogService.Info($"{name}: pedido {on}, driver respondeu {now}");
+                return AdlxResult.Fail;
+            }
         }
 
         return r;
@@ -383,7 +386,7 @@ public sealed partial class AdlxSession
                     var r = RunWithRetry(op);
                     if (op.Name.Length == 0) continue;
                     report.Add(op.Name, r);
-                    LogService.Info($"3D: {op.Name} => {r}");
+                    if (!r.Succeeded()) LogService.Info($"3D: {op.Name} => {r}");
                 }
             }
             catch (Exception ex)

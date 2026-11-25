@@ -40,6 +40,7 @@ public sealed class HardwareService : IDisposable
         _session = null;
         _adl?.Dispose();
         _adl = null;
+        Adl.DriverFsrService.ClearCache();
         CloseOverdrive();
         _gpus.Clear();
         TuningBaseline = null;
@@ -285,7 +286,7 @@ public sealed class HardwareService : IDisposable
         try
         {
             var a = _session.ReadGraphics(out _);
-            LogService.Info($"Estado 3D após aplicar: AntiLag={a.AntiLag} AFMF={a.Afmf} FSR={a.Fsr} Chill={a.Chill} " +
+            if (!report.AllOk) LogService.Info($"Estado 3D após aplicar: AntiLag={a.AntiLag} AFMF={a.Afmf} FSR={a.Fsr} Chill={a.Chill} " +
                             $"FRTC={a.Frtc}/{a.FrtcFps} RIS={a.ImageSharpening}/{a.ImageSharpeningLevel} RSR={a.Rsr} " +
                             $"EnhSync={a.EnhancedSync} Boost={a.Boost} VSync={a.VSyncMode}");
         }
@@ -379,8 +380,10 @@ public sealed class HardwareService : IDisposable
         lock (_tuningLock)
         {
             if (!Caps.Tuning.AnyTuning) return Unavailable("Tuning");
+            UiHelper.LastTuningApplyUtc = DateTime.UtcNow;
             var report = _session?.ApplyTuning(settings, _adlxTuning) ?? new ApplyReport();
             _overdrive?.ApplyOverdriveTuning(settings, report);
+            UiHelper.LastTuningApplyUtc = DateTime.UtcNow;
             return report;
         }
     }
@@ -410,11 +413,11 @@ public sealed class HardwareService : IDisposable
         if (!adlxComplete) MergeAdlFreeSync(list, log);
         _displayCache = list;
         if (adlxComplete) return list;
-        if (log) LogService.Info($"Monitores pelo ADLX: {list.Count}" + string.Concat(list.Select(d =>
+        if (log) LogService.InfoChanged("mon-adlx", $"Monitores pelo ADLX: {list.Count}" + string.Concat(list.Select(d =>
             $" | [{d.Index}] {d.Name}: FreeSync={d.Caps.FreeSync} VSR={d.Caps.Vsr} Escala={d.Caps.GpuScaling}")));
 
         var adl = Adl.DriverFsrService.ListDisplays(CurrentGpu.Index);
-        if (log) LogService.Info($"Monitores pelo ADL: {adl.Count}" + string.Concat(adl.Select(d =>
+        if (log) LogService.InfoChanged("mon-adl", $"Monitores pelo ADL: {adl.Count}" + string.Concat(adl.Select(d =>
             $" | {d.Logical} '{d.Name}': escala suporte={d.ScalingSupported} ligada={d.ScalingOn}")));
 
         if (list.Count == 0)

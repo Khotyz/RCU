@@ -31,6 +31,7 @@ public sealed class AppSettings
     public bool AutoRevertTuning { get; set; } = true;
 
     public bool MinimizeToTray { get; set; }
+    public bool NavPaneOpen { get; set; } = true;
 
     public bool OverheatWarn { get; set; }
     public int OverheatTempC { get; set; } = 80;

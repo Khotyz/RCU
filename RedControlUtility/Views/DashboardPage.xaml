@@ -42,7 +42,10 @@
             <GridView x:Name="TilesView" SelectionMode="None" IsItemClickEnabled="False">
                 <GridView.ItemTemplate>
                     <DataTemplate x:DataType="models:StatTile">
-                        <Border Style="{StaticResource CardStyle}" Width="168" Padding="10,8" ToolTipService.ToolTip="{x:Bind Tip, Mode=OneWay}">
+                        <Border Style="{StaticResource CardStyle}" Width="168" Padding="10,8" >
+                            <ToolTipService.ToolTip>
+                                <ToolTip Content="{x:Bind Tip, Mode=OneWay}" Opened="StatTip_Opened" />
+                            </ToolTipService.ToolTip>
                             <StackPanel Spacing="4">
                                 <TextBlock Text="{x:Bind Title, Mode=OneWay}" Opacity="0.7" FontSize="12" />
                                 <StackPanel Orientation="Horizontal" Spacing="4">

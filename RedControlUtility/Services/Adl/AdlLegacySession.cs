@@ -281,7 +281,6 @@ public sealed unsafe partial class AdlLegacySession : IDisposable
                     {
                         if (type == 2) snap.FanRpm = f[2];
                         else snap.FanDutyPercent = f[2];
-                        break;
                     }
                 }
             }

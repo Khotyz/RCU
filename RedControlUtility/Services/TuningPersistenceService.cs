@@ -5,9 +5,11 @@ namespace RedControlUtility.Services;
 public sealed class TuningPersistenceService : IDisposable
 {
     private const int IntervalMs = 45000;
+    private const int MaxFailures = 6;
     private Timer? _timer;
     private int _busy;
     private DateTime _retryAfter = DateTime.MinValue;
+    private int _failures;
 
     public void Start()
     {
@@ -48,7 +50,8 @@ public sealed class TuningPersistenceService : IDisposable
 
     private void Check()
     {
-        if (App.RecoveredFromCrash || DateTime.UtcNow < _retryAfter) return;
+        if (App.RecoveredFromCrash || _failures >= MaxFailures || DateTime.UtcNow < _retryAfter) return;
+        if (DateTime.UtcNow - UiHelper.LastTuningApplyUtc < TimeSpan.FromSeconds(5)) return;
         if (File.Exists(AppPaths.PendingFlag)) return;
         var saved = App.CurrentProfile.Tuning;
         if (!saved.HasValues() || !App.Hardware.Caps.Tuning.AnyTuning) return;
@@ -57,21 +60,31 @@ public sealed class TuningPersistenceService : IDisposable
         {
             var current = App.Hardware.ReadTuning();
             var diff = Drift(saved, current, App.Engine.Active != null);
-            if (diff == null) return;
+            if (diff == null)
+            {
+                _failures = 0;
+                return;
+            }
+
             var report = App.Hardware.ApplyTuning(diff);
             if (report.AnyOk && report.AllOk)
             {
+                _failures = 0;
                 LogService.Warn($"Tuning drifted from the saved values and was reapplied: {report.Summary}");
             }
             else
             {
                 _retryAfter = DateTime.UtcNow.AddMinutes(10);
-                LogService.Warn($"Tuning reapply failed, retrying in 10 minutes: {report.Summary}");
+                _failures++;
+                LogService.Warn(_failures >= MaxFailures
+                    ? $"Tuning reapply failed {_failures} times, giving up: {report.Summary}"
+                    : $"Tuning reapply failed, retrying in 10 minutes: {report.Summary}");
             }
         }
         catch (Exception ex)
         {
             _retryAfter = DateTime.UtcNow.AddMinutes(10);
+            _failures++;
             LogService.Error($"Tuning check: {ex.Message}");
         }
         finally

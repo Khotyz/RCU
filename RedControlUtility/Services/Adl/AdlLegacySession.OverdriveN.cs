@@ -62,8 +62,7 @@ public sealed unsafe partial class AdlLegacySession
     {
         if ((!needCore && !needFan && !needMemory && !needPower) || gpu.Architecture != GpuArchitecture.Polaris ||
             (!GpuArchitectureDetector.TryParseDeviceId(gpu.DeviceId, out int deviceId) &&
-             !GpuArchitectureDetector.TryParseDeviceId(gpu.PnpString, out deviceId)) ||
-            GpuArchitectureDetector.Detect($"{deviceId:X4}", null, null).Arch != GpuArchitecture.Polaris) return null;
+             !GpuArchitectureDetector.TryParseDeviceId(gpu.PnpString, out deviceId))) return null;
 
         var session = Open(0, out string report, deviceId, pciLocation);
         LogService.Info(report);
@@ -88,7 +87,7 @@ public sealed unsafe partial class AdlLegacySession
         int supported = 0, enabled = 0, version = 0;
         NativeCapabilities caps = default;
         if (overdrive == null || getCaps == null || overdrive(_ctx, _adapter, &supported, &enabled, &version) != 0 ||
-            supported == 0 || version != 7 || getCaps(_ctx, _adapter, &caps) != 0) return false;
+            supported == 0 || version < 7 || getCaps(_ctx, _adapter, &caps) != 0) return false;
 
         _overdriveCaps = caps;
         var tuning = OverdriveTuning;
@@ -321,7 +320,7 @@ public sealed unsafe partial class AdlLegacySession
         if ((settings.FanMinRpm != null && (!OverdriveTuning.FanMinRpmRange.IsValid || !_overdriveCaps.FanSpeed.Accepts(min))) ||
             (settings.FanTargetRpm != null && (!OverdriveTuning.FanTargetRpmRange.IsValid || !_overdriveCaps.FanSpeed.Accepts(target))) ||
             (target > 0 && min > target)) return AdlxResult.InvalidArgs;
-        if (min == fan.MinimumSpeed && target == fan.TargetSpeed) return AdlxResult.Ok;
+        if (min == fan.MinimumSpeed && target == fan.TargetSpeed && fan.Mode == ManualMode) return AdlxResult.Ok;
         fan.Mode = ManualMode;
         fan.ControlMode = ManualMode;
         fan.MinimumSpeed = min;
@@ -378,6 +377,8 @@ public sealed unsafe partial class AdlLegacySession
             {
                 fan.Mode = AutomaticMode;
                 fan.ControlMode = AutomaticMode;
+                fan.CurrentSpeedMode = AutomaticMode;
+                fan.TargetSpeed = 0;
                 fanResult = Result(_setFan(_ctx, _adapter, &fan), "FanControl_Set automatic");
             }
             if (!fanResult.Succeeded()) result = fanResult;

@@ -129,7 +129,7 @@ public static class Loc
         string? tip = GetTip(d);
         if (tip != null && d is UIElement)
         {
-            ToolTipService.SetToolTip(d, loc.Get(tip));
+            UiHelper.SetTip(d, loc.Get(tip));
         }
 
         string? ph = GetPlaceholder(d);

@@ -46,9 +46,16 @@ public sealed partial class AppsPage : Page
     private void OnActiveChanged(AppProfile? p) => DispatcherQueue.TryEnqueue(() =>
     {
         UpdateActiveText();
-        _loading = true;
-        try { RefreshList(_app); } finally { _loading = false; }
+        RefreshEntries();
     });
+
+    private void RefreshEntries()
+    {
+        foreach (var item in AppsList.Items.OfType<ListViewItem>())
+        {
+            if (item.Tag is AppProfile p) item.Content = BuildListEntry(p);
+        }
+    }
 
     private void UpdateActiveText()
     {
@@ -382,6 +389,7 @@ public sealed partial class AppsPage : Page
     {
         if (_loading || _app == null) return;
         _app.Name = NameBox.Text;
+        RefreshEntries();
         _saveDebounce?.Trigger();
     }
 
@@ -510,7 +518,7 @@ public sealed partial class AppsPage : Page
         if (ReferenceEquals(App.Engine.Active, a))
         {
             var dot = new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 9, Height = 9, Fill = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x6C, 0xCB, 0x5F)), VerticalAlignment = VerticalAlignment.Center };
-            ToolTipService.SetToolTip(dot, L("Apps.ActiveDot"));
+            UiHelper.SetTip(dot, L("Apps.ActiveDot"));
             Grid.SetColumn(dot, 2);
             row.Children.Add(dot);
         }

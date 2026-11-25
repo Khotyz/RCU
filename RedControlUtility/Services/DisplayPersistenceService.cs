@@ -117,7 +117,7 @@ public sealed class DisplayPersistenceService : IDisposable
         if (!Monitor.TryEnter(_lock)) return;
         try
         {
-            if (App.CurrentProfile.Displays.Count > 0 && App.Hardware.AdlxAvailable)
+            if (App.CurrentProfile.Displays.Count > 0)
             {
                 foreach (var d in App.Hardware.ReadDisplays(false, true))
                 {

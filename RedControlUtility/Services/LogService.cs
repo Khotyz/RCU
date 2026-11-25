@@ -9,7 +9,20 @@ public static class LogService
 
     public static string LogFilePath => Path.Combine(AppPaths.LogDir, "red_control_utility.log");
 
+    private static readonly Dictionary<string, string> LastByKey = new();
+
     public static void Info(string message) => Write("INFO", message);
+
+    public static void InfoChanged(string key, string message)
+    {
+        lock (LastByKey)
+        {
+            if (LastByKey.TryGetValue(key, out var last) && last == message) return;
+            LastByKey[key] = message;
+        }
+
+        Write("INFO", message);
+    }
     public static void Warn(string message) => Write("WARN", message);
     public static void Error(string message) => Write("ERROR", message);
 

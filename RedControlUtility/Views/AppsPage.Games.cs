@@ -80,7 +80,7 @@ public sealed partial class AppsPage
         var gridView = new GridView { SelectionMode = ListViewSelectionMode.Multiple, Height = 400 };
 
         var useGlobal = new CheckBox { Content = L("Apps.UseGlobal"), IsChecked = false };
-        ToolTipService.SetToolTip(useGlobal, L("Apps.UseGlobalTip"));
+        UiHelper.SetTip(useGlobal, L("Apps.UseGlobalTip"));
         var bar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         bar.Children.Add(filter);
         bar.Children.Add(gridButton);
@@ -122,7 +122,7 @@ public sealed partial class AppsPage
                 s.Children.Add(IconImage(g.IconPath, 48));
                 s.Children.Add(new TextBlock { Text = g.Name, TextWrapping = TextWrapping.Wrap, MaxLines = 2, TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
                 s.Children.Add(new TextBlock { Text = listed ? L("Apps.AlreadyListed") : g.Launcher, FontSize = 11, Opacity = 0.6, TextAlignment = TextAlignment.Center });
-                ToolTipService.SetToolTip(s, g.ExecutablePath);
+                UiHelper.SetTip(s, g.ExecutablePath);
                 return s;
             }
 

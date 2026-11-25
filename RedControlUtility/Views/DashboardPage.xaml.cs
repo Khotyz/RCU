@@ -57,6 +57,8 @@ public sealed partial class DashboardPage : Page
         App.Localization.LanguageChanged -= RefreshAll;
     }
 
+    private void StatTip_Opened(object sender, RoutedEventArgs e) => UiHelper.PaintTip((ToolTip)sender);
+
     private void OnSensors(MetricsSnapshot s) => DispatcherQueue.TryEnqueue(() => UpdateTiles(s));
     private void OnActiveChanged(AppProfile? p) => DispatcherQueue.TryEnqueue(UpdateActive);
 
@@ -77,8 +79,8 @@ public sealed partial class DashboardPage : Page
             InfoGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             var k = new TextBlock { Text = L(key), Opacity = 0.7 };
             var v = new TextBlock { Text = value, IsTextSelectionEnabled = true, TextWrapping = TextWrapping.Wrap };
-            ToolTipService.SetToolTip(k, L(key.Replace("Info.", "InfoTip.")));
-            ToolTipService.SetToolTip(v, L(key.Replace("Info.", "InfoTip.")));
+            UiHelper.SetTip(k, L(key.Replace("Info.", "InfoTip.")));
+            UiHelper.SetTip(v, L(key.Replace("Info.", "InfoTip.")));
             Grid.SetRow(k, row); Grid.SetColumn(k, 0);
             Grid.SetRow(v, row); Grid.SetColumn(v, 1);
             InfoGrid.Children.Add(k);

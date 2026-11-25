@@ -225,9 +225,9 @@ public sealed partial class AdlxSession
                     if (!r.Succeeded()) return r;
                     if (f.GetBool(4, out bool now).Succeeded())
                     {
-                        LogService.Info($"Display: {name} pedido {value.Value}, driver respondeu {now}");
                         if (now != value.Value)
                         {
+                            LogService.Info($"Display: {name} pedido {value.Value}, driver respondeu {now}");
                             Thread.Sleep(150);
                             f.SetBool(5, value.Value);
                             if (f.GetBool(4, out bool again).Succeeded()) now = again;

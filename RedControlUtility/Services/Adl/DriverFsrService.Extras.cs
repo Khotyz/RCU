@@ -239,7 +239,7 @@ public static unsafe partial class DriverFsrService
                     if (sup && mn > 0 && mx > 0) { min = mn / 1_000_000.0; max = mx / 1_000_000.0; }
                 }
 
-                if (log) LogService.Info($"ADL FreeSync display {d.Logical}: cap rc={crc} caps=0x{cap[0]:X} state rc={grc} cur={cur} def={def} min={min:0.#} max={max:0.#}");
+                if (log) LogService.InfoChanged($"adl-fs-{d.Logical}", $"ADL FreeSync display {d.Logical}: cap rc={crc} caps=0x{cap[0]:X} state rc={grc} cur={cur} def={def} min={min:0.#} max={max:0.#}");
                 result.Add(new AdlFreeSync(sup, on, min, max));
             }
         }

@@ -128,6 +128,11 @@ public static unsafe partial class DriverFsrService
         }
     }
 
+    public static void ClearCache()
+    {
+        lock (Gate) SupportCache.Clear();
+    }
+
     public static bool IsSupported(int gpuIndex = 0)
     {
         lock (Gate)
