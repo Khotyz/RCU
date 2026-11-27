@@ -69,6 +69,63 @@ public static class ProcessListService
     [DllImport("kernel32.dll", EntryPoint = "Process32NextW", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool FastNext(IntPtr snapshot, ref FastEntry entry);
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
+
+    public static uint ForegroundPid()
+    {
+        IntPtr h = GetForegroundWindow();
+        if (h == IntPtr.Zero) return 0;
+        GetWindowThreadProcessId(h, out uint pid);
+        return pid;
+    }
+
+    private static unsafe Dictionary<uint, uint> ParentMap()
+    {
+        var map = new Dictionary<uint, uint>(256);
+        IntPtr snap = CreateToolhelp32Snapshot(0x2, 0);
+        if (snap == IntPtr.Zero || snap == new IntPtr(-1)) return map;
+        try
+        {
+            var e = new FastEntry { Size = (uint)sizeof(FastEntry) };
+            if (!FastFirst(snap, ref e)) return map;
+            do map[e.ProcessId] = e.ParentProcessId;
+            while (FastNext(snap, ref e));
+        }
+        finally
+        {
+            CloseHandle(snap);
+        }
+
+        return map;
+    }
+
+    public static List<(uint Pid, uint Parent, string Name)> Snapshot()
+    {
+        var list = new List<(uint, uint, string)>(256);
+        var parents = ParentMap();
+        foreach (var p in Process.GetProcesses())
+        {
+            try
+            {
+                uint pid = (uint)p.Id;
+                list.Add((pid, parents.TryGetValue(pid, out uint pp) ? pp : 0, p.ProcessName));
+            }
+            catch
+            {
+            }
+            finally
+            {
+                p.Dispose();
+            }
+        }
+
+        return list;
+    }
+
     public static unsafe bool[] FindRunning(string[] names)
     {
         var found = new bool[names.Length];

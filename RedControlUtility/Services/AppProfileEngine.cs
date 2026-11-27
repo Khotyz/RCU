@@ -17,6 +17,11 @@ public sealed class AppProfileEngine : IDisposable
     private GraphicsSettings? _restoreGraphics;
     private TuningSettings? _restoreTuning;
     private bool? _restoreFsr;
+    private readonly HashSet<uint> _family = new();
+    private DateTime _activatedAt = DateTime.UtcNow;
+    private DateTime _lastMatch = DateTime.UtcNow;
+    private static readonly TimeSpan LauncherGrace = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan LauncherMaxLife = TimeSpan.FromSeconds(30);
 
     public AppProfile? Active => _active;
 
@@ -61,18 +66,70 @@ public sealed class AppProfileEngine : IDisposable
                 if (candidates.Count == 0 && _active == null) return;
                 var names = new string[candidates.Count];
                 for (int i = 0; i < names.Length; i++) names[i] = Path.GetFileNameWithoutExtension(candidates[i].ExeName);
-                var found = ProcessListService.FindRunning(names);
-                AppProfile? match = null;
-                for (int i = 0; i < found.Length; i++)
+                var snap = ProcessListService.Snapshot();
+                var matches = new List<int>();
+                for (int i = 0; i < names.Length; i++)
                 {
-                    if (found[i]) { match = candidates[i]; break; }
+                    foreach (var s in snap)
+                    {
+                        if (string.Equals(s.Name, names[i], StringComparison.OrdinalIgnoreCase))
+                        {
+                            matches.Add(i);
+                            break;
+                        }
+                    }
                 }
 
-                if (ReferenceEquals(match, _active)) return;
-                if (match != null && _active != null && string.Equals(match.ExecutablePath, _active.ExecutablePath, StringComparison.OrdinalIgnoreCase)) return;
+                AppProfile? match = null;
+                string? matchName = null;
+                if (matches.Count > 0)
+                {
+                    int pick = matches[0];
+                    if (matches.Count > 1)
+                    {
+                        uint fg = ProcessListService.ForegroundPid();
+                        string? fgName = null;
+                        foreach (var s in snap)
+                            if (s.Pid == fg) { fgName = s.Name; break; }
+
+                        int byFg = fgName == null ? -1 : matches.FirstOrDefault(i => string.Equals(names[i], fgName, StringComparison.OrdinalIgnoreCase), -1);
+                        if (byFg >= 0) pick = byFg;
+                        else if (_active != null)
+                        {
+                            int cur = matches.FirstOrDefault(i => ReferenceEquals(candidates[i], _active), -1);
+                            if (cur >= 0) pick = cur;
+                        }
+                    }
+
+                    match = candidates[pick];
+                    matchName = names[pick];
+                }
+
+                bool same = match != null && _active != null &&
+                            (ReferenceEquals(match, _active) || string.Equals(match.ExecutablePath, _active.ExecutablePath, StringComparison.OrdinalIgnoreCase));
+                if (same)
+                {
+                    _lastMatch = DateTime.UtcNow;
+                    TrackFamily(snap, matchName);
+                    return;
+                }
+
+                if (_active != null && match == null)
+                {
+                    if (TrackFamily(snap, null)) return;
+                    if (_lastMatch - _activatedAt < LauncherMaxLife && DateTime.UtcNow - _lastMatch < LauncherGrace) return;
+                }
 
                 if (_active != null) Deactivate();
-                if (match != null) Activate(match);
+
+                if (match != null)
+                {
+                    Activate(match);
+                    _activatedAt = DateTime.UtcNow;
+                    _lastMatch = _activatedAt;
+                    _family.Clear();
+                                TrackFamily(snap, matchName);
+                }
             }
             catch (Exception ex)
             {
@@ -83,6 +140,34 @@ public sealed class AppProfileEngine : IDisposable
                 _busy = false;
             }
         }
+    }
+
+    private bool TrackFamily(List<(uint Pid, uint Parent, string Name)> snap, string? exeName)
+    {
+        if (exeName != null)
+        {
+            foreach (var s in snap)
+                if (string.Equals(s.Name, exeName, StringComparison.OrdinalIgnoreCase)) _family.Add(s.Pid);
+        }
+
+        bool grew = true;
+        for (int pass = 0; grew && pass < 8; pass++)
+        {
+            grew = false;
+            foreach (var s in snap)
+            {
+                if (s.Pid != 0 && !_family.Contains(s.Pid) && _family.Contains(s.Parent))
+                {
+                    _family.Add(s.Pid);
+                    grew = true;
+                }
+            }
+        }
+
+        var alive = new HashSet<uint>();
+        foreach (var s in snap) alive.Add(s.Pid);
+        _family.RemoveWhere(p => !alive.Contains(p));
+        return _family.Count > 0;
     }
 
     private static void RunCommand(string? command, string profileName, string phase)
@@ -212,6 +297,7 @@ public sealed class AppProfileEngine : IDisposable
 
         if (profile != null) RunCommand(profile.RunOnExit, profile.Name, "exit");
         _active = null;
+        _family.Clear();
         _restoreGraphics = null;
         _restoreTuning = null;
         _restoreFsr = null;
